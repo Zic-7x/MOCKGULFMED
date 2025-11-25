@@ -1,0 +1,279 @@
+.exam-results {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.results-header h1 {
+  color: #333;
+  margin: 0;
+}
+
+.back-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.score-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.score-card {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.score-card h2 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 20px;
+}
+
+.score-value {
+  font-size: 48px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.score-value.good {
+  color: #27ae60;
+}
+
+.score-value.average {
+  color: #f39c12;
+}
+
+.score-value.poor {
+  color: #e74c3c;
+}
+
+.score-details {
+  color: #666;
+  font-size: 14px;
+}
+
+.exam-info-card {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.exam-info-card h3 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.exam-info-card p {
+  color: #666;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.results-details {
+  margin-top: 30px;
+}
+
+.results-details h2 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.result-item {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  border-left: 4px solid;
+}
+
+.result-item.correct {
+  border-left-color: #27ae60;
+}
+
+.result-item.incorrect {
+  border-left-color: #e74c3c;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.result-number {
+  font-weight: 600;
+  color: #667eea;
+  font-size: 14px;
+}
+
+.result-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.result-status.correct {
+  background: #d4edda;
+  color: #155724;
+}
+
+.result-status.incorrect {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.result-question {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+
+.result-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.answer-item {
+  display: flex;
+  gap: 10px;
+}
+
+.answer-label {
+  font-weight: 500;
+  color: #666;
+  min-width: 120px;
+}
+
+.answer-value {
+  font-weight: 600;
+}
+
+.answer-value.wrong {
+  color: #e74c3c;
+}
+
+.answer-value.correct-answer {
+  color: #27ae60;
+}
+
+.explanation {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin-top: 10px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.no-results {
+  background: white;
+  padding: 40px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.no-results p {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+.btn-primary {
+  display: inline-block;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: opacity 0.3s;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.attempts-list {
+  display: grid;
+  gap: 20px;
+}
+
+.attempt-card {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.attempt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.attempt-header h3 {
+  color: #333;
+  margin: 0;
+}
+
+.score-badge {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.score-badge.good {
+  background: #d4edda;
+  color: #155724;
+}
+
+.score-badge.average {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.score-badge.poor {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.attempt-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  color: #666;
+  font-size: 14px;
+}
