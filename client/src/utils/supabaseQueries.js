@@ -287,6 +287,87 @@ export const getExam = async (examId, userId) => {
 
   if (error) throw error;
 
+  // Get user's previous attempts for this exam to filter out already-submitted questions
+  const { data: previousAttempts } = await supabase
+    .from('exam_attempts')
+    .select('answers')
+    .eq('user_id', userId)
+    .eq('exam_id', examId);
+
+  // Extract all question IDs that were already answered in previous attempts
+  const answeredQuestionIds = new Set();
+  if (previousAttempts && previousAttempts.length > 0) {
+    previousAttempts.forEach((attempt) => {
+      if (attempt.answers && typeof attempt.answers === 'object') {
+        Object.keys(attempt.answers).forEach((questionId) => {
+          // Normalize to string for consistent comparison
+          answeredQuestionIds.add(String(questionId));
+        });
+      }
+    });
+  }
+
+  // Filter out questions that were already submitted
+  let availableQuestions = data.questions.filter(
+    (question) => !answeredQuestionIds.has(String(question.id))
+  );
+
+  // If all questions were already answered, show a message or return empty
+  if (availableQuestions.length === 0) {
+    throw new Error('You have already completed all available questions for this exam.');
+  }
+
+  // Randomize the order of questions using Fisher-Yates shuffle
+  for (let i = availableQuestions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [availableQuestions[i], availableQuestions[j]] = [availableQuestions[j], availableQuestions[i]];
+  }
+
+  // Randomize options for each question
+  const questionsWithRandomizedOptions = availableQuestions.map((question) => {
+    // Create array of options with their original labels
+    const options = [
+      { label: 'A', text: question.option_a },
+      { label: 'B', text: question.option_b },
+      { label: 'C', text: question.option_c },
+      { label: 'D', text: question.option_d },
+    ];
+
+    // Shuffle the options array
+    for (let i = options.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [options[i], options[j]] = [options[j], options[i]];
+    }
+
+    // Create mapping: randomized position -> original option label
+    // e.g., {0: 'C', 1: 'A', 2: 'D', 3: 'B'} means position 0 shows original option C
+    const optionMapping = {};
+    const reverseMapping = {}; // original option -> randomized position
+    options.forEach((opt, index) => {
+      optionMapping[index] = opt.label;
+      reverseMapping[opt.label] = index;
+    });
+
+    // Update the question with randomized options and mappings
+    return {
+      ...question,
+      option_a: options[0].text,
+      option_b: options[1].text,
+      option_c: options[2].text,
+      option_d: options[3].text,
+      optionMapping, // Maps randomized position (0-3) to original option (A-D)
+      reverseMapping, // Maps original option (A-D) to randomized position (0-3)
+      // Store the randomized correct answer position for easy checking
+      randomizedCorrectAnswer: reverseMapping[question.correct_answer],
+    };
+  });
+
+  // Update the exam data with randomized and filtered questions
+  const examDataWithRandomQuestions = {
+    ...data,
+    questions: questionsWithRandomizedOptions,
+  };
+
   // Check daily limit
   let usageRecord = null;
   if (profile.daily_mcq_limit !== null) {
@@ -302,15 +383,21 @@ export const getExam = async (examId, userId) => {
     const used = usageRecord?.mcq_count || 0;
     const remaining = profile.daily_mcq_limit - used;
 
-    if (remaining < data.questions.length) {
+    // Only throw error if user has no MCQs remaining
+    if (remaining <= 0) {
       throw new Error(
-        `Daily MCQ limit reached. You have ${remaining} MCQs remaining today.`
+        `Daily MCQ limit reached. You have used all ${profile.daily_mcq_limit} MCQs for today.`
       );
+    }
+
+    // Limit questions to remaining daily limit if exam has more questions
+    if (remaining < examDataWithRandomQuestions.questions.length) {
+      examDataWithRandomQuestions.questions = examDataWithRandomQuestions.questions.slice(0, remaining);
     }
   }
 
   return {
-    exam: data,
+    exam: examDataWithRandomQuestions,
     dailyUsage: {
       mcqCount: usageRecord?.mcq_count || 0,
       limit: profile.daily_mcq_limit,

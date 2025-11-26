@@ -83,8 +83,15 @@ const TakeExam = () => {
     setAnswers((prev) => ({ ...prev, [questionId]: answer }));
   };
 
-  const getOptionText = (question, optionKey) => {
-    return question[`option_${optionKey.toLowerCase()}`];
+  const getOptionText = (question, position) => {
+    // position is 0, 1, 2, 3 corresponding to randomized options
+    const optionKeys = ['a', 'b', 'c', 'd'];
+    return question[`option_${optionKeys[position]}`];
+  };
+
+  const getOptionLabel = (position) => {
+    // Return A, B, C, D labels for positions 0, 1, 2, 3
+    return ['A', 'B', 'C', 'D'][position];
   };
 
   const handleAutoSubmit = () => {
@@ -95,12 +102,28 @@ const TakeExam = () => {
   const performSubmit = () => {
     setIsSubmitting(true);
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-    submitMutation.mutate({ answers, timeSpent });
+    
+    // Map randomized positions (0-3) back to original option labels (A-D)
+    const mappedAnswers = {};
+    if (exam?.questions) {
+      exam.questions.forEach((question) => {
+        const selectedPosition = answers[question.id];
+        if (selectedPosition !== undefined && question.optionMapping) {
+          // Convert position (0-3) to original option (A-D)
+          mappedAnswers[question.id] = question.optionMapping[selectedPosition];
+        } else if (selectedPosition !== undefined) {
+          // Fallback: if no mapping, assume it's already in correct format
+          mappedAnswers[question.id] = selectedPosition;
+        }
+      });
+    }
+    
+    submitMutation.mutate({ answers: mappedAnswers, timeSpent });
   };
 
   const openSubmitConfirmModal = (context = 'manual') => {
     if (!examData?.exam) return;
-    const unanswered = examData.exam.questions.filter((q) => !answers[q.id]);
+    const unanswered = examData.exam.questions.filter((q) => answers[q.id] === undefined);
     setUnansweredCount(unanswered.length);
     setSubmitContext(context);
     setShowConfirmModal(true);
@@ -255,27 +278,29 @@ const TakeExam = () => {
               <div className="options-section">
                 <span className="section-label">Options</span>
                 <div className="options">
-                  {['A', 'B', 'C', 'D'].map((option) => (
-                    <label
-                      key={option}
-                      className={`option-label ${
-                        answers[currentQuestion.id] === option ? 'selected' : ''
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name={`question-${currentQuestion.id}`}
-                        value={option}
-                        checked={answers[currentQuestion.id] === option}
-                        onChange={() => handleAnswerChange(currentQuestion.id, option)}
-                        disabled={submittedQuestions[currentQuestion.id]}
-                      />
-                      <span className="option-letter">{option}.</span>
-                      <span className="option-text">
-                        {getOptionText(currentQuestion, option)}
-                      </span>
-                    </label>
-                  ))}
+                  {[0, 1, 2, 3].map((position) => {
+                    const optionLabel = getOptionLabel(position);
+                    const isSelected = answers[currentQuestion.id] === position;
+                    return (
+                      <label
+                        key={position}
+                        className={`option-label ${isSelected ? 'selected' : ''}`}
+                      >
+                        <input
+                          type="radio"
+                          name={`question-${currentQuestion.id}`}
+                          value={position}
+                          checked={isSelected}
+                          onChange={() => handleAnswerChange(currentQuestion.id, position)}
+                          disabled={submittedQuestions[currentQuestion.id]}
+                        />
+                        <span className="option-letter">{optionLabel}.</span>
+                        <span className="option-text">
+                          {getOptionText(currentQuestion, position)}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -284,7 +309,7 @@ const TakeExam = () => {
                   type="button"
                   className="submit-answer-button"
                   onClick={() => handleQuestionSubmit(currentQuestion.id)}
-                  disabled={submittedQuestions[currentQuestion.id] || !answers[currentQuestion.id]}
+                  disabled={submittedQuestions[currentQuestion.id] || answers[currentQuestion.id] === undefined}
                 >
                   {submittedQuestions[currentQuestion.id]
                     ? 'Answer Submitted'
@@ -295,27 +320,26 @@ const TakeExam = () => {
               {submittedQuestions[currentQuestion.id] && (
                 <div
                   className={`question-feedback ${
-                    answers[currentQuestion.id] &&
-                    answers[currentQuestion.id] === currentQuestion.correct_answer
+                    answers[currentQuestion.id] !== undefined &&
+                    answers[currentQuestion.id] === currentQuestion.randomizedCorrectAnswer
                       ? 'correct'
                       : 'incorrect'
                   }`}
                 >
                   <p className="feedback-status">
-                    {answers[currentQuestion.id]
-                      ? answers[currentQuestion.id] === currentQuestion.correct_answer
+                    {answers[currentQuestion.id] !== undefined
+                      ? answers[currentQuestion.id] === currentQuestion.randomizedCorrectAnswer
                         ? 'Correct answer!'
                         : 'Incorrect answer.'
                       : 'Not answered.'}
                   </p>
-                  {answers[currentQuestion.id] &&
-                    answers[currentQuestion.id] !== currentQuestion.correct_answer &&
-                    currentQuestion.correct_answer &&
-                    getOptionText(currentQuestion, currentQuestion.correct_answer) && (
+                  {answers[currentQuestion.id] !== undefined &&
+                    answers[currentQuestion.id] !== currentQuestion.randomizedCorrectAnswer &&
+                    currentQuestion.randomizedCorrectAnswer !== undefined && (
                       <p className="feedback-answer">
                         Correct Option:{' '}
-                        <strong>{currentQuestion.correct_answer}.</strong>{' '}
-                        {getOptionText(currentQuestion, currentQuestion.correct_answer)}
+                        <strong>{getOptionLabel(currentQuestion.randomizedCorrectAnswer)}.</strong>{' '}
+                        {getOptionText(currentQuestion, currentQuestion.randomizedCorrectAnswer)}
                       </p>
                     )}
                   {currentQuestion.explanation && (
