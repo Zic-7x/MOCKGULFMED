@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import './Layout.css';
 
@@ -6,6 +7,7 @@ const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -20,7 +22,17 @@ const Layout = ({ children }) => {
           <Link to={isAdmin ? '/admin' : '/dashboard'} className="nav-logo">
             Mock Gulf Med
           </Link>
-          <div className="nav-menu">
+          <button
+            className="nav-toggle"
+            type="button"
+            onClick={() => setIsMenuOpen((open) => !open)}
+            aria-label="Toggle navigation menu"
+          >
+            <span className="nav-toggle-bar" />
+            <span className="nav-toggle-bar" />
+            <span className="nav-toggle-bar" />
+          </button>
+          <div className={`nav-menu ${isMenuOpen ? 'nav-menu-open' : ''}`}>
             {isAdmin ? (
               <>
                 <Link

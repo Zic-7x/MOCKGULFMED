@@ -1,12 +1,15 @@
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.');
+if (!supabaseUrl || !serviceRoleKey || !anonKey) {
+  throw new Error('Missing Supabase environment variables');
 }
 
+const anonClient = createClient(supabaseUrl, anonKey);
 const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 const profileSelectFragment = `
   *,
@@ -31,7 +34,8 @@ const ensureAdmin = async (accessToken) => {
     return { error: 'Missing access token' };
   }
 
-  const { data: userData, error: userError } = await serviceClient.auth.getUser(accessToken);
+  // Use anonClient for user verification
+  const { data: userData, error: userError } = await anonClient.auth.getUser(accessToken);
   if (userError || !userData?.user) {
     return { error: 'Invalid session token' };
   }
@@ -176,8 +180,13 @@ export default async function handler(req, res) {
 
     return send(res, result.status, result.body);
   } catch (error) {
-    console.error('Admin users API error:', error);
-    return send(res, 500, { error: 'Internal server error' });
+    console.error('Admin users API error:', error.stack || error);
+    // Send detailed error for debugging - comment out in production!
+    return send(res, 500, {
+      error: 'Internal server error',
+      message: error.message,
+      stack: error.stack
+    });
   }
 }
 

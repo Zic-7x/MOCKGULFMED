@@ -4,13 +4,14 @@
   "description": "Frontend for Mock Gulf Med",
   "private": true,
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.1",
     "@supabase/supabase-js": "^2.38.4",
     "@tanstack/react-query": "^5.12.2",
+    "date-fns": "^2.30.0",
+    "dotenv": "^17.2.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",
-    "date-fns": "^2.30.0"
+    "react-router-dom": "^6.20.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
@@ -18,6 +19,7 @@
   },
   "scripts": {
     "start": "vite",
+    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   }

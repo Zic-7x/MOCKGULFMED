@@ -277,3 +277,38 @@
   color: #666;
   font-size: 14px;
 }
+
+@media (max-width: 768px) {
+  .exam-results {
+    padding: 16px;
+  }
+
+  .results-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .score-card {
+    padding: 22px;
+  }
+
+  .result-item {
+    padding: 20px;
+  }
+
+  .answer-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .answer-label {
+    min-width: auto;
+  }
+
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}

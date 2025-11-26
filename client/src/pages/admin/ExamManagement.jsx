@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getExams, createExam, updateExam, deleteExam, addQuestion } from '../../utils/supabaseQueries';
+import {
+  getExams,
+  createExam,
+  updateExam,
+  deleteExam,
+  addQuestion,
+  bulkAddQuestions,
+} from '../../utils/supabaseQueries';
 import Layout from '../../components/Layout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -9,6 +16,7 @@ import './ExamManagement.css';
 const ExamManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [editingExam, setEditingExam] = useState(null);
   const [selectedExam, setSelectedExam] = useState(null);
   const [formData, setFormData] = useState({
@@ -28,6 +36,7 @@ const ExamManagement = () => {
     correctAnswer: 'A',
     explanation: '',
   });
+  const [bulkText, setBulkText] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -87,6 +96,20 @@ const ExamManagement = () => {
     },
   });
 
+  const bulkAddQuestionsMutation = useMutation({
+    mutationFn: ({ examId, questions }) => bulkAddQuestions(examId, questions),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['exams']);
+      setShowBulkModal(false);
+      setSelectedExam(null);
+      setBulkText('');
+      toast.success('Questions uploaded successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to upload questions');
+    },
+  });
+
   const resetForm = () => {
     setFormData({
       title: '',
@@ -110,6 +133,60 @@ const ExamManagement = () => {
     });
   };
 
+  const handleBulkSubmit = (e) => {
+    e.preventDefault();
+    if (!selectedExam) return;
+
+    const lines = bulkText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+
+    if (lines.length === 0) {
+      toast.error('Please paste at least one question line');
+      return;
+    }
+
+    // Optional header support: if first line contains "question" treat as header
+    const dataLines =
+      lines[0].toLowerCase().includes('question') && lines[0].includes(',')
+        ? lines.slice(1)
+        : lines;
+
+    const questions = [];
+
+    for (const line of dataLines) {
+      const parts = line.split(',').map((p) => p.trim());
+      if (parts.length < 6) {
+        toast.error(
+          'Each line must have at least 6 comma-separated values: Question, Option A, Option B, Option C, Option D, Correct Answer, [Explanation]'
+        );
+        return;
+      }
+
+      const [question, optionA, optionB, optionC, optionD, correctAnswerRaw, ...rest] = parts;
+      const correctAnswer = (correctAnswerRaw || '').toUpperCase();
+      if (!['A', 'B', 'C', 'D'].includes(correctAnswer)) {
+        toast.error('Correct Answer must be one of A, B, C, or D');
+        return;
+      }
+
+      const explanation = rest.join(',').trim() || '';
+
+      questions.push({
+        question,
+        optionA,
+        optionB,
+        optionC,
+        optionD,
+        correctAnswer,
+        explanation,
+      });
+    }
+
+    bulkAddQuestionsMutation.mutate({ examId: selectedExam.id, questions });
+  };
+
   const handleEdit = (exam) => {
     setEditingExam(exam);
     setFormData({
@@ -125,10 +202,14 @@ const ExamManagement = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Map UI form fields (camelCase) to DB columns (snake_case)
     const data = {
-      ...formData,
-      totalMcqs: parseInt(formData.totalMcqs),
-      duration: parseInt(formData.duration),
+      title: formData.title,
+      description: formData.description,
+      exam_type: formData.examType,
+      total_mcqs: parseInt(formData.totalMcqs, 10),
+      duration: parseInt(formData.duration, 10),
+      is_active: formData.isActive,
     };
 
     if (editingExam) {
@@ -195,6 +276,16 @@ const ExamManagement = () => {
                     <button onClick={() => handleEdit(exam)} className="btn-edit">Edit</button>
                     <button onClick={() => { setSelectedExam(exam); resetQuestionForm(); setShowQuestionModal(true); }} className="btn-add-question">
                       Add Question
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedExam(exam);
+                        setBulkText('');
+                        setShowBulkModal(true);
+                      }}
+                      className="btn-add-question"
+                    >
+                      Bulk Upload
                     </button>
                     <button onClick={() => handleDelete(exam.id)} className="btn-delete">Delete</button>
                   </td>
@@ -357,6 +448,67 @@ const ExamManagement = () => {
                   </button>
                   <button type="submit" className="btn-primary">
                     Add Question
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {showBulkModal && selectedExam && (
+          <div
+            className="modal-overlay"
+            onClick={() => {
+              setShowBulkModal(false);
+              setSelectedExam(null);
+              setBulkText('');
+            }}
+          >
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <h2>Bulk Upload Questions to {selectedExam.title}</h2>
+              <p className="bulk-help-text">
+                Paste CSV lines with the following columns:
+                <br />
+                <strong>
+                  Question, Option A, Option B, Option C, Option D, Correct Answer (A-D),
+                  Explanation (optional)
+                </strong>
+              </p>
+              <p className="bulk-help-text">
+                Example:
+                <br />
+                <code>
+                  What is 2+2?,4,3,2,1,A,Simple math addition question
+                </code>
+              </p>
+              <form onSubmit={handleBulkSubmit}>
+                <div className="form-group">
+                  <label>Questions CSV</label>
+                  <textarea
+                    value={bulkText}
+                    onChange={(e) => setBulkText(e.target.value)}
+                    rows="10"
+                    required
+                  />
+                </div>
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowBulkModal(false);
+                      setSelectedExam(null);
+                      setBulkText('');
+                    }}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={bulkAddQuestionsMutation.isLoading}
+                  >
+                    {bulkAddQuestionsMutation.isLoading ? 'Uploading...' : 'Upload Questions'}
                   </button>
                 </div>
               </form>

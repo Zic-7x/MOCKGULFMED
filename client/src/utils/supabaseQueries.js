@@ -265,12 +265,21 @@ export const getExam = async (examId, userId) => {
     }
   }
 
-  // Get exam with questions (without correct answers during exam)
+  // Get exam with questions (include correct answers/explanations for inline feedback)
   const { data, error } = await supabase
     .from('exams')
     .select(`
       *,
-      questions(id, question, option_a, option_b, option_c, option_d)
+      questions(
+        id,
+        question,
+        option_a,
+        option_b,
+        option_c,
+        option_d,
+        correct_answer,
+        explanation
+      )
     `)
     .eq('id', examId)
     .eq('is_active', true)
@@ -279,6 +288,7 @@ export const getExam = async (examId, userId) => {
   if (error) throw error;
 
   // Check daily limit
+  let usageRecord = null;
   if (profile.daily_mcq_limit !== null) {
     const today = new Date().toISOString().split('T')[0];
     const { data: usage } = await supabase
@@ -288,7 +298,8 @@ export const getExam = async (examId, userId) => {
       .eq('date', today)
       .single();
 
-    const used = usage?.mcq_count || 0;
+    usageRecord = usage;
+    const used = usageRecord?.mcq_count || 0;
     const remaining = profile.daily_mcq_limit - used;
 
     if (remaining < data.questions.length) {
@@ -301,9 +312,12 @@ export const getExam = async (examId, userId) => {
   return {
     exam: data,
     dailyUsage: {
-      mcqCount: usage?.mcq_count || 0,
+      mcqCount: usageRecord?.mcq_count || 0,
       limit: profile.daily_mcq_limit,
-      remaining: profile.daily_mcq_limit !== null ? profile.daily_mcq_limit - (usage?.mcq_count || 0) : null,
+      remaining:
+        profile.daily_mcq_limit !== null
+          ? profile.daily_mcq_limit - (usageRecord?.mcq_count || 0)
+          : null,
     },
   };
 };
@@ -376,6 +390,27 @@ export const addQuestion = async (examId, questionData) => {
 
   if (error) throw error;
   return data;
+};
+
+export const bulkAddQuestions = async (examId, questions) => {
+  if (!questions || questions.length === 0) {
+    throw new Error('No questions provided for bulk upload');
+  }
+
+  const payload = questions.map((q) => ({
+    exam_id: examId,
+    question: q.question,
+    option_a: q.optionA,
+    option_b: q.optionB,
+    option_c: q.optionC,
+    option_d: q.optionD,
+    correct_answer: q.correctAnswer,
+    explanation: q.explanation || null,
+  }));
+
+  const { error } = await supabase.from('questions').insert(payload);
+
+  if (error) throw error;
 };
 
 export const updateQuestion = async (id, questionData) => {

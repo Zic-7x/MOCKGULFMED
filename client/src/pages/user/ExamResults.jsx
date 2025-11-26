@@ -13,14 +13,14 @@ const ExamResults = () => {
   const { user } = useAuth();
   const resultsFromState = location.state?.results;
 
-  const { data: attempts, isLoading } = useQuery(
-    ['userAttempts', user?.id, id],
-    async () => {
+  const { data: attempts, isLoading } = useQuery({
+    queryKey: ['userAttempts', user?.id, id],
+    queryFn: async () => {
       if (!user?.id) return [];
       return await getUserAttempts(user.id, id || null);
     },
-    { enabled: !!user?.id && !resultsFromState }
-  );
+    enabled: !!user?.id && !resultsFromState,
+  });
 
   if (isLoading && !resultsFromState) {
     return (
