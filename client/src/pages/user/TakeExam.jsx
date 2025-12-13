@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { getExam, submitExam } from '../../utils/supabaseQueries';
@@ -12,6 +12,9 @@ const TakeExam = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0); // overall exam timer
@@ -23,7 +26,7 @@ const TakeExam = () => {
   const [unansweredCount, setUnansweredCount] = useState(0);
   const [submitContext, setSubmitContext] = useState('manual'); // 'manual' | 'time'
 
-  const { data: examData, isLoading } = useQuery({
+  const { data: examData, isLoading, error } = useQuery({
     queryKey: ['exam', id, user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -197,11 +200,50 @@ const TakeExam = () => {
     );
   }
 
+  // Check for access errors first
+  if (error) {
+    if (error.message?.toLowerCase().includes('access')) {
+      return (
+        <Layout>
+          <div className="take-exam">
+            <div className="error-message">
+              <h2>Access Denied</h2>
+              <p>{error.message}</p>
+              <button onClick={() => navigate('/exams')} className="btn-primary">
+                Back to Exams
+              </button>
+            </div>
+          </div>
+        </Layout>
+      );
+    }
+    // For other errors, show generic error
+    return (
+      <Layout>
+        <div className="take-exam">
+          <div className="error-message">
+            <h2>Error</h2>
+            <p>{error.message || 'Failed to load exam. Please try again later.'}</p>
+            <button onClick={() => navigate('/exams')} className="btn-primary">
+              Back to Exams
+            </button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   if (!examData?.exam) {
     return (
       <Layout>
         <div className="take-exam">
-          <p>Exam not found</p>
+          <div className="error-message">
+            <h2>Exam Not Found</h2>
+            <p>The exam you're looking for doesn't exist or is no longer available.</p>
+            <button onClick={() => navigate('/exams')} className="btn-primary">
+              Back to Exams
+            </button>
+          </div>
         </div>
       </Layout>
     );

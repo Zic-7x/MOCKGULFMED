@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAvailableExams } from '../../utils/supabaseQueries';
 import Layout from '../../components/Layout';
@@ -9,6 +9,9 @@ import './ExamList.css';
 
 const ExamList = () => {
   const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
   const { data: exams, isLoading, error } = useQuery({
     queryKey: ['availableExams', user?.id],
     queryFn: async () => {

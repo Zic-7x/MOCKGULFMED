@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getUserDashboard } from '../../utils/supabaseQueries';
 import Layout from '../../components/Layout';
@@ -8,6 +8,9 @@ import './UserDashboard.css';
 
 const UserDashboard = () => {
   const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
   const { data, isLoading } = useQuery({
     queryKey: ['userDashboard', user?.id],
     queryFn: async () => {

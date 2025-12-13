@@ -1,4 +1,4 @@
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,6 +11,9 @@ const ExamResults = () => {
   const location = useLocation();
   const { id } = useParams();
   const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
   const resultsFromState = location.state?.results;
 
   const { data: attempts, isLoading } = useQuery({
@@ -32,7 +35,7 @@ const ExamResults = () => {
 
   // Show detailed results from just completed exam
   if (resultsFromState) {
-    const { attempt, results, score, correctAnswers, totalQuestions } = resultsFromState;
+    const { attempt, results, score, correctAnswers, totalQuestions, totalExamQuestions, batchInfo, overallPercentage } = resultsFromState;
 
     return (
       <Layout>
@@ -58,6 +61,34 @@ const ExamResults = () => {
               <p>Completed: {new Date(attempt.completed_at).toLocaleString()}</p>
               <p>Time Spent: {Math.floor(attempt.time_spent / 60)} minutes</p>
             </div>
+          </div>
+
+          {/* Batch and Overall Percentage Section */}
+          <div className="percentage-breakdown">
+            {batchInfo && (
+              <div className="percentage-card batch-percentage">
+                <h3>Batch Performance</h3>
+                <div className={`percentage-value ${batchInfo.percentage >= 70 ? 'good' : batchInfo.percentage >= 50 ? 'average' : 'poor'}`}>
+                  {batchInfo.percentage.toFixed(1)}%
+                </div>
+                <p className="percentage-details">
+                  {batchInfo.correctAnswers} out of {batchInfo.dailyLimit} daily limit questions
+                </p>
+                <p className="percentage-label">Based on your daily MCQ limit</p>
+              </div>
+            )}
+            {totalExamQuestions && totalExamQuestions > totalQuestions && (
+              <div className="percentage-card overall-percentage">
+                <h3>Overall Performance</h3>
+                <div className={`percentage-value ${overallPercentage >= 70 ? 'good' : overallPercentage >= 50 ? 'average' : 'poor'}`}>
+                  {overallPercentage.toFixed(1)}%
+                </div>
+                <p className="percentage-details">
+                  {correctAnswers} out of {totalExamQuestions} total exam questions
+                </p>
+                <p className="percentage-label">Based on total questions in exam</p>
+              </div>
+            )}
           </div>
 
           <div className="results-details">

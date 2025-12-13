@@ -261,7 +261,7 @@ export const getExam = async (examId, userId) => {
       .single();
 
     if (!accessData) {
-      throw new Error('You do not have access to this exam');
+      throw new Error('You have no access to this exam. Please contact your representative.');
     }
   }
 
@@ -286,6 +286,11 @@ export const getExam = async (examId, userId) => {
     .single();
 
   if (error) throw error;
+
+  // Check if exam exists and has questions
+  if (!data || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+    throw new Error('You have no access to this exam. Please contact your representative.');
+  }
 
   // Get user's previous attempts for this exam to filter out already-submitted questions
   const { data: previousAttempts } = await supabase
@@ -325,13 +330,31 @@ export const getExam = async (examId, userId) => {
 
   // Randomize options for each question
   const questionsWithRandomizedOptions = availableQuestions.map((question) => {
+    // Validate that all options exist (check for null/undefined specifically, not empty strings)
+    if (question.option_a == null || question.option_b == null || question.option_c == null || question.option_d == null) {
+      throw new Error(`Question "${question.id}" is missing one or more options. Please contact support.`);
+    }
+
     // Create array of options with their original labels
-    const options = [
-      { label: 'A', text: question.option_a },
-      { label: 'B', text: question.option_b },
-      { label: 'C', text: question.option_c },
-      { label: 'D', text: question.option_d },
-    ];
+    // Ensure all option texts are strings (handle null/undefined by converting to empty string)
+    const optionA = { label: 'A', text: String(question.option_a || '') };
+    const optionB = { label: 'B', text: String(question.option_b || '') };
+    const optionC = { label: 'C', text: String(question.option_c || '') };
+    const optionD = { label: 'D', text: String(question.option_d || '') };
+    
+    const options = [optionA, optionB, optionC, optionD];
+
+    // Ensure we have exactly 4 valid options
+    if (options.length !== 4) {
+      throw new Error(`Question "${question.id}" must have exactly 4 options. Found ${options.length}. Please contact support.`);
+    }
+    
+    // Validate each option object is valid
+    options.forEach((opt, idx) => {
+      if (!opt || typeof opt !== 'object' || !opt.hasOwnProperty('text') || !opt.hasOwnProperty('label')) {
+        throw new Error(`Question "${question.id}" has invalid option at index ${idx}. Please contact support.`);
+      }
+    });
 
     // Shuffle the options array
     for (let i = options.length - 1; i > 0; i--) {
@@ -339,22 +362,43 @@ export const getExam = async (examId, userId) => {
       [options[i], options[j]] = [options[j], options[i]];
     }
 
+    // Validate that all options still exist after shuffling
+    if (options.length !== 4 || !options[0] || !options[1] || !options[2] || !options[3]) {
+      throw new Error(`Question "${question.id}" has invalid options after processing. Please contact support.`);
+    }
+
+    // Validate that all options have text property (check for existence, not truthiness - empty strings are valid)
+    if (!options[0].hasOwnProperty('text') || !options[1].hasOwnProperty('text') || 
+        !options[2].hasOwnProperty('text') || !options[3].hasOwnProperty('text')) {
+      throw new Error(`Question "${question.id}" is missing option text property. Please contact support.`);
+    }
+
     // Create mapping: randomized position -> original option label
     // e.g., {0: 'C', 1: 'A', 2: 'D', 3: 'B'} means position 0 shows original option C
     const optionMapping = {};
     const reverseMapping = {}; // original option -> randomized position
     options.forEach((opt, index) => {
-      optionMapping[index] = opt.label;
-      reverseMapping[opt.label] = index;
+      if (opt && opt.label) {
+        optionMapping[index] = opt.label;
+        reverseMapping[opt.label] = index;
+      }
     });
+
+    // Safely extract text from options (with additional safety checks)
+    const getOptionText = (opt, index) => {
+      if (!opt || typeof opt !== 'object' || !opt.hasOwnProperty('text')) {
+        throw new Error(`Question "${question.id}" has invalid option at index ${index}. Please contact support.`);
+      }
+      return opt.text || '';
+    };
 
     // Update the question with randomized options and mappings
     return {
       ...question,
-      option_a: options[0].text,
-      option_b: options[1].text,
-      option_c: options[2].text,
-      option_d: options[3].text,
+      option_a: getOptionText(options[0], 0),
+      option_b: getOptionText(options[1], 1),
+      option_c: getOptionText(options[2], 2),
+      option_d: getOptionText(options[3], 3),
       optionMapping, // Maps randomized position (0-3) to original option (A-D)
       reverseMapping, // Maps original option (A-D) to randomized position (0-3)
       // Store the randomized correct answer position for easy checking
