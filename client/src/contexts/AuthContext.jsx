@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('[AuthContext] useEffect - about to call checkSession');
     // Check active session
     checkSession();
 
@@ -27,6 +28,7 @@ export const AuthProvider = ({ children }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('[AuthContext] onAuthStateChange event:', _event, 'session:', session);
       if (session?.user) {
         await loadUserProfile(session.user.id);
       } else {
@@ -34,25 +36,35 @@ export const AuthProvider = ({ children }) => {
         setUserProfile(null);
       }
       setLoading(false);
+      console.log('[AuthContext] onAuthStateChange setLoading(false)');
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkSession = async () => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+  // Promise helper to add a timeout to getSession
+  function promiseWithTimeout(promise, timeoutMs) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('getSession timeout')), timeoutMs))
+    ]);
+  }
 
+  const checkSession = async () => {
+    console.log('[AuthContext] checkSession: Before getSession');
+    try {
+      const { data: { session } } = await promiseWithTimeout(supabase.auth.getSession(), 3000); // 3s timeout
+      console.log('[AuthContext] checkSession: After getSession:', session);
       if (session?.user) {
         setUser(session.user);
         await loadUserProfile(session.user.id);
       }
     } catch (error) {
-      console.error('Error checking session:', error);
+      console.error('[AuthContext] Error checking session:', error);
+      toast.error('You have been logged out. Please do not switch tabs or switch apps during your examination.');
     } finally {
       setLoading(false);
+      console.log('[AuthContext] checkSession: setLoading(false) called in finally');
     }
   };
 
