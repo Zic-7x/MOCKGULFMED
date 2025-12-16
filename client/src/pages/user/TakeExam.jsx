@@ -53,6 +53,10 @@ const TakeExam = () => {
       toast.error(error.message || 'Failed to submit exam');
       setIsSubmitting(false);
     },
+    onSettled: () => {
+      // Always release the submitting state so the button recovers even if the mutation errors mid-way
+      setIsSubmitting(false);
+    },
   });
 
   useEffect(() => {
@@ -103,6 +107,7 @@ const TakeExam = () => {
   };
 
   const performSubmit = () => {
+    if (isSubmitting) return; // Prevent duplicate submissions/race conditions
     setIsSubmitting(true);
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     
