@@ -35,7 +35,21 @@ const ExamResults = () => {
 
   // Show detailed results from just completed exam
   if (resultsFromState) {
-    const { attempt, results, score, correctAnswers, totalQuestions, totalExamQuestions, batchInfo, overallPercentage } = resultsFromState;
+    const {
+      attempt,
+      results,
+      score,
+      correctAnswers,
+      totalQuestions,
+      totalExamQuestions,
+      batchInfo,
+      overallPercentage,
+      answeredCount,
+      dailyLimit,
+    } = resultsFromState;
+
+    const readinessThreshold = 80;
+    const isReady = overallPercentage >= readinessThreshold;
 
     return (
       <Layout>
@@ -67,12 +81,14 @@ const ExamResults = () => {
           <div className="percentage-breakdown">
             {batchInfo && (
               <div className="percentage-card batch-percentage">
-                <h3>Batch Performance</h3>
-                <div className={`percentage-value ${batchInfo.percentage >= 70 ? 'good' : batchInfo.percentage >= 50 ? 'average' : 'poor'}`}>
+                <h3>Daily Limit Progress</h3>
+                <div
+                  className={`percentage-value ${batchInfo.percentage >= 70 ? 'good' : batchInfo.percentage >= 50 ? 'average' : 'poor'}`}
+                >
                   {batchInfo.percentage.toFixed(1)}%
                 </div>
                 <p className="percentage-details">
-                  {batchInfo.correctAnswers} out of {batchInfo.dailyLimit} daily limit questions
+                  {batchInfo.correctCount ?? correctAnswers ?? 0} correct out of {batchInfo.dailyLimit} daily limit questions
                 </p>
                 <p className="percentage-label">Based on your daily MCQ limit</p>
               </div>
@@ -89,6 +105,21 @@ const ExamResults = () => {
                 <p className="percentage-label">Based on total questions in exam</p>
               </div>
             )}
+          </div>
+
+          {/* Readiness message */}
+          <div className={`readiness-banner ${isReady ? 'ready' : 'not-ready'}`}>
+            <div className="readiness-message">
+              {isReady ? (
+                <>
+                  <span className="celebrate">🎉</span> You're ready for your exam!
+                </>
+              ) : (
+                <>
+                  Keep practicing — aim for {readinessThreshold}%+ to unlock your exam.
+                </>
+              )}
+            </div>
           </div>
 
           <div className="results-details">
@@ -162,15 +193,25 @@ const ExamResults = () => {
             <div key={attempt.id} className="attempt-card">
               <div className="attempt-header">
                 <h3>{attempt.exam?.title}</h3>
-                <span className={`score-badge ${attempt.score >= 70 ? 'good' : attempt.score >= 50 ? 'average' : 'poor'}`}>
-                  {attempt.score.toFixed(1)}%
-                </span>
+                  <span
+                    className={`score-badge ${attempt.dailyLimitPercentage >= 70 ? 'good' : attempt.dailyLimitPercentage >= 50 ? 'average' : 'poor'}`}
+                  >
+                    {attempt.dailyLimitPercentage !== null
+                      ? `${attempt.dailyLimitPercentage.toFixed(1)}%`
+                      : `${attempt.score.toFixed(1)}%`}
+                  </span>
               </div>
               <div className="attempt-details">
-                <div className="detail-row">
-                  <span>Type: {attempt.exam?.exam_type}</span>
-                  <span>{attempt.correct_answers}/{attempt.total_questions} correct</span>
-                </div>
+                  <div className="detail-row">
+                    <span>Type: {attempt.exam?.exam_type}</span>
+                    {attempt.dailyLimitPercentage !== null ? (
+                      <span>
+                        {attempt.correctCount ?? attempt.correct_answers} correct / {attempt.dailyLimit} daily limit
+                      </span>
+                    ) : (
+                      <span>{attempt.correct_answers}/{attempt.total_questions} correct</span>
+                    )}
+                  </div>
                 <div className="detail-row">
                   <span>Completed: {new Date(attempt.completed_at).toLocaleString()}</span>
                   <span>Time: {Math.floor(attempt.time_spent / 60)} min</span>

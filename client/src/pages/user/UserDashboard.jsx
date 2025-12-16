@@ -106,12 +106,22 @@ const UserDashboard = () => {
                 <div key={attempt.id} className="attempt-card">
                   <div className="attempt-header">
                     <h4>{attempt.exam?.title}</h4>
-                    <span className={`score-badge ${attempt.score >= 70 ? 'good' : attempt.score >= 50 ? 'average' : 'poor'}`}>
-                      {attempt.score.toFixed(1)}%
+                    <span
+                      className={`score-badge ${attempt.dailyLimitPercentage >= 70 ? 'good' : attempt.dailyLimitPercentage >= 50 ? 'average' : 'poor'}`}
+                    >
+                      {attempt.dailyLimitPercentage !== null
+                        ? `${attempt.dailyLimitPercentage.toFixed(1)}%`
+                        : `${attempt.score.toFixed(1)}%`}
                     </span>
                   </div>
                   <div className="attempt-details">
-                    <span>{attempt.correct_answers}/{attempt.total_questions} correct</span>
+                    {attempt.dailyLimitPercentage !== null ? (
+                      <span>
+                        {attempt.correctCount ?? attempt.correct_answers} correct / {data?.user?.dailyMcqLimit} daily limit
+                      </span>
+                    ) : (
+                      <span>{attempt.correct_answers}/{attempt.total_questions} correct</span>
+                    )}
                     <span>{new Date(attempt.completed_at).toLocaleDateString()}</span>
                   </div>
                 </div>

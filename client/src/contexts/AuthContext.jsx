@@ -30,7 +30,11 @@ export const AuthProvider = ({ children }) => {
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       console.log('[AuthContext] onAuthStateChange event:', _event, 'session:', session);
       if (session?.user) {
-        await loadUserProfile(session.user.id);
+        setUser(session.user);
+        // Do not block loading state on profile fetch
+        loadUserProfile(session.user.id).catch((error) =>
+          console.error('[AuthContext] onAuthStateChange loadUserProfile error:', error)
+        );
       } else {
         setUser(null);
         setUserProfile(null);
@@ -42,26 +46,22 @@ export const AuthProvider = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Promise helper to add a timeout to getSession
-  function promiseWithTimeout(promise, timeoutMs) {
-    return Promise.race([
-      promise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('getSession timeout')), timeoutMs))
-    ]);
-  }
-
   const checkSession = async () => {
     console.log('[AuthContext] checkSession: Before getSession');
     try {
-      const { data: { session } } = await promiseWithTimeout(supabase.auth.getSession(), 3000); // 3s timeout
+      // Use native getSession without a short timeout; avoids false logouts on slow networks
+      const { data: { session } } = await supabase.auth.getSession();
       console.log('[AuthContext] checkSession: After getSession:', session);
       if (session?.user) {
         setUser(session.user);
-        await loadUserProfile(session.user.id);
+        // Fire-and-forget profile load so loading state can clear quickly
+        loadUserProfile(session.user.id).catch((error) =>
+          console.error('[AuthContext] checkSession loadUserProfile error:', error)
+        );
       }
     } catch (error) {
       console.error('[AuthContext] Error checking session:', error);
-      toast.error('You have been logged out. Please do not switch tabs or switch apps during your examination.');
+      toast.error('Session check failed. Please refresh or log in again.');
     } finally {
       setLoading(false);
       console.log('[AuthContext] checkSession: setLoading(false) called in finally');

@@ -630,6 +630,7 @@ export const submitExam = async (examId, userId, answers, timeSpent) => {
   // Calculate score
   let correctAnswers = 0;
   const totalQuestions = exam.questions.length;
+  const answeredCount = exam.questions.filter((q) => answers[q.id] !== undefined && answers[q.id] !== null).length;
 
   exam.questions.forEach((question) => {
     if (answers[question.id] === question.correct_answer) {
@@ -638,6 +639,14 @@ export const submitExam = async (examId, userId, answers, timeSpent) => {
   });
 
   const score = (correctAnswers / totalQuestions) * 100;
+
+  // Get user daily limit for later calculations
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('daily_mcq_limit')
+    .eq('id', userId)
+    .single();
+  const dailyLimit = profile?.daily_mcq_limit ?? null;
 
   // Create attempt
   const { data: attempt, error: attemptError } = await supabase
@@ -666,18 +675,18 @@ export const submitExam = async (examId, userId, answers, timeSpent) => {
     .select('*')
     .eq('user_id', userId)
     .eq('date', today)
-    .single();
+    .maybeSingle();
 
   if (existingUsage) {
     await supabase
       .from('daily_mcq_usage')
-      .update({ mcq_count: existingUsage.mcq_count + totalQuestions })
+      .update({ mcq_count: existingUsage.mcq_count + answeredCount })
       .eq('id', existingUsage.id);
   } else {
     await supabase.from('daily_mcq_usage').insert({
       user_id: userId,
       date: today,
-      mcq_count: totalQuestions,
+      mcq_count: answeredCount,
     });
   }
 
@@ -691,16 +700,74 @@ export const submitExam = async (examId, userId, answers, timeSpent) => {
     isCorrect: answers[question.id] === question.correct_answer,
   }));
 
+  const totalExamQuestions = totalQuestions;
+  const overallPercentage = totalExamQuestions > 0 ? (correctAnswers / totalExamQuestions) * 100 : 0;
+  const batchInfo = dailyLimit
+    ? {
+        dailyLimit,
+        answeredCount,
+        correctCount: correctAnswers,
+        percentage: Math.min((correctAnswers / dailyLimit) * 100, 100),
+      }
+    : null;
+
   return {
     attempt,
     results,
     score,
     correctAnswers,
     totalQuestions,
+    totalExamQuestions,
+    answeredCount,
+    dailyLimit,
+    batchInfo,
+    overallPercentage,
+  };
+};
+
+// Normalize numeric fields from Supabase (returns decimals as strings) and attach derived usage
+const normalizeAttempt = (attempt, dailyLimit = null) => {
+  const normalized = {
+    ...attempt,
+    score: typeof attempt.score === 'number' ? attempt.score : Number(attempt.score) || 0,
+    total_questions:
+      typeof attempt.total_questions === 'number'
+        ? attempt.total_questions
+        : Number(attempt.total_questions) || 0,
+    correct_answers:
+      typeof attempt.correct_answers === 'number'
+        ? attempt.correct_answers
+        : Number(attempt.correct_answers) || 0,
+    time_spent:
+      typeof attempt.time_spent === 'number' ? attempt.time_spent : Number(attempt.time_spent) || 0,
+  };
+
+  const answeredCount = attempt?.answers
+    ? Object.values(attempt.answers).filter((val) => val !== null && val !== undefined).length
+    : normalized.total_questions;
+  const correctCount = normalized.correct_answers;
+
+  const dailyLimitPercentage =
+    dailyLimit && dailyLimit > 0 ? Math.min((correctCount / dailyLimit) * 100, 100) : null;
+
+  return {
+    ...normalized,
+    answeredCount,
+    dailyLimit,
+    correctCount,
+    dailyLimitPercentage,
   };
 };
 
 export const getUserAttempts = async (userId, examId = null) => {
+  // Fetch user profile once so we can compute daily-limit-based percentages
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('daily_mcq_limit')
+    .eq('id', userId)
+    .maybeSingle();
+  const dailyLimit = profile?.daily_mcq_limit ?? null;
+
   let query = supabase
     .from('exam_attempts')
     .select(`
@@ -717,7 +784,7 @@ export const getUserAttempts = async (userId, examId = null) => {
   const { data, error } = await query;
 
   if (error) throw error;
-  return data;
+  return (data || []).map((attempt) => normalizeAttempt(attempt, dailyLimit));
 };
 
 // Dashboard
@@ -760,7 +827,7 @@ export const getUserDashboard = async (userId) => {
       dailyMcqLimit: profile.daily_mcq_limit,
       fullName: profile.full_name,
     },
-    recentAttempts: attempts || [],
+    recentAttempts: (attempts || []).map((attempt) => normalizeAttempt(attempt, profile.daily_mcq_limit)),
     dailyUsage: {
       used: usage?.mcq_count || 0,
       limit: profile.daily_mcq_limit,
