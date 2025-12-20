@@ -293,29 +293,47 @@ export const getExam = async (examId, userId) => {
   }
 
   // Get user's previous attempts for this exam to filter out already-submitted questions
-  const { data: previousAttempts } = await supabase
+  // This ensures questions don't repeat across different days/sessions
+  const { data: previousAttempts, error: attemptsError } = await supabase
     .from('exam_attempts')
     .select('answers')
     .eq('user_id', userId)
     .eq('exam_id', examId);
 
+  if (attemptsError) {
+    console.error('Error fetching previous attempts:', attemptsError);
+    // Continue without filtering if there's an error, but log it
+  }
+
   // Extract all question IDs that were already answered in previous attempts
+  // Normalize all IDs to strings for consistent comparison (UUIDs can be strings or UUID objects)
+  // Only include questions that were actually answered (not null/undefined)
   const answeredQuestionIds = new Set();
   if (previousAttempts && previousAttempts.length > 0) {
     previousAttempts.forEach((attempt) => {
       if (attempt.answers && typeof attempt.answers === 'object') {
         Object.keys(attempt.answers).forEach((questionId) => {
-          // Normalize to string for consistent comparison
-          answeredQuestionIds.add(String(questionId));
+          // Only include questions that were actually answered (not null/undefined)
+          const answerValue = attempt.answers[questionId];
+          if (answerValue !== null && answerValue !== undefined) {
+            // Normalize to string and trim whitespace for consistent comparison
+            const normalizedId = String(questionId).trim();
+            if (normalizedId) {
+              answeredQuestionIds.add(normalizedId);
+            }
+          }
         });
       }
     });
   }
 
-  // Filter out questions that were already submitted
-  let availableQuestions = data.questions.filter(
-    (question) => !answeredQuestionIds.has(String(question.id))
-  );
+  // Filter out questions that were already submitted in ANY previous attempt
+  // This prevents questions from repeating across different days
+  let availableQuestions = data.questions.filter((question) => {
+    // Normalize question ID to string for comparison
+    const normalizedQuestionId = String(question.id).trim();
+    return !answeredQuestionIds.has(normalizedQuestionId);
+  });
 
   // If all questions were already answered, show a message or return empty
   if (availableQuestions.length === 0) {
@@ -842,6 +860,14 @@ export const getUserDashboard = async (userId) => {
 // Admin Stats
 export const getAdminStats = async () => {
   try {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date(today);
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+
+    // Basic counts
     const [usersResult, examsResult, attemptsResult, professionsResult, healthAuthoritiesResult] = await Promise.all([
       supabase.from('user_profiles').select('id', { count: 'exact', head: true }),
       supabase.from('exams').select('id', { count: 'exact', head: true }),
@@ -850,13 +876,107 @@ export const getAdminStats = async () => {
       supabase.from('health_authorities').select('id', { count: 'exact', head: true }),
     ]);
 
-    // Check for errors in any of the queries
+    // Get all attempts for analytics
+    const { data: allAttempts, error: attemptsError } = await supabase
+      .from('exam_attempts')
+      .select('score, completed_at, user_id, exam_id')
+      .order('completed_at', { ascending: false });
+
+    // Get recent attempts (last 10) with user daily limit
+    const { data: recentAttempts } = await supabase
+      .from('exam_attempts')
+      .select(`
+        *,
+        exam:exams(title, exam_type),
+        user:user_profiles(full_name, email, daily_mcq_limit)
+      `)
+      .order('completed_at', { ascending: false })
+      .limit(10);
+
+    // Get new users (last 7 days)
+    const { data: newUsers } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, email, created_at')
+      .gte('created_at', weekAgo.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    // Get active users (users who attempted exams in last 7 days)
+    const { data: activeUsersData } = await supabase
+      .from('exam_attempts')
+      .select('user_id')
+      .gte('completed_at', weekAgo.toISOString());
+
+    const uniqueActiveUsers = new Set(activeUsersData?.map(a => a.user_id) || []);
+
+    // Calculate time-based statistics
+    const attemptsToday = allAttempts?.filter(a => new Date(a.completed_at) >= today).length || 0;
+    const attemptsThisWeek = allAttempts?.filter(a => new Date(a.completed_at) >= weekAgo).length || 0;
+    const attemptsThisMonth = allAttempts?.filter(a => new Date(a.completed_at) >= monthAgo).length || 0;
+
+    // Calculate average score
+    const scores = allAttempts?.map(a => parseFloat(a.score) || 0).filter(s => s > 0) || [];
+    const averageScore = scores.length > 0 
+      ? scores.reduce((sum, score) => sum + score, 0) / scores.length 
+      : 0;
+
+    // Calculate pass rate (assuming 70% is passing)
+    const passingScore = 70;
+    const passingAttempts = scores.filter(s => s >= passingScore).length;
+    const passRate = scores.length > 0 ? (passingAttempts / scores.length) * 100 : 0;
+
+    // Get exam popularity (top 5 most attempted exams)
+    const examAttemptCounts = {};
+    allAttempts?.forEach(attempt => {
+      examAttemptCounts[attempt.exam_id] = (examAttemptCounts[attempt.exam_id] || 0) + 1;
+    });
+    const topExamIds = Object.entries(examAttemptCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([id]) => id);
+
+    const { data: topExams } = topExamIds.length > 0
+      ? await supabase
+          .from('exams')
+          .select('id, title, exam_type')
+          .in('id', topExamIds)
+      : { data: [] };
+
+    const topExamsWithCounts = topExams?.map(exam => ({
+      ...exam,
+      attemptCount: examAttemptCounts[exam.id] || 0
+    })).sort((a, b) => b.attemptCount - a.attemptCount) || [];
+
+    // Get daily activity for last 7 days (for chart)
+    const dailyActivity = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+      const nextDateStr = nextDate.toISOString().split('T')[0];
+      
+      const count = allAttempts?.filter(a => {
+        const attemptDate = new Date(a.completed_at);
+        return attemptDate >= date && attemptDate < nextDate;
+      }).length || 0;
+      
+      dailyActivity.push({
+        date: dateStr,
+        count,
+        label: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      });
+    }
+
+    // Check for errors
     const errors = [
       usersResult.error,
       examsResult.error,
       attemptsResult.error,
       professionsResult.error,
       healthAuthoritiesResult.error,
+      attemptsError,
     ].filter(Boolean);
 
     if (errors.length > 0) {
@@ -865,11 +985,64 @@ export const getAdminStats = async () => {
     }
 
     return {
+      // Basic counts
       totalUsers: usersResult.count || 0,
       totalExams: examsResult.count || 0,
       totalAttempts: attemptsResult.count || 0,
       totalProfessions: professionsResult.count || 0,
       totalHealthAuthorities: healthAuthoritiesResult.count || 0,
+      
+      // Performance metrics
+      averageScore: Math.round(averageScore * 10) / 10,
+      passRate: Math.round(passRate * 10) / 10,
+      
+      // Time-based stats
+      attemptsToday,
+      attemptsThisWeek,
+      attemptsThisMonth,
+      activeUsers: uniqueActiveUsers.size,
+      newUsersThisWeek: newUsers?.length || 0,
+      
+      // Recent activity
+      recentAttempts: recentAttempts?.map(attempt => {
+        const correctAnswers = typeof attempt.correct_answers === 'number' 
+          ? attempt.correct_answers 
+          : Number(attempt.correct_answers) || 0;
+        const totalQuestions = typeof attempt.total_questions === 'number'
+          ? attempt.total_questions
+          : Number(attempt.total_questions) || 0;
+        const dailyLimit = attempt.user?.daily_mcq_limit ?? null;
+        
+        // Calculate answered count from answers JSONB
+        const answeredCount = attempt?.answers
+          ? Object.values(attempt.answers).filter((val) => val !== null && val !== undefined).length
+          : totalQuestions;
+        
+        // Calculate percentages
+        const totalPercentage = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+        const dailyLimitPercentage = dailyLimit && dailyLimit > 0 
+          ? Math.min((correctAnswers / dailyLimit) * 100, 100) 
+          : null;
+        
+        return {
+          ...attempt,
+          score: parseFloat(attempt.score) || 0,
+          completed_at: attempt.completed_at,
+          correct_answers: correctAnswers,
+          total_questions: totalQuestions,
+          answeredCount,
+          dailyLimit,
+          totalPercentage: Math.round(totalPercentage * 10) / 10,
+          dailyLimitPercentage: dailyLimitPercentage !== null ? Math.round(dailyLimitPercentage * 10) / 10 : null
+        };
+      }) || [],
+      newUsers: newUsers || [],
+      
+      // Top exams
+      topExams: topExamsWithCounts,
+      
+      // Chart data
+      dailyActivity,
     };
   } catch (error) {
     console.error('Error in getAdminStats:', error);
