@@ -65,7 +65,7 @@ const ExamList = () => {
                 <div className="exam-details">
                   <div className="detail-item">
                     <span className="detail-label">Total MCQs:</span>
-                    <span className="detail-value">{exam.questions?.length || 0}</span>
+                    <span className="detail-value">{exam._questionCount ?? exam.questions?.length ?? 0}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Duration:</span>

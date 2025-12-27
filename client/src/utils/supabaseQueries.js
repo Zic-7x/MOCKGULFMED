@@ -197,45 +197,64 @@ export const getAvailableExams = async (userId) => {
 
   if (!profile) return [];
 
+  let exams = [];
+
   // If admin, return all active exams
   if (profile.role === 'ADMIN') {
     const { data, error } = await supabase
       .from('exams')
-      .select(`
-        *,
-        questions(id)
-      `)
+      .select('*')
       .eq('is_active', true);
 
     if (error) throw error;
-    return data;
+    exams = data || [];
+  } else {
+    // Get accessible exam IDs from exam_access
+    const { data: accessData, error: accessError } = await supabase
+      .from('exam_access')
+      .select('exam_id')
+      .or(
+        `user_id.eq.${userId},profession_id.eq.${profile.profession_id || 'null'},health_authority_id.eq.${profile.health_authority_id || 'null'}`
+      );
+
+    if (accessError) throw accessError;
+
+    const examIds = [...new Set(accessData.map((a) => a.exam_id))];
+
+    if (examIds.length === 0) return [];
+
+    const { data, error } = await supabase
+      .from('exams')
+      .select('*')
+      .in('id', examIds)
+      .eq('is_active', true);
+
+    if (error) throw error;
+    exams = data || [];
   }
 
-  // Get accessible exam IDs from exam_access
-  const { data: accessData, error: accessError } = await supabase
-    .from('exam_access')
-    .select('exam_id')
-    .or(
-      `user_id.eq.${userId},profession_id.eq.${profile.profession_id || 'null'},health_authority_id.eq.${profile.health_authority_id || 'null'}`
-    );
+  // Get actual question counts for each exam from the database
+  const examsWithCounts = await Promise.all(
+    exams.map(async (exam) => {
+      const { count, error: countError } = await supabase
+        .from('questions')
+        .select('*', { count: 'exact', head: true })
+        .eq('exam_id', exam.id);
 
-  if (accessError) throw accessError;
+      if (countError) {
+        console.error(`Error getting question count for exam ${exam.id}:`, countError);
+        return { ...exam, questions: [] };
+      }
 
-  const examIds = [...new Set(accessData.map((a) => a.exam_id))];
+      return {
+        ...exam,
+        questions: Array(count || 0).fill(null).map((_, i) => ({ id: i })), // Create array for compatibility
+        _questionCount: count || 0, // Store actual count
+      };
+    })
+  );
 
-  if (examIds.length === 0) return [];
-
-  const { data, error } = await supabase
-    .from('exams')
-    .select(`
-      *,
-      questions(id)
-    `)
-    .in('id', examIds)
-    .eq('is_active', true);
-
-  if (error) throw error;
-  return data;
+  return examsWithCounts;
 };
 
 export const getExam = async (examId, userId) => {
@@ -265,7 +284,47 @@ export const getExam = async (examId, userId) => {
     }
   }
 
+  // First, get the actual total count of questions in the database for this exam
+  const { count: totalQuestionsInDatabase, error: countError } = await supabase
+    .from('questions')
+    .select('*', { count: 'exact', head: true })
+    .eq('exam_id', examId);
+
+  if (countError) {
+    console.error('Error getting question count:', countError);
+  }
+
+  // Get ALL question IDs from the database (not just paginated results)
+  // This ensures we check all questions, not just the first 1000
+  // Use pagination to get all IDs if there are more than 1000
+  let allQuestionIdsData = [];
+  let hasMore = true;
+  let page = 0;
+  const pageSize = 1000;
+  
+  while (hasMore) {
+    const { data: pageData, error: allIdsError } = await supabase
+      .from('questions')
+      .select('id')
+      .eq('exam_id', examId)
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+    
+    if (allIdsError) {
+      console.error('Error getting all question IDs:', allIdsError);
+      break;
+    }
+    
+    if (pageData && pageData.length > 0) {
+      allQuestionIdsData = allQuestionIdsData.concat(pageData);
+      hasMore = pageData.length === pageSize;
+      page++;
+    } else {
+      hasMore = false;
+    }
+  }
+
   // Get exam with questions (include correct answers/explanations for inline feedback)
+  // Note: Supabase may limit results, so we get questions but also have the count above
   const { data, error } = await supabase
     .from('exams')
     .select(`
@@ -286,6 +345,9 @@ export const getExam = async (examId, userId) => {
     .single();
 
   if (error) throw error;
+
+  // Use the actual database count, or fall back to returned questions length
+  const actualTotalQuestions = totalQuestionsInDatabase ?? (allQuestionIdsData?.length || data.questions?.length || 0);
 
   // Check if exam exists and has questions
   if (!data || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
@@ -317,7 +379,12 @@ export const getExam = async (examId, userId) => {
           const answerValue = attempt.answers[questionId];
           if (answerValue !== null && answerValue !== undefined) {
             // Normalize to string and trim whitespace for consistent comparison
-            const normalizedId = String(questionId).trim();
+            // Handle UUID objects by converting to string first
+            let normalizedId = questionId;
+            if (typeof questionId !== 'string') {
+              normalizedId = String(questionId);
+            }
+            normalizedId = normalizedId.trim().toLowerCase();
             if (normalizedId) {
               answeredQuestionIds.add(normalizedId);
             }
@@ -327,17 +394,151 @@ export const getExam = async (examId, userId) => {
     });
   }
 
+  // Get all question IDs from database (normalized) for comparison
+  // Also keep a map of normalized -> original ID for querying
+  const allQuestionIdsInDatabase = new Set();
+  const normalizedToOriginalIdMap = new Map();
+  
+  if (allQuestionIdsData && allQuestionIdsData.length > 0) {
+    allQuestionIdsData.forEach((q) => {
+      let originalId = q.id;
+      let id = originalId;
+      if (typeof id !== 'string') id = String(id);
+      const normalized = id.trim().toLowerCase();
+      allQuestionIdsInDatabase.add(normalized);
+      normalizedToOriginalIdMap.set(normalized, originalId);
+    });
+  } else {
+    // Fallback: use questions from the exam query
+    data.questions.forEach((q) => {
+      let originalId = q.id;
+      let id = originalId;
+      if (typeof id !== 'string') id = String(id);
+      const normalized = id.trim().toLowerCase();
+      allQuestionIdsInDatabase.add(normalized);
+      normalizedToOriginalIdMap.set(normalized, originalId);
+    });
+  }
+
   // Filter out questions that were already submitted in ANY previous attempt
   // This prevents questions from repeating across different days
+  // Only include questions that exist in the database and haven't been answered
   let availableQuestions = data.questions.filter((question) => {
     // Normalize question ID to string for comparison
-    const normalizedQuestionId = String(question.id).trim();
+    // Handle UUID objects by converting to string first
+    let normalizedQuestionId = question.id;
+    if (typeof normalizedQuestionId !== 'string') {
+      normalizedQuestionId = String(normalizedQuestionId);
+    }
+    normalizedQuestionId = normalizedQuestionId.trim().toLowerCase();
+    // Check if this question hasn't been answered
     return !answeredQuestionIds.has(normalizedQuestionId);
   });
 
-  // If all questions were already answered, show a message or return empty
-  if (availableQuestions.length === 0) {
-    throw new Error('You have already completed all available questions for this exam.');
+  // Check if user has answered all questions in the database
+  // Compare against actual database count, not just returned questions
+  const remainingQuestionsCount = actualTotalQuestions - answeredQuestionIds.size;
+  
+  // IMPORTANT: Only throw error if user has truly answered ALL questions in the database
+  // Check remainingQuestionsCount first to avoid false positives
+  if (remainingQuestionsCount <= 0) {
+    // User has answered all questions - this is the only case where we should throw
+    // Add debug info to help diagnose the issue
+    const allQuestionIds = data.questions.map(q => {
+      let id = q.id;
+      if (typeof id !== 'string') id = String(id);
+      return id.trim().toLowerCase();
+    });
+    const answeredIds = Array.from(answeredQuestionIds);
+    
+    console.error('No available questions after filtering:', {
+      totalQuestionsInDatabase: actualTotalQuestions,
+      questionsReturnedInQuery: data.questions.length,
+      answeredQuestionIdsCount: answeredQuestionIds.size,
+      remainingQuestionsCount: remainingQuestionsCount,
+      answeredQuestionIds: answeredIds.slice(0, 10), // First 10 for debugging
+      allQuestionIds: allQuestionIds.slice(0, 10), // First 10 for debugging
+      previousAttemptsCount: previousAttempts?.length || 0,
+    });
+    
+    throw new Error(
+      `You have already completed all available questions for this exam. ` +
+      `(Total questions in database: ${actualTotalQuestions}, Questions answered: ${answeredQuestionIds.size})`
+    );
+  }
+  
+  // If no questions in returned set but there are still questions in database,
+  // it means Supabase pagination limited the results - we need to fetch more
+  if (availableQuestions.length === 0 && remainingQuestionsCount > 0) {
+    console.warn('No questions in returned query, but database has more questions. Fetching all questions and filtering client-side...', {
+      totalQuestionsInDatabase: actualTotalQuestions,
+      questionsReturnedInQuery: data.questions.length,
+      answeredQuestionIdsCount: answeredQuestionIds.size,
+      remainingQuestionsCount: remainingQuestionsCount,
+    });
+    
+    // Use a simpler, more reliable approach: fetch all questions in batches and filter client-side
+    // This avoids issues with .in() clause limits
+    let allQuestionsFromDB = [];
+    let hasMoreQuestions = true;
+    let questionPage = 0;
+    const questionPageSize = 1000;
+    
+    while (hasMoreQuestions && allQuestionsFromDB.length < actualTotalQuestions) {
+      const { data: pageQuestions, error: pageError } = await supabase
+        .from('questions')
+        .select('id, question, option_a, option_b, option_c, option_d, correct_answer, explanation')
+        .eq('exam_id', examId)
+        .range(questionPage * questionPageSize, (questionPage + 1) * questionPageSize - 1);
+      
+      if (pageError) {
+        console.error(`Error fetching questions page ${questionPage}:`, pageError);
+        break;
+      }
+      
+      if (pageQuestions && pageQuestions.length > 0) {
+        allQuestionsFromDB = allQuestionsFromDB.concat(pageQuestions);
+        hasMoreQuestions = pageQuestions.length === questionPageSize;
+        questionPage++;
+      } else {
+        hasMoreQuestions = false;
+      }
+    }
+    
+    if (allQuestionsFromDB.length > 0) {
+      // Filter client-side to get unanswered questions
+      const unansweredQuestions = allQuestionsFromDB.filter((question) => {
+        let normalizedQuestionId = question.id;
+        if (typeof normalizedQuestionId !== 'string') {
+          normalizedQuestionId = String(normalizedQuestionId);
+        }
+        normalizedQuestionId = normalizedQuestionId.trim().toLowerCase();
+        return !answeredQuestionIds.has(normalizedQuestionId);
+      });
+      
+      if (unansweredQuestions.length > 0) {
+        availableQuestions = unansweredQuestions;
+        console.log(`Successfully fetched ${unansweredQuestions.length} unanswered questions out of ${allQuestionsFromDB.length} total questions`);
+      } else {
+        // This shouldn't happen if remainingQuestionsCount > 0, but handle it anyway
+        console.error('Filtered all questions but found none unanswered. This indicates a data mismatch.', {
+          totalFetched: allQuestionsFromDB.length,
+          answeredCount: answeredQuestionIds.size,
+          remainingExpected: remainingQuestionsCount,
+        });
+        throw new Error(
+          `Unable to load available questions. ` +
+          `(Total questions in database: ${actualTotalQuestions}, Questions answered: ${answeredQuestionIds.size}, ` +
+          `Remaining: ${remainingQuestionsCount}, Fetched: ${allQuestionsFromDB.length})`
+        );
+      }
+    } else {
+      throw new Error(
+        `Unable to load available questions. ` +
+        `(Total questions in database: ${actualTotalQuestions}, Questions answered: ${answeredQuestionIds.size}, ` +
+        `Remaining: ${remainingQuestionsCount}, Could not fetch questions from database)`
+      );
+    }
   }
 
   // Randomize the order of questions using Fisher-Yates shuffle

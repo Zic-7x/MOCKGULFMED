@@ -115,13 +115,20 @@ const TakeExam = () => {
     const mappedAnswers = {};
     if (exam?.questions) {
       exam.questions.forEach((question) => {
+        // Normalize question ID to string to ensure consistent storage
+        let questionId = question.id;
+        if (typeof questionId !== 'string') {
+          questionId = String(questionId);
+        }
+        questionId = questionId.trim();
+        
         const selectedPosition = answers[question.id];
         if (selectedPosition !== undefined && question.optionMapping) {
           // Convert position (0-3) to original option (A-D)
-          mappedAnswers[question.id] = question.optionMapping[selectedPosition];
+          mappedAnswers[questionId] = question.optionMapping[selectedPosition];
         } else if (selectedPosition !== undefined) {
           // Fallback: if no mapping, assume it's already in correct format
-          mappedAnswers[question.id] = selectedPosition;
+          mappedAnswers[questionId] = selectedPosition;
         }
       });
     }
