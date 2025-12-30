@@ -107,22 +107,32 @@ const UserDashboard = () => {
                   <div className="attempt-header">
                     <h4>{attempt.exam?.title}</h4>
                     <span
-                      className={`score-badge ${attempt.dailyLimitPercentage >= 70 ? 'good' : attempt.dailyLimitPercentage >= 50 ? 'average' : 'poor'}`}
+                      className={`score-badge ${attempt.score >= 70 ? 'good' : attempt.score >= 50 ? 'average' : 'poor'}`}
                     >
-                      {attempt.dailyLimitPercentage !== null
-                        ? `${attempt.dailyLimitPercentage.toFixed(1)}%`
-                        : `${attempt.score.toFixed(1)}%`}
+                      {attempt.score.toFixed(1)}%
                     </span>
                   </div>
                   <div className="attempt-details">
-                    {attempt.dailyLimitPercentage !== null ? (
-                      <span>
-                        {attempt.correctCount ?? attempt.correct_answers} correct / {data?.user?.dailyMcqLimit} daily limit
-                      </span>
-                    ) : (
-                      <span>{attempt.correct_answers}/{attempt.total_questions} correct</span>
+                    {/* Main Score: Correct / Daily Limit */}
+                    {attempt.mainScore !== null && attempt.dailyLimit && (
+                      <div className="metric-row main-metric">
+                        <strong>Main Score:</strong> {attempt.mainScore.toFixed(1)}% 
+                        ({attempt.correct_answers} out of {attempt.dailyLimit} daily limit)
+                      </div>
                     )}
-                    <span>{new Date(attempt.completed_at).toLocaleDateString()}</span>
+                    {/* Attempt Overview: Cumulative Correct / Cumulative Questions Answered */}
+                    <div className="metric-row">
+                      <strong>Attempt Overview:</strong> {attempt.attemptOverview.toFixed(1)}% 
+                      ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered} questions answered in all attempts)
+                    </div>
+                    {/* Overall Result: Correct / Total MCQs in Database */}
+                    <div className="metric-row">
+                      <strong>Overall Result:</strong> {attempt.overallResult.toFixed(1)}% 
+                      ({attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs in exam)
+                    </div>
+                    <div className="metric-row date-row">
+                      <span>{new Date(attempt.completed_at).toLocaleDateString()}</span>
+                    </div>
                   </div>
                 </div>
               ))}

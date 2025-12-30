@@ -39,17 +39,19 @@ const ExamResults = () => {
       attempt,
       results,
       score,
+      mainScore,
+      attemptOverview,
+      overallResult,
       correctAnswers,
-      totalQuestions,
+      totalQuestionsAnswered,
       totalExamQuestions,
-      batchInfo,
-      overallPercentage,
       answeredCount,
       dailyLimit,
     } = resultsFromState;
 
     const readinessThreshold = 80;
-    const isReady = overallPercentage >= readinessThreshold;
+    // Use main score (or attempt overview if no daily limit) for readiness check
+    const isReady = (mainScore !== null ? mainScore : attemptOverview) >= readinessThreshold;
 
     return (
       <Layout>
@@ -66,7 +68,10 @@ const ExamResults = () => {
                 {score.toFixed(1)}%
               </div>
               <p className="score-details">
-                {correctAnswers} out of {totalQuestions} questions correct
+                {mainScore !== null 
+                  ? `${correctAnswers} out of ${dailyLimit} daily limit correct`
+                  : `${correctAnswers} out of ${totalQuestionsAnswered} questions answered correct`
+                }
               </p>
             </div>
             <div className="exam-info-card">
@@ -77,34 +82,45 @@ const ExamResults = () => {
             </div>
           </div>
 
-          {/* Batch and Overall Percentage Section */}
+          {/* Three Metrics System */}
           <div className="percentage-breakdown">
-            {batchInfo && (
-              <div className="percentage-card batch-percentage">
-                <h3>Daily Limit Progress</h3>
-                <div
-                  className={`percentage-value ${batchInfo.percentage >= 70 ? 'good' : batchInfo.percentage >= 50 ? 'average' : 'poor'}`}
-                >
-                  {batchInfo.percentage.toFixed(1)}%
+            {/* 1. Main Score: Correct / Daily Limit */}
+            {mainScore !== null && (
+              <div className="percentage-card main-score">
+                <h3>Main Score</h3>
+                <div className={`percentage-value ${mainScore >= 70 ? 'good' : mainScore >= 50 ? 'average' : 'poor'}`}>
+                  {mainScore.toFixed(1)}%
                 </div>
                 <p className="percentage-details">
-                  {batchInfo.correctCount ?? correctAnswers ?? 0} correct out of {batchInfo.dailyLimit} daily limit questions
+                  {correctAnswers} out of {dailyLimit} daily limit
                 </p>
-                <p className="percentage-label">Based on your daily MCQ limit</p>
+                <p className="percentage-label">Primary performance metric</p>
               </div>
             )}
-            {totalExamQuestions && totalExamQuestions > totalQuestions && (
-              <div className="percentage-card overall-percentage">
-                <h3>Overall Performance</h3>
-                <div className={`percentage-value ${overallPercentage >= 70 ? 'good' : overallPercentage >= 50 ? 'average' : 'poor'}`}>
-                  {overallPercentage.toFixed(1)}%
-                </div>
-                <p className="percentage-details">
-                  {correctAnswers} out of {totalExamQuestions} total exam questions
-                </p>
-                <p className="percentage-label">Based on total questions in exam</p>
+            
+            {/* 2. Attempt Overview: Cumulative Correct / Cumulative Questions Answered */}
+            <div className="percentage-card attempt-overview">
+              <h3>Attempt Overview</h3>
+              <div className={`percentage-value ${attemptOverview >= 70 ? 'good' : attemptOverview >= 50 ? 'average' : 'poor'}`}>
+                {attemptOverview.toFixed(1)}%
               </div>
-            )}
+              <p className="percentage-details">
+                {resultsFromState.cumulativeCorrectAnswers ?? correctAnswers} out of {resultsFromState.cumulativeAnsweredQuestions ?? totalQuestionsAnswered} questions answered (all attempts)
+              </p>
+              <p className="percentage-label">Cumulative performance across all attempts</p>
+            </div>
+
+            {/* 3. Overall Result: Correct / Total MCQs in Database */}
+            <div className="percentage-card overall-result">
+              <h3>Overall Result</h3>
+              <div className={`percentage-value ${overallResult >= 70 ? 'good' : overallResult >= 50 ? 'average' : 'poor'}`}>
+                {overallResult.toFixed(1)}%
+              </div>
+              <p className="percentage-details">
+                {correctAnswers} out of {totalExamQuestions} total MCQs in exam
+              </p>
+              <p className="percentage-label">Progress against entire exam pool</p>
+            </div>
           </div>
 
           {/* Readiness message */}
@@ -194,23 +210,31 @@ const ExamResults = () => {
               <div className="attempt-header">
                 <h3>{attempt.exam?.title}</h3>
                   <span
-                    className={`score-badge ${attempt.dailyLimitPercentage >= 70 ? 'good' : attempt.dailyLimitPercentage >= 50 ? 'average' : 'poor'}`}
+                    className={`score-badge ${attempt.score >= 70 ? 'good' : attempt.score >= 50 ? 'average' : 'poor'}`}
                   >
-                    {attempt.dailyLimitPercentage !== null
-                      ? `${attempt.dailyLimitPercentage.toFixed(1)}%`
-                      : `${attempt.score.toFixed(1)}%`}
+                    {attempt.score.toFixed(1)}%
                   </span>
               </div>
               <div className="attempt-details">
                   <div className="detail-row">
                     <span>Type: {attempt.exam?.exam_type}</span>
-                    {attempt.dailyLimitPercentage !== null ? (
-                      <span>
-                        {attempt.correctCount ?? attempt.correct_answers} correct / {attempt.dailyLimit} daily limit
-                      </span>
-                    ) : (
-                      <span>{attempt.correct_answers}/{attempt.total_questions} correct</span>
-                    )}
+                  </div>
+                  {/* Main Score: Correct / Daily Limit */}
+                  {attempt.mainScore !== null && attempt.dailyLimit && (
+                    <div className="detail-row main-metric">
+                      <strong>Main Score:</strong> {attempt.mainScore.toFixed(1)}% 
+                      ({attempt.correct_answers} out of {attempt.dailyLimit} daily limit)
+                    </div>
+                  )}
+                  {/* Attempt Overview: Cumulative Correct / Cumulative Questions Answered */}
+                  <div className="detail-row">
+                    <strong>Attempt Overview:</strong> {attempt.attemptOverview.toFixed(1)}% 
+                    ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered} questions answered in all attempts)
+                  </div>
+                  {/* Overall Result: Correct / Total MCQs in Database */}
+                  <div className="detail-row">
+                    <strong>Overall Result:</strong> {attempt.overallResult.toFixed(1)}% 
+                    ({attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs in exam)
                   </div>
                 <div className="detail-row">
                   <span>Completed: {new Date(attempt.completed_at).toLocaleString()}</span>

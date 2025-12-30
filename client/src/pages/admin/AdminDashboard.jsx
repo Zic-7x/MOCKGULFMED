@@ -232,25 +232,22 @@ const AdminDashboard = () => {
                       </div>
                       <div className="activity-details">
                         <div className="activity-metrics">
-                          {attempt.dailyLimitPercentage !== null ? (
-                            <>
-                              <span className="activity-score">
-                                Daily Limit: <strong>{attempt.dailyLimitPercentage.toFixed(1)}%</strong>
-                                {' '}({attempt.correct_answers}/{attempt.dailyLimit})
-                              </span>
-                              <span className="activity-score-secondary">
-                                Total: <strong>{attempt.totalPercentage.toFixed(1)}%</strong>
-                                {' '}({attempt.correct_answers}/{attempt.total_questions})
-                              </span>
-                            </>
-                          ) : (
-                            <span className="activity-score">
-                              Score: <strong>{attempt.totalPercentage.toFixed(1)}%</strong>
-                              {' '}({attempt.correct_answers}/{attempt.total_questions})
+                          {/* Main Score: Correct / Daily Limit */}
+                          {attempt.mainScore !== null && attempt.dailyLimit && (
+                            <span className="activity-score main-metric">
+                              <strong>Main Score:</strong> {attempt.mainScore.toFixed(1)}% 
+                              ({attempt.correct_answers} out of {attempt.dailyLimit} daily limit)
                             </span>
                           )}
-                          <span className="activity-answered">
-                            Answered: {attempt.answeredCount}/{attempt.total_questions}
+                          {/* Attempt Overview: Cumulative Correct / Cumulative Questions Answered */}
+                          <span className="activity-score">
+                            <strong>Attempt Overview:</strong> {attempt.attemptOverview.toFixed(1)}% 
+                            ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered} answered in all attempts)
+                          </span>
+                          {/* Overall Result: Correct / Total MCQs in Database */}
+                          <span className="activity-score">
+                            <strong>Overall Result:</strong> {attempt.overallResult.toFixed(1)}% 
+                            ({attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs)
                           </span>
                         </div>
                         <span className="activity-time">
@@ -258,14 +255,12 @@ const AdminDashboard = () => {
                         </span>
                       </div>
                     </div>
-                    <div className={`activity-badge ${attempt.dailyLimitPercentage !== null 
-                      ? (attempt.dailyLimitPercentage >= 70 ? 'success' : attempt.dailyLimitPercentage >= 50 ? 'warning' : 'danger')
-                      : (attempt.totalPercentage >= 70 ? 'success' : attempt.totalPercentage >= 50 ? 'warning' : 'danger')
-                    }`}>
-                      {attempt.dailyLimitPercentage !== null 
-                        ? `${attempt.dailyLimitPercentage.toFixed(0)}%`
-                        : `${attempt.totalPercentage.toFixed(0)}%`
-                      }
+                    <div
+                      className={`activity-badge ${
+                        attempt.score >= 70 ? 'success' : attempt.score >= 50 ? 'warning' : 'danger'
+                      }`}
+                    >
+                      {`${attempt.score.toFixed(0)}%`}
                     </div>
                   </div>
                 ))

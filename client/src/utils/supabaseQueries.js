@@ -834,6 +834,27 @@ export const deleteExamAccess = async (id) => {
 
 // Exam Attempts
 export const submitExam = async (examId, userId, answers, timeSpent) => {
+  // Helper to normalize IDs (UUIDs) to a consistent lowercase string
+  const normalizeId = (id) => {
+    if (!id) return '';
+    let str = id;
+    if (typeof str !== 'string') {
+      str = String(str);
+    }
+    return str.trim().toLowerCase();
+  };
+
+  // Normalize the answers object keys so they match normalized question IDs
+  const normalizedAnswers = {};
+  if (answers && typeof answers === 'object') {
+    Object.keys(answers).forEach((key) => {
+      const normalizedKey = normalizeId(key);
+      if (normalizedKey) {
+        normalizedAnswers[normalizedKey] = answers[key];
+      }
+    });
+  }
+
   // Get exam with correct answers
   const { data: exam, error: examError } = await supabase
     .from('exams')
@@ -846,26 +867,94 @@ export const submitExam = async (examId, userId, answers, timeSpent) => {
 
   if (examError) throw examError;
 
-  // Calculate score
-  let correctAnswers = 0;
-  const totalQuestions = exam.questions.length;
-  const answeredCount = exam.questions.filter((q) => answers[q.id] !== undefined && answers[q.id] !== null).length;
-
-  exam.questions.forEach((question) => {
-    if (answers[question.id] === question.correct_answer) {
-      correctAnswers++;
+  // Build a lookup map of questions by normalized ID
+  const questionsById = new Map();
+  (exam.questions || []).forEach((question) => {
+    const normalizedQuestionId = normalizeId(question.id);
+    if (normalizedQuestionId) {
+      questionsById.set(normalizedQuestionId, question);
     }
   });
 
-  const score = (correctAnswers / totalQuestions) * 100;
+  // Calculate how many questions in this attempt were actually answered
+  let correctAnswers = 0;
+  let answeredCount = 0;
 
-  // Get user daily limit for later calculations
+  Object.keys(normalizedAnswers).forEach((normalizedId) => {
+    const question = questionsById.get(normalizedId);
+    if (!question) return;
+
+    const userAnswer = normalizedAnswers[normalizedId];
+    if (userAnswer !== null && userAnswer !== undefined) {
+      answeredCount++;
+      if (userAnswer === question.correct_answer) {
+        correctAnswers++;
+      }
+    }
+  });
+
+  // Get user daily limit and total exam questions count
   const { data: profile } = await supabase
     .from('user_profiles')
     .select('daily_mcq_limit')
     .eq('id', userId)
     .single();
   const dailyLimit = profile?.daily_mcq_limit ?? null;
+
+  // Get total questions in exam from database
+  const { count: totalExamQuestionsInDB } = await supabase
+    .from('questions')
+    .select('*', { count: 'exact', head: true })
+    .eq('exam_id', examId);
+
+  const totalExamQuestions = totalExamQuestionsInDB ?? (exam.questions ? exam.questions.length : answeredCount);
+  const totalQuestionsAnswered = answeredCount;
+
+  // Get all previous attempts for this exam to calculate cumulative metrics
+  const { data: previousAttempts } = await supabase
+    .from('exam_attempts')
+    .select('correct_answers, total_questions, answers')
+    .eq('user_id', userId)
+    .eq('exam_id', examId)
+    .order('completed_at', { ascending: true });
+
+  // Calculate cumulative correct answers and answered questions across all attempts (including this one)
+  let cumulativeCorrectAnswers = correctAnswers;
+  let cumulativeAnsweredQuestions = answeredCount;
+
+  if (previousAttempts && previousAttempts.length > 0) {
+    previousAttempts.forEach((prevAttempt) => {
+      cumulativeCorrectAnswers += typeof prevAttempt.correct_answers === 'number' 
+        ? prevAttempt.correct_answers 
+        : Number(prevAttempt.correct_answers) || 0;
+      
+      // Count answered questions from previous attempts
+      const prevAnsweredCount = prevAttempt.answers
+        ? Object.values(prevAttempt.answers).filter((val) => val !== null && val !== undefined).length
+        : (typeof prevAttempt.total_questions === 'number' ? prevAttempt.total_questions : Number(prevAttempt.total_questions) || 0);
+      
+      cumulativeAnsweredQuestions += prevAnsweredCount;
+    });
+  }
+
+  // THREE METRICS SYSTEM:
+  // 1. MAIN SCORE: Correct Answers / Daily Limit (primary metric)
+  const mainScore = dailyLimit && dailyLimit > 0
+    ? Math.min((correctAnswers / dailyLimit) * 100, 100) // Cap at 100%
+    : null; // No main score if no daily limit
+
+  // 2. ATTEMPT OVERVIEW: Cumulative Correct Answers / Cumulative Questions Answered in ALL attempts till this attempt
+  const attemptOverview = cumulativeAnsweredQuestions > 0
+    ? (cumulativeCorrectAnswers / cumulativeAnsweredQuestions) * 100
+    : 0;
+
+  // 3. OVERALL RESULT: Correct Answers / Total MCQs in database for this exam
+  const overallResult = totalExamQuestions > 0
+    ? (correctAnswers / totalExamQuestions) * 100
+    : 0;
+
+  // Use main score if available, otherwise use attempt overview as the primary score
+  const score = mainScore !== null ? mainScore : attemptOverview;
 
   // Create attempt
   const { data: attempt, error: attemptError } = await supabase
@@ -874,7 +963,7 @@ export const submitExam = async (examId, userId, answers, timeSpent) => {
       user_id: userId,
       exam_id: examId,
       score,
-      total_questions: totalQuestions,
+      total_questions: totalQuestionsAnswered,
       correct_answers: correctAnswers,
       time_spent: timeSpent,
       answers,
@@ -909,43 +998,46 @@ export const submitExam = async (examId, userId, answers, timeSpent) => {
     });
   }
 
-  // Prepare results
-  const results = exam.questions.map((question) => ({
-    questionId: question.id,
-    question: question.question,
-    userAnswer: answers[question.id] || null,
-    correctAnswer: question.correct_answer,
-    explanation: question.explanation,
-    isCorrect: answers[question.id] === question.correct_answer,
-  }));
+  // Prepare per-question results for the questions that belong to this attempt
+  const results = (exam.questions || []).map((question) => {
+    const normalizedQuestionId = normalizeId(question.id);
+    const userAnswer = normalizedQuestionId ? normalizedAnswers[normalizedQuestionId] : undefined;
 
-  const totalExamQuestions = totalQuestions;
-  const overallPercentage = totalExamQuestions > 0 ? (correctAnswers / totalExamQuestions) * 100 : 0;
-  const batchInfo = dailyLimit
-    ? {
-        dailyLimit,
-        answeredCount,
-        correctCount: correctAnswers,
-        percentage: Math.min((correctAnswers / dailyLimit) * 100, 100),
-      }
-    : null;
+    return {
+      questionId: question.id,
+      question: question.question,
+      userAnswer: userAnswer ?? null,
+      correctAnswer: question.correct_answer,
+      explanation: question.explanation,
+      isCorrect: userAnswer === question.correct_answer,
+    };
+  });
 
   return {
     attempt,
     results,
+    // Primary score (main score or attempt overview)
     score,
+    // Three metrics system
+    mainScore, // Correct / Daily Limit (primary if daily limit exists)
+    attemptOverview, // Cumulative Correct / Cumulative Questions Answered in ALL attempts
+    overallResult, // Correct / Total MCQs in database
+    // Supporting data
     correctAnswers,
-    totalQuestions,
+    totalQuestionsAnswered,
     totalExamQuestions,
     answeredCount,
     dailyLimit,
-    batchInfo,
-    overallPercentage,
+    // Cumulative data for attempt overview
+    cumulativeCorrectAnswers,
+    cumulativeAnsweredQuestions,
   };
 };
 
 // Normalize numeric fields from Supabase (returns decimals as strings) and attach derived usage
-const normalizeAttempt = (attempt, dailyLimit = null) => {
+// This function is used for existing attempts, so we calculate all three metrics
+// cumulativeCorrectAnswers and cumulativeAnsweredQuestions should be passed for attempt overview calculation
+const normalizeAttempt = (attempt, dailyLimit = null, totalExamQuestions = null, cumulativeCorrectAnswers = null, cumulativeAnsweredQuestions = null) => {
   const normalized = {
     ...attempt,
     score: typeof attempt.score === 'number' ? attempt.score : Number(attempt.score) || 0,
@@ -966,15 +1058,48 @@ const normalizeAttempt = (attempt, dailyLimit = null) => {
     : normalized.total_questions;
   const correctCount = normalized.correct_answers;
 
-  const dailyLimitPercentage =
-    dailyLimit && dailyLimit > 0 ? Math.min((correctCount / dailyLimit) * 100, 100) : null;
+  // Use provided total exam questions or fallback to total_questions
+  const totalExamQuestionsCount = totalExamQuestions ?? normalized.total_questions;
+
+  // Use provided cumulative values or calculate from this attempt only
+  const cumulativeCorrect = cumulativeCorrectAnswers !== null ? cumulativeCorrectAnswers : correctCount;
+  const cumulativeAnswered = cumulativeAnsweredQuestions !== null ? cumulativeAnsweredQuestions : answeredCount;
+
+  // THREE METRICS SYSTEM:
+  // 1. MAIN SCORE: Correct Answers / Daily Limit (primary metric)
+  const mainScore = dailyLimit && dailyLimit > 0
+    ? Math.min((correctCount / dailyLimit) * 100, 100) // Cap at 100%
+    : null;
+
+  // 2. ATTEMPT OVERVIEW: Cumulative Correct Answers / Cumulative Questions Answered in ALL attempts till this attempt
+  const attemptOverview = cumulativeAnswered > 0
+    ? (cumulativeCorrect / cumulativeAnswered) * 100
+    : 0;
+
+  // 3. OVERALL RESULT: Correct Answers / Total MCQs in database for this exam
+  const overallResult = totalExamQuestionsCount > 0
+    ? (correctCount / totalExamQuestionsCount) * 100
+    : 0;
+
+  // Use main score if available, otherwise use attempt overview as the primary score
+  const recalculatedScore = mainScore !== null ? mainScore : attemptOverview;
 
   return {
     ...normalized,
+    score: recalculatedScore, // Primary score
+    // Three metrics
+    mainScore,
+    attemptOverview,
+    overallResult,
+    // Supporting data
     answeredCount,
+    totalQuestionsAnswered: answeredCount,
+    totalExamQuestions: totalExamQuestionsCount,
     dailyLimit,
     correctCount,
-    dailyLimitPercentage,
+    // Cumulative data
+    cumulativeCorrectAnswers: cumulativeCorrect,
+    cumulativeAnsweredQuestions: cumulativeAnswered,
   };
 };
 
@@ -1003,7 +1128,74 @@ export const getUserAttempts = async (userId, examId = null) => {
   const { data, error } = await query;
 
   if (error) throw error;
-  return (data || []).map((attempt) => normalizeAttempt(attempt, dailyLimit));
+
+  // Get unique exam IDs to fetch question counts
+  const examIds = [...new Set((data || []).map(a => a.exam_id))];
+  
+  // Fetch question counts for all exams in parallel
+  const examQuestionCounts = {};
+  if (examIds.length > 0) {
+    await Promise.all(
+      examIds.map(async (examId) => {
+        const { count } = await supabase
+          .from('questions')
+          .select('*', { count: 'exact', head: true })
+          .eq('exam_id', examId);
+        examQuestionCounts[examId] = count ?? 0;
+      })
+    );
+  }
+
+  // Group attempts by exam_id and calculate cumulative metrics
+  const attemptsByExam = {};
+  (data || []).forEach(attempt => {
+    if (!attemptsByExam[attempt.exam_id]) {
+      attemptsByExam[attempt.exam_id] = [];
+    }
+    attemptsByExam[attempt.exam_id].push(attempt);
+  });
+
+  // Calculate cumulative metrics for each exam
+  const cumulativeMetrics = {};
+  Object.keys(attemptsByExam).forEach(examId => {
+    // Sort attempts by completed_at ascending to calculate cumulative
+    const sortedAttempts = [...attemptsByExam[examId]].sort((a, b) => 
+      new Date(a.completed_at) - new Date(b.completed_at)
+    );
+    
+    let cumulativeCorrect = 0;
+    let cumulativeAnswered = 0;
+    
+    sortedAttempts.forEach(attempt => {
+      const correct = typeof attempt.correct_answers === 'number' 
+        ? attempt.correct_answers 
+        : Number(attempt.correct_answers) || 0;
+      const answered = attempt.answers
+        ? Object.values(attempt.answers).filter((val) => val !== null && val !== undefined).length
+        : (typeof attempt.total_questions === 'number' ? attempt.total_questions : Number(attempt.total_questions) || 0);
+      
+      cumulativeCorrect += correct;
+      cumulativeAnswered += answered;
+      
+      if (!cumulativeMetrics[attempt.id]) {
+        cumulativeMetrics[attempt.id] = {};
+      }
+      cumulativeMetrics[attempt.id] = {
+        cumulativeCorrectAnswers: cumulativeCorrect,
+        cumulativeAnsweredQuestions: cumulativeAnswered,
+      };
+    });
+  });
+
+  return (data || []).map((attempt) => 
+    normalizeAttempt(
+      attempt, 
+      dailyLimit, 
+      examQuestionCounts[attempt.exam_id],
+      cumulativeMetrics[attempt.id]?.cumulativeCorrectAnswers,
+      cumulativeMetrics[attempt.id]?.cumulativeAnsweredQuestions
+    )
+  );
 };
 
 // Dashboard
@@ -1038,6 +1230,56 @@ export const getUserDashboard = async (userId) => {
     .order('completed_at', { ascending: false })
     .limit(10);
 
+  // Get unique exam IDs to fetch question counts
+  const examIds = [...new Set((attempts || []).map(a => a.exam_id))];
+  
+  // Fetch question counts for all exams in parallel
+  const examQuestionCounts = {};
+  if (examIds.length > 0) {
+    await Promise.all(
+      examIds.map(async (examId) => {
+        const { count } = await supabase
+          .from('questions')
+          .select('*', { count: 'exact', head: true })
+          .eq('exam_id', examId);
+        examQuestionCounts[examId] = count ?? 0;
+      })
+    );
+  }
+
+  // For each exam, get all attempts to calculate cumulative metrics
+  const cumulativeMetrics = {};
+  for (const examId of examIds) {
+    const { data: allExamAttempts } = await supabase
+      .from('exam_attempts')
+      .select('id, correct_answers, total_questions, answers, completed_at')
+      .eq('user_id', userId)
+      .eq('exam_id', examId)
+      .order('completed_at', { ascending: true });
+    
+    if (allExamAttempts && allExamAttempts.length > 0) {
+      let cumulativeCorrect = 0;
+      let cumulativeAnswered = 0;
+      
+      allExamAttempts.forEach(attempt => {
+        const correct = typeof attempt.correct_answers === 'number' 
+          ? attempt.correct_answers 
+          : Number(attempt.correct_answers) || 0;
+        const answered = attempt.answers
+          ? Object.values(attempt.answers).filter((val) => val !== null && val !== undefined).length
+          : (typeof attempt.total_questions === 'number' ? attempt.total_questions : Number(attempt.total_questions) || 0);
+        
+        cumulativeCorrect += correct;
+        cumulativeAnswered += answered;
+        
+        cumulativeMetrics[attempt.id] = {
+          cumulativeCorrectAnswers: cumulativeCorrect,
+          cumulativeAnsweredQuestions: cumulativeAnswered,
+        };
+      });
+    }
+  }
+
   return {
     user: {
       ...profile,
@@ -1046,7 +1288,15 @@ export const getUserDashboard = async (userId) => {
       dailyMcqLimit: profile.daily_mcq_limit,
       fullName: profile.full_name,
     },
-    recentAttempts: (attempts || []).map((attempt) => normalizeAttempt(attempt, profile.daily_mcq_limit)),
+    recentAttempts: (attempts || []).map((attempt) => 
+      normalizeAttempt(
+        attempt, 
+        profile.daily_mcq_limit, 
+        examQuestionCounts[attempt.exam_id],
+        cumulativeMetrics[attempt.id]?.cumulativeCorrectAnswers,
+        cumulativeMetrics[attempt.id]?.cumulativeAnsweredQuestions
+      )
+    ),
     dailyUsage: {
       used: usage?.mcq_count || 0,
       limit: profile.daily_mcq_limit,
@@ -1185,6 +1435,60 @@ export const getAdminStats = async () => {
       throw new Error(`Failed to load statistics: ${errorMessages}`);
     }
 
+    // Get unique exam IDs to fetch question counts
+    const adminExamIds = [...new Set((recentAttempts || []).map(a => a.exam_id))];
+    
+    // Fetch question counts for all exams in parallel
+    const adminExamQuestionCounts = {};
+    if (adminExamIds.length > 0) {
+      await Promise.all(
+        adminExamIds.map(async (examId) => {
+          const { count } = await supabase
+            .from('questions')
+            .select('*', { count: 'exact', head: true })
+            .eq('exam_id', examId);
+          adminExamQuestionCounts[examId] = count ?? 0;
+        })
+      );
+    }
+
+    // Calculate cumulative metrics for each user-exam combination
+    const adminCumulativeMetrics = {};
+    for (const attempt of recentAttempts || []) {
+      const key = `${attempt.user_id}_${attempt.exam_id}`;
+      if (!adminCumulativeMetrics[key]) {
+        // Get all attempts for this user-exam combination
+        const { data: allUserExamAttempts } = await supabase
+          .from('exam_attempts')
+          .select('id, correct_answers, total_questions, answers, completed_at')
+          .eq('user_id', attempt.user_id)
+          .eq('exam_id', attempt.exam_id)
+          .order('completed_at', { ascending: true });
+        
+        if (allUserExamAttempts && allUserExamAttempts.length > 0) {
+          let cumulativeCorrect = 0;
+          let cumulativeAnswered = 0;
+          
+          allUserExamAttempts.forEach(userAttempt => {
+            const correct = typeof userAttempt.correct_answers === 'number' 
+              ? userAttempt.correct_answers 
+              : Number(userAttempt.correct_answers) || 0;
+            const answered = userAttempt.answers
+              ? Object.values(userAttempt.answers).filter((val) => val !== null && val !== undefined).length
+              : (typeof userAttempt.total_questions === 'number' ? userAttempt.total_questions : Number(userAttempt.total_questions) || 0);
+            
+            cumulativeCorrect += correct;
+            cumulativeAnswered += answered;
+            
+            adminCumulativeMetrics[`${attempt.user_id}_${attempt.exam_id}_${userAttempt.id}`] = {
+              cumulativeCorrectAnswers: cumulativeCorrect,
+              cumulativeAnsweredQuestions: cumulativeAnswered,
+            };
+          });
+        }
+      }
+    }
+
     return {
       // Basic counts
       totalUsers: usersResult.count || 0,
@@ -1206,36 +1510,17 @@ export const getAdminStats = async () => {
       
       // Recent activity
       recentAttempts: recentAttempts?.map(attempt => {
-        const correctAnswers = typeof attempt.correct_answers === 'number' 
-          ? attempt.correct_answers 
-          : Number(attempt.correct_answers) || 0;
-        const totalQuestions = typeof attempt.total_questions === 'number'
-          ? attempt.total_questions
-          : Number(attempt.total_questions) || 0;
         const dailyLimit = attempt.user?.daily_mcq_limit ?? null;
+        const totalExamQuestions = adminExamQuestionCounts[attempt.exam_id] ?? attempt.total_questions;
+        const key = `${attempt.user_id}_${attempt.exam_id}_${attempt.id}`;
         
-        // Calculate answered count from answers JSONB
-        const answeredCount = attempt?.answers
-          ? Object.values(attempt.answers).filter((val) => val !== null && val !== undefined).length
-          : totalQuestions;
-        
-        // Calculate percentages
-        const totalPercentage = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
-        const dailyLimitPercentage = dailyLimit && dailyLimit > 0 
-          ? Math.min((correctAnswers / dailyLimit) * 100, 100) 
-          : null;
-        
-        return {
-          ...attempt,
-          score: parseFloat(attempt.score) || 0,
-          completed_at: attempt.completed_at,
-          correct_answers: correctAnswers,
-          total_questions: totalQuestions,
-          answeredCount,
-          dailyLimit,
-          totalPercentage: Math.round(totalPercentage * 10) / 10,
-          dailyLimitPercentage: dailyLimitPercentage !== null ? Math.round(dailyLimitPercentage * 10) / 10 : null
-        };
+        return normalizeAttempt(
+          attempt, 
+          dailyLimit, 
+          totalExamQuestions,
+          adminCumulativeMetrics[key]?.cumulativeCorrectAnswers,
+          adminCumulativeMetrics[key]?.cumulativeAnsweredQuestions
+        );
       }) || [],
       newUsers: newUsers || [],
       
