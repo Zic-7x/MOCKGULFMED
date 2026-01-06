@@ -110,14 +110,14 @@ const ExamResults = () => {
               <p className="percentage-label">Cumulative performance across all attempts</p>
             </div>
 
-            {/* 3. Overall Result: Correct / Total MCQs in Database */}
+            {/* 3. Overall Result: Cumulative Correct / Total MCQs in Database */}
             <div className="percentage-card overall-result">
               <h3>Overall Result</h3>
               <div className={`percentage-value ${overallResult >= 70 ? 'good' : overallResult >= 50 ? 'average' : 'poor'}`}>
                 {overallResult.toFixed(1)}%
               </div>
               <p className="percentage-details">
-                {correctAnswers} out of {totalExamQuestions} total MCQs in exam
+                {(resultsFromState.cumulativeCorrectAnswers ?? correctAnswers)} out of {totalExamQuestions} total MCQs in exam
               </p>
               <p className="percentage-label">Progress against entire exam pool</p>
             </div>
@@ -231,10 +231,10 @@ const ExamResults = () => {
                     <strong>Attempt Overview:</strong> {attempt.attemptOverview.toFixed(1)}% 
                     ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered} questions answered in all attempts)
                   </div>
-                  {/* Overall Result: Correct / Total MCQs in Database */}
+                  {/* Overall Result: Cumulative Correct / Total MCQs in Database */}
                   <div className="detail-row">
                     <strong>Overall Result:</strong> {attempt.overallResult.toFixed(1)}% 
-                    ({attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs in exam)
+                    ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs in exam)
                   </div>
                 <div className="detail-row">
                   <span>Completed: {new Date(attempt.completed_at).toLocaleString()}</span>

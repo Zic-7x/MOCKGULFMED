@@ -347,7 +347,18 @@ export const getExam = async (examId, userId) => {
   if (error) throw error;
 
   // Use the actual database count, or fall back to returned questions length
-  const actualTotalQuestions = totalQuestionsInDatabase ?? (allQuestionIdsData?.length || data.questions?.length || 0);
+  // Safely determine the actual total questions in the database:
+  // - Prefer a positive DB count
+  // - If DB count is 0 or null but we have allQuestionIdsData or questions array, fall back to those
+  const dbTotalQuestions =
+    typeof totalQuestionsInDatabase === 'number' && totalQuestionsInDatabase > 0
+      ? totalQuestionsInDatabase
+      : null;
+  const actualTotalQuestions =
+    dbTotalQuestions ??
+    (allQuestionIdsData && allQuestionIdsData.length > 0
+      ? allQuestionIdsData.length
+      : data.questions?.length || 0);
 
   // Check if exam exists and has questions
   if (!data || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
@@ -833,7 +844,7 @@ export const deleteExamAccess = async (id) => {
 };
 
 // Exam Attempts
-export const submitExam = async (examId, userId, answers, timeSpent) => {
+export const submitExam = async (examId, userId, answers, timeSpent, clientCorrectCount = null) => {
   // Helper to normalize IDs (UUIDs) to a consistent lowercase string
   const normalizeId = (id) => {
     if (!id) return '';
@@ -893,6 +904,14 @@ export const submitExam = async (examId, userId, answers, timeSpent) => {
     }
   });
 
+  // If the client provided a trusted correct-count based on the same
+  // randomized questions it displayed (randomizedCorrectAnswer),
+  // prefer that value. This protects against any rare ID-mapping issues
+  // between the client and the exam/questions fetched here.
+  if (typeof clientCorrectCount === 'number' && clientCorrectCount >= 0) {
+    correctAnswers = clientCorrectCount;
+  }
+
   // Get user daily limit and total exam questions count
   const { data: profile } = await supabase
     .from('user_profiles')
@@ -907,7 +926,19 @@ export const submitExam = async (examId, userId, answers, timeSpent) => {
     .select('*', { count: 'exact', head: true })
     .eq('exam_id', examId);
 
-  const totalExamQuestions = totalExamQuestionsInDB ?? (exam.questions ? exam.questions.length : answeredCount);
+  // Safely determine total exam questions:
+  // - Prefer a positive DB count
+  // - If DB count is 0 or null but we have questions from the joined exam, fall back to that length
+  // - As a last resort, fall back to the number of questions answered in this attempt
+  const dbQuestionCount =
+    typeof totalExamQuestionsInDB === 'number' && totalExamQuestionsInDB > 0
+      ? totalExamQuestionsInDB
+      : null;
+  const totalExamQuestions =
+    dbQuestionCount ??
+    (exam.questions && Array.isArray(exam.questions) && exam.questions.length > 0
+      ? exam.questions.length
+      : answeredCount);
   const totalQuestionsAnswered = answeredCount;
 
   // Get all previous attempts for this exam to calculate cumulative metrics
@@ -948,9 +979,10 @@ export const submitExam = async (examId, userId, answers, timeSpent) => {
     ? (cumulativeCorrectAnswers / cumulativeAnsweredQuestions) * 100
     : 0;
 
-  // 3. OVERALL RESULT: Correct Answers / Total MCQs in database for this exam
+  // 3. OVERALL RESULT: Cumulative Correct Answers / Total MCQs in database for this exam
+  // This reflects overall progress across all attempts, not just this one.
   const overallResult = totalExamQuestions > 0
-    ? (correctAnswers / totalExamQuestions) * 100
+    ? (cumulativeCorrectAnswers / totalExamQuestions) * 100
     : 0;
 
   // Use main score if available, otherwise use attempt overview as the primary score
@@ -1058,8 +1090,14 @@ const normalizeAttempt = (attempt, dailyLimit = null, totalExamQuestions = null,
     : normalized.total_questions;
   const correctCount = normalized.correct_answers;
 
-  // Use provided total exam questions or fallback to total_questions
-  const totalExamQuestionsCount = totalExamQuestions ?? normalized.total_questions;
+  // Use provided total exam questions or fallback to total_questions.
+  // Be careful with 0: if caller passes 0 but this attempt clearly has questions,
+  // prefer the attempt's total_questions as a safer fallback.
+  const hasValidTotalFromCaller =
+    typeof totalExamQuestions === 'number' && totalExamQuestions > 0;
+  const totalExamQuestionsCount = hasValidTotalFromCaller
+    ? totalExamQuestions
+    : normalized.total_questions;
 
   // Use provided cumulative values or calculate from this attempt only
   const cumulativeCorrect = cumulativeCorrectAnswers !== null ? cumulativeCorrectAnswers : correctCount;
@@ -1076,9 +1114,10 @@ const normalizeAttempt = (attempt, dailyLimit = null, totalExamQuestions = null,
     ? (cumulativeCorrect / cumulativeAnswered) * 100
     : 0;
 
-  // 3. OVERALL RESULT: Correct Answers / Total MCQs in database for this exam
+  // 3. OVERALL RESULT: Cumulative Correct Answers / Total MCQs in database for this exam
+  // This reflects overall progress across all attempts, not just this one.
   const overallResult = totalExamQuestionsCount > 0
-    ? (correctCount / totalExamQuestionsCount) * 100
+    ? (cumulativeCorrect / totalExamQuestionsCount) * 100
     : 0;
 
   // Use main score if available, otherwise use attempt overview as the primary score
@@ -1141,7 +1180,9 @@ export const getUserAttempts = async (userId, examId = null) => {
           .from('questions')
           .select('*', { count: 'exact', head: true })
           .eq('exam_id', examId);
-        examQuestionCounts[examId] = count ?? 0;
+        // Only trust a positive count; if 0 or null, we'll fall back later to attempt data
+        examQuestionCounts[examId] =
+          typeof count === 'number' && count > 0 ? count : null;
       })
     );
   }
@@ -1242,7 +1283,9 @@ export const getUserDashboard = async (userId) => {
           .from('questions')
           .select('*', { count: 'exact', head: true })
           .eq('exam_id', examId);
-        examQuestionCounts[examId] = count ?? 0;
+        // Only trust a positive count; if 0 or null, we'll fall back later to attempt data
+        examQuestionCounts[examId] =
+          typeof count === 'number' && count > 0 ? count : null;
       })
     );
   }

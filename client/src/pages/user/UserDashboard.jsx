@@ -125,10 +125,10 @@ const UserDashboard = () => {
                       <strong>Attempt Overview:</strong> {attempt.attemptOverview.toFixed(1)}% 
                       ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered} questions answered in all attempts)
                     </div>
-                    {/* Overall Result: Correct / Total MCQs in Database */}
+                    {/* Overall Result: Cumulative Correct / Total MCQs in Database */}
                     <div className="metric-row">
                       <strong>Overall Result:</strong> {attempt.overallResult.toFixed(1)}% 
-                      ({attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs in exam)
+                      ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs in exam)
                     </div>
                     <div className="metric-row date-row">
                       <span>{new Date(attempt.completed_at).toLocaleDateString()}</span>

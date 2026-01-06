@@ -244,10 +244,10 @@ const AdminDashboard = () => {
                             <strong>Attempt Overview:</strong> {attempt.attemptOverview.toFixed(1)}% 
                             ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered} answered in all attempts)
                           </span>
-                          {/* Overall Result: Correct / Total MCQs in Database */}
+                          {/* Overall Result: Cumulative Correct / Total MCQs in Database */}
                           <span className="activity-score">
                             <strong>Overall Result:</strong> {attempt.overallResult.toFixed(1)}% 
-                            ({attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs)
+                            ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs)
                           </span>
                         </div>
                         <span className="activity-time">

@@ -42,9 +42,9 @@ const TakeExam = () => {
   });
 
   const submitMutation = useMutation({
-    mutationFn: async ({ answers, timeSpent }) => {
+    mutationFn: async ({ answers, timeSpent, clientCorrectCount }) => {
       if (!user?.id) throw new Error('Not logged in');
-      return await submitExam(id, user.id, answers, timeSpent);
+      return await submitExam(id, user.id, answers, timeSpent, clientCorrectCount);
     },
     onSuccess: (results) => {
       navigate(`/exams/${id}/results`, { state: { results } });
@@ -110,9 +110,13 @@ const TakeExam = () => {
     if (isSubmitting) return; // Prevent duplicate submissions/race conditions
     setIsSubmitting(true);
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-    
+
     // Map randomized positions (0-3) back to original option labels (A-D)
+    // and compute the number of correct answers on the client using the same
+    // logic that powers the per-question feedback.
     const mappedAnswers = {};
+    let clientCorrectCount = 0;
+
     if (exam?.questions) {
       exam.questions.forEach((question) => {
         // Normalize question ID to string to ensure consistent storage
@@ -121,19 +125,29 @@ const TakeExam = () => {
           questionId = String(questionId);
         }
         questionId = questionId.trim();
-        
+
         const selectedPosition = answers[question.id];
-        if (selectedPosition !== undefined && question.optionMapping) {
-          // Convert position (0-3) to original option (A-D)
-          mappedAnswers[questionId] = question.optionMapping[selectedPosition];
-        } else if (selectedPosition !== undefined) {
-          // Fallback: if no mapping, assume it's already in correct format
-          mappedAnswers[questionId] = selectedPosition;
+        if (selectedPosition !== undefined) {
+          if (question.optionMapping) {
+            // Convert position (0-3) to original option (A-D)
+            mappedAnswers[questionId] = question.optionMapping[selectedPosition];
+          } else {
+            // Fallback: if no mapping, assume it's already in correct format
+            mappedAnswers[questionId] = selectedPosition;
+          }
+
+          // Client-side correct count based on randomizedCorrectAnswer
+          if (
+            typeof question.randomizedCorrectAnswer === 'number' &&
+            selectedPosition === question.randomizedCorrectAnswer
+          ) {
+            clientCorrectCount += 1;
+          }
         }
       });
     }
-    
-    submitMutation.mutate({ answers: mappedAnswers, timeSpent });
+
+    submitMutation.mutate({ answers: mappedAnswers, timeSpent, clientCorrectCount });
   };
 
   const openSubmitConfirmModal = (context = 'manual') => {
