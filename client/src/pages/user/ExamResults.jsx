@@ -48,6 +48,16 @@ const ExamResults = () => {
     const readinessThreshold = 80;
     const isReady = (attempt.mainScore !== null ? attempt.mainScore : attempt.attemptOverview) >= readinessThreshold;
 
+    const getOptionTextForLabel = (result, label) => {
+      if (!label) return '';
+      const upper = String(label).toUpperCase();
+      if (upper === 'A') return result.option_a || '';
+      if (upper === 'B') return result.option_b || '';
+      if (upper === 'C') return result.option_c || '';
+      if (upper === 'D') return result.option_d || '';
+      return '';
+    };
+
     return (
       <Layout>
         <div className="exam-results">
@@ -131,7 +141,15 @@ const ExamResults = () => {
           <div className="results-details">
             <h2>Question Review</h2>
             {(!results || results.length === 0) ? (
-              <p>No answered MCQs found for this attempt.</p>
+              <>
+                <p>No answered MCQs found for this attempt.</p>
+                {/* Lightweight diagnostics to help identify legacy attempts / RLS issues */}
+                {attemptReview?._debug && (
+                  <p style={{ opacity: 0.7, fontSize: '0.9em' }}>
+                    Debug: questionsFetched={attemptReview._debug.questionsFetched}, answersKeys={attemptReview._debug.answersKeys}, matched={attemptReview._debug.answeredMatched}
+                  </p>
+                )}
+              </>
             ) : (
               results.map((result, index) => (
                 <div
@@ -145,17 +163,31 @@ const ExamResults = () => {
                     </span>
                   </div>
                   <p className="result-question">{result.question}</p>
+                  {(result.option_a || result.option_b || result.option_c || result.option_d) && (
+                    <div className="result-options">
+                      <div className="answer-item"><span className="answer-label">A:</span> <span className="answer-value">{result.option_a}</span></div>
+                      <div className="answer-item"><span className="answer-label">B:</span> <span className="answer-value">{result.option_b}</span></div>
+                      <div className="answer-item"><span className="answer-label">C:</span> <span className="answer-value">{result.option_c}</span></div>
+                      <div className="answer-item"><span className="answer-label">D:</span> <span className="answer-value">{result.option_d}</span></div>
+                    </div>
+                  )}
                   <div className="result-answers">
                     <div className="answer-item">
                       <span className="answer-label">Your Answer:</span>
-                      <span className={`answer-value ${!result.isCorrect ? 'wrong' : ''}`}>
-                        {result.userAnswer || 'Not answered'}
-                      </span>
+                      {result.userAnswer ? (
+                        <span className={`answer-value ${!result.isCorrect ? 'wrong' : ''}`}>
+                          {`${result.userAnswer}. ${getOptionTextForLabel(result, result.userAnswer)}`}
+                        </span>
+                      ) : (
+                        <span className="answer-value">Not answered</span>
+                      )}
                     </div>
                     {!result.isCorrect && (
                       <div className="answer-item">
                         <span className="answer-label">Correct Answer:</span>
-                        <span className="answer-value correct-answer">{result.correctAnswer}</span>
+                        <span className="answer-value correct-answer">
+                          {`${result.correctAnswer}. ${getOptionTextForLabel(result, result.correctAnswer)}`}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -192,6 +224,11 @@ const ExamResults = () => {
     const readinessThreshold = 80;
     // Use main score (or attempt overview if no daily limit) for readiness check
     const isReady = (mainScore !== null ? mainScore : attemptOverview) >= readinessThreshold;
+
+    // Only show detailed rows for questions that actually have a recorded answer
+    const answeredResults = (results || []).filter(
+      (r) => r.userAnswer !== null && r.userAnswer !== undefined
+    );
 
     return (
       <Layout>
@@ -280,7 +317,7 @@ const ExamResults = () => {
 
           <div className="results-details">
             <h2>Question Review</h2>
-            {results.map((result, index) => (
+            {answeredResults.map((result, index) => (
               <div
                 key={index}
                 className={`result-item ${result.isCorrect ? 'correct' : 'incorrect'}`}

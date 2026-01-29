@@ -1252,6 +1252,13 @@ export const getAttemptReview = async (userId, attemptId) => {
     return str.trim().toLowerCase();
   };
 
+  const extractUuid = (value) => {
+    if (!value) return null;
+    const str = typeof value === 'string' ? value : String(value);
+    const match = str.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
+    return match ? match[0].toLowerCase() : null;
+  };
+
   const { data: attempt, error: attemptError } = await supabase
     .from('exam_attempts')
     .select(`
@@ -1265,34 +1272,116 @@ export const getAttemptReview = async (userId, attemptId) => {
   if (attemptError) throw attemptError;
   if (!attempt) throw new Error('Attempt not found');
 
-  const { data: questions, error: questionsError } = await supabase
-    .from('questions')
-    .select('id, question, option_a, option_b, option_c, option_d, correct_answer, explanation')
-    .eq('exam_id', attempt.exam_id);
+  // Answers can exist in different shapes depending on historical data:
+  // - object map: { [questionId]: 'A'|'B'|'C'|'D' }
+  // - nested: { answers: { ... } }
+  // - array: [ { questionId, answer }, ... ]
+  const rawAnswers = attempt?.answers;
+  let answersMap = {};
+  if (rawAnswers && typeof rawAnswers === 'object') {
+    if (Array.isArray(rawAnswers)) {
+      // Legacy: array of entries
+      rawAnswers.forEach((entry) => {
+        const qid = normalizeId(entry?.questionId ?? entry?.question_id ?? entry?.id);
+        const val = entry?.answer ?? entry?.value ?? entry?.userAnswer ?? null;
+        if (qid) answersMap[qid] = val;
+      });
+    } else if (rawAnswers.answers && typeof rawAnswers.answers === 'object' && !Array.isArray(rawAnswers.answers)) {
+      // Legacy: nested map
+      answersMap = rawAnswers.answers;
+    } else {
+      // Current: direct map
+      answersMap = rawAnswers;
+    }
+  }
 
-  if (questionsError) throw questionsError;
-
-  const answers = attempt.answers && typeof attempt.answers === 'object' ? attempt.answers : {};
   const normalizedAnswers = {};
-  Object.keys(answers).forEach((k) => {
+  Object.keys(answersMap || {}).forEach((k) => {
     const nk = normalizeId(k);
-    if (nk) normalizedAnswers[nk] = answers[k];
+    if (nk) normalizedAnswers[nk] = answersMap[k];
   });
 
-  const results = (questions || []).map((q) => {
-    const userAnswer = normalizedAnswers[normalizeId(q.id)];
+  // Fetch ONLY the questions that the user answered in this attempt.
+  // This avoids Supabase 1000-row limits on large exams (e.g., NPQE).
+  const answeredEntries = Object.entries(normalizedAnswers).filter(([, v]) => v !== null && v !== undefined);
+  const answeredQuestionIds = answeredEntries
+    .map(([k]) => extractUuid(k) || k) // support legacy keys that embed the UUID
+    .filter(Boolean);
+
+  // If we have no answered IDs, we can return early.
+  if (answeredQuestionIds.length === 0) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('daily_mcq_limit')
+      .eq('id', userId)
+      .maybeSingle();
+
+    const dailyLimit = profile?.daily_mcq_limit ?? null;
+
+    const { count: totalExamQuestionsInDB } = await supabase
+      .from('questions')
+      .select('*', { count: 'exact', head: true })
+      .eq('exam_id', attempt.exam_id);
+
+    const totalExamQuestions =
+      typeof totalExamQuestionsInDB === 'number' && totalExamQuestionsInDB > 0
+        ? totalExamQuestionsInDB
+        : null;
+
     return {
-      questionId: q.id,
-      question: q.question,
-      userAnswer: userAnswer ?? null,
-      correctAnswer: q.correct_answer,
-      explanation: q.explanation,
-      isCorrect: userAnswer === q.correct_answer,
+      attempt: normalizeAttempt(attempt, dailyLimit, totalExamQuestions),
+      results: [],
+      _debug: {
+        questionsFetched: 0,
+        answersKeys: Object.keys(normalizedAnswers).length,
+        answeredMatched: 0,
+        sampleAnswerKeys: Object.keys(normalizedAnswers).slice(0, 5),
+        answeredIds: answeredQuestionIds.slice(0, 5),
+      },
     };
+  }
+
+  const chunkSize = 500;
+  const fetchedQuestions = [];
+  for (let i = 0; i < answeredQuestionIds.length; i += chunkSize) {
+    const chunk = answeredQuestionIds.slice(i, i + chunkSize);
+    const { data: chunkQuestions, error: chunkError } = await supabase
+      .from('questions')
+      .select('id, question, option_a, option_b, option_c, option_d, correct_answer, explanation')
+      .eq('exam_id', attempt.exam_id)
+      .in('id', chunk);
+
+    if (chunkError) throw chunkError;
+    if (chunkQuestions && chunkQuestions.length > 0) {
+      fetchedQuestions.push(...chunkQuestions);
+    }
+  }
+
+  const questionsById = new Map();
+  (fetchedQuestions || []).forEach((q) => {
+    questionsById.set(normalizeId(q.id), q);
   });
 
-  // Keep review focused on questions the user actually answered in this attempt.
-  const answeredResults = results.filter((r) => r.userAnswer !== null && r.userAnswer !== undefined);
+  // Build results in the same order as the answers keys (stable review)
+  const answeredResults = answeredEntries
+    .map(([rawKey, userAnswer]) => {
+      const qid = extractUuid(rawKey) || normalizeId(rawKey);
+      const q = questionsById.get(qid);
+      if (!q) return null;
+      return {
+        questionId: q.id,
+        question: q.question,
+        option_a: q.option_a,
+        option_b: q.option_b,
+        option_c: q.option_c,
+        option_d: q.option_d,
+        userAnswer: userAnswer ?? null,
+        correctAnswer: q.correct_answer,
+        explanation: q.explanation,
+        isCorrect: userAnswer === q.correct_answer,
+      };
+    })
+    .filter(Boolean);
 
   // Reuse the same normalization logic as lists (dailyLimit/overall totals will be calculated by caller in UI as needed).
   const { data: profile } = await supabase
@@ -1317,6 +1406,14 @@ export const getAttemptReview = async (userId, attemptId) => {
   return {
     attempt: normalizeAttempt(attempt, dailyLimit, totalExamQuestions),
     results: answeredResults,
+    // Helps diagnose cases where old attempts exist but review is empty.
+    _debug: {
+      questionsFetched: (fetchedQuestions || []).length,
+      answersKeys: Object.keys(normalizedAnswers).length,
+      answeredMatched: answeredResults.length,
+      sampleAnswerKeys: Object.keys(normalizedAnswers).slice(0, 5),
+      answeredIds: answeredQuestionIds.slice(0, 5),
+    },
   };
 };
 
