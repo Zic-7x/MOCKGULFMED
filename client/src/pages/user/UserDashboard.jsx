@@ -103,7 +103,12 @@ const UserDashboard = () => {
             <h2>Recent Attempts</h2>
             <div className="attempts-list">
               {data.recentAttempts.map((attempt) => (
-                <div key={attempt.id} className="attempt-card">
+                <Link
+                  key={attempt.id}
+                  to={`/results/attempt/${attempt.id}`}
+                  className="attempt-card"
+                  style={{ textDecoration: 'none', color: 'inherit' }}
+                >
                   <div className="attempt-header">
                     <h4>{attempt.exam?.title}</h4>
                     <span
@@ -133,8 +138,11 @@ const UserDashboard = () => {
                     <div className="metric-row date-row">
                       <span>{new Date(attempt.completed_at).toLocaleDateString()}</span>
                     </div>
+                    <div className="metric-row">
+                      <strong>Review:</strong> View answered MCQs
+                    </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

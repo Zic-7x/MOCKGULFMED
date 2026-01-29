@@ -1239,6 +1239,87 @@ export const getUserAttempts = async (userId, examId = null) => {
   );
 };
 
+// Fetch a single attempt and build per-question review data (answered MCQs)
+export const getAttemptReview = async (userId, attemptId) => {
+  if (!userId || !attemptId) {
+    throw new Error('Missing user or attempt id');
+  }
+
+  const normalizeId = (id) => {
+    if (!id) return '';
+    let str = id;
+    if (typeof str !== 'string') str = String(str);
+    return str.trim().toLowerCase();
+  };
+
+  const { data: attempt, error: attemptError } = await supabase
+    .from('exam_attempts')
+    .select(`
+      *,
+      exam:exams(title, exam_type, duration)
+    `)
+    .eq('id', attemptId)
+    .eq('user_id', userId)
+    .single();
+
+  if (attemptError) throw attemptError;
+  if (!attempt) throw new Error('Attempt not found');
+
+  const { data: questions, error: questionsError } = await supabase
+    .from('questions')
+    .select('id, question, option_a, option_b, option_c, option_d, correct_answer, explanation')
+    .eq('exam_id', attempt.exam_id);
+
+  if (questionsError) throw questionsError;
+
+  const answers = attempt.answers && typeof attempt.answers === 'object' ? attempt.answers : {};
+  const normalizedAnswers = {};
+  Object.keys(answers).forEach((k) => {
+    const nk = normalizeId(k);
+    if (nk) normalizedAnswers[nk] = answers[k];
+  });
+
+  const results = (questions || []).map((q) => {
+    const userAnswer = normalizedAnswers[normalizeId(q.id)];
+    return {
+      questionId: q.id,
+      question: q.question,
+      userAnswer: userAnswer ?? null,
+      correctAnswer: q.correct_answer,
+      explanation: q.explanation,
+      isCorrect: userAnswer === q.correct_answer,
+    };
+  });
+
+  // Keep review focused on questions the user actually answered in this attempt.
+  const answeredResults = results.filter((r) => r.userAnswer !== null && r.userAnswer !== undefined);
+
+  // Reuse the same normalization logic as lists (dailyLimit/overall totals will be calculated by caller in UI as needed).
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('daily_mcq_limit')
+    .eq('id', userId)
+    .maybeSingle();
+
+  const dailyLimit = profile?.daily_mcq_limit ?? null;
+
+  // total questions in exam (for overallResult) - prefer DB count
+  const { count: totalExamQuestionsInDB } = await supabase
+    .from('questions')
+    .select('*', { count: 'exact', head: true })
+    .eq('exam_id', attempt.exam_id);
+
+  const totalExamQuestions =
+    typeof totalExamQuestionsInDB === 'number' && totalExamQuestionsInDB > 0
+      ? totalExamQuestionsInDB
+      : null;
+
+  return {
+    attempt: normalizeAttempt(attempt, dailyLimit, totalExamQuestions),
+    results: answeredResults,
+  };
+};
+
 // Dashboard
 export const getUserDashboard = async (userId) => {
   const { data: profile, error: profileError } = await supabase
