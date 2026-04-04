@@ -651,7 +651,7 @@ export const getExam = async (examId, userId) => {
       .select('mcq_count')
       .eq('user_id', userId)
       .eq('date', today)
-      .single();
+      .maybeSingle();
 
     usageRecord = usage;
     const used = usageRecord?.mcq_count || 0;
@@ -1437,7 +1437,7 @@ export const getUserDashboard = async (userId) => {
     .select('*')
     .eq('user_id', userId)
     .eq('date', today)
-    .single();
+    .maybeSingle();
 
   const { data: attempts } = await supabase
     .from('exam_attempts')

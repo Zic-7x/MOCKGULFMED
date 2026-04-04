@@ -97,14 +97,14 @@ npm run dev
    - Click "New Project"
    - Import your GitHub repository
 
-3. Configure environment variables:
-   - Frontend (`client/.env` or Vercel Project):
+3. Configure environment variables (set for **Production** in Vercel, not only Preview):
+   - Frontend build (`client/.env` or Vercel):
      - `VITE_SUPABASE_URL`
      - `VITE_SUPABASE_ANON_KEY`
      - *(optional)* `VITE_ADMIN_USERS_API_URL` (override if the admin API lives on a different domain)
-   - Serverless function (`api/admin-users.js`):
-     - `SUPABASE_URL`
-     - `SUPABASE_SERVICE_ROLE_KEY` (Supabase service-role secret — **never** expose to the browser)
+   - Serverless function `api/admin-users.js` (same Vercel project — required at **runtime** for POST `/api/admin-users`):
+     - `SUPABASE_SERVICE_ROLE_KEY` (service-role secret — **never** expose to the browser)
+     - Plus URL + anon key using **either** the `VITE_*` names **or** `SUPABASE_URL` + `SUPABASE_ANON_KEY` (the handler accepts both)
 
 4. Configure build settings:
    - Build Command: `cd client && npm run build`

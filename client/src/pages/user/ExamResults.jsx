@@ -2,28 +2,19 @@ import { useLocation, useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getAttemptReview, getUserAttempts } from '../../utils/supabaseQueries';
+import { getUserAttempts } from '../../utils/supabaseQueries';
 import Layout from '../../components/Layout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import './ExamResults.css';
 
 const ExamResults = () => {
   const location = useLocation();
-  const { id, attemptId } = useParams();
+  const { id } = useParams();
   const { user } = useAuth();
   if (!user) {
     return <Navigate to="/login" />;
   }
   const resultsFromState = location.state?.results;
-
-  const { data: attemptReview, isLoading: isLoadingAttemptReview } = useQuery({
-    queryKey: ['attemptReview', user?.id, attemptId],
-    queryFn: async () => {
-      if (!user?.id || !attemptId) return null;
-      return await getAttemptReview(user.id, attemptId);
-    },
-    enabled: !!user?.id && !!attemptId && !resultsFromState,
-  });
 
   const { data: attempts, isLoading } = useQuery({
     queryKey: ['userAttempts', user?.id, id],
@@ -31,176 +22,13 @@ const ExamResults = () => {
       if (!user?.id) return [];
       return await getUserAttempts(user.id, id || null);
     },
-    enabled: !!user?.id && !resultsFromState && !attemptId,
+    enabled: !!user?.id && !resultsFromState,
   });
 
-  if ((isLoading && !resultsFromState) || (isLoadingAttemptReview && !resultsFromState)) {
+  if (isLoading && !resultsFromState) {
     return (
       <Layout>
         <LoadingSpinner />
-      </Layout>
-    );
-  }
-
-  // Show detailed results for a historical attempt (opened from Recent Attempts)
-  if (attemptReview && attemptId && !resultsFromState) {
-    const { attempt, results } = attemptReview;
-    const readinessThreshold = 80;
-    const isReady = (attempt.mainScore !== null ? attempt.mainScore : attempt.attemptOverview) >= readinessThreshold;
-
-    const getOptionTextForLabel = (result, label) => {
-      if (!label) return '';
-      const upper = String(label).toUpperCase();
-      if (upper === 'A') return result.option_a || '';
-      if (upper === 'B') return result.option_b || '';
-      if (upper === 'C') return result.option_c || '';
-      if (upper === 'D') return result.option_d || '';
-      return '';
-    };
-
-    return (
-      <Layout>
-        <div className="exam-results">
-          <div className="results-header">
-            <h1>Exam Results</h1>
-            <Link to="/results" className="back-link">Back to Results</Link>
-          </div>
-
-          <div className="score-summary">
-            <div className="score-card">
-              <h2>Your Score</h2>
-              <div className={`score-value ${attempt.score >= 70 ? 'good' : attempt.score >= 50 ? 'average' : 'poor'}`}>
-                {attempt.score.toFixed(1)}%
-              </div>
-              <p className="score-details">
-                {attempt.mainScore !== null && attempt.dailyLimit
-                  ? `${attempt.correct_answers} out of ${attempt.dailyLimit} daily limit correct`
-                  : `${attempt.correct_answers} out of ${attempt.totalQuestionsAnswered} questions answered correct`
-                }
-              </p>
-            </div>
-            <div className="exam-info-card">
-              <h3>{attempt.exam?.title}</h3>
-              <p>Type: {attempt.exam?.exam_type}</p>
-              <p>Completed: {new Date(attempt.completed_at).toLocaleString()}</p>
-              <p>Time Spent: {Math.floor(attempt.time_spent / 60)} minutes</p>
-            </div>
-          </div>
-
-          <div className="percentage-breakdown">
-            {attempt.mainScore !== null && (
-              <div className="percentage-card main-score">
-                <h3>Main Score</h3>
-                <div className={`percentage-value ${attempt.mainScore >= 70 ? 'good' : attempt.mainScore >= 50 ? 'average' : 'poor'}`}>
-                  {attempt.mainScore.toFixed(1)}%
-                </div>
-                <p className="percentage-details">
-                  {attempt.correct_answers} out of {attempt.dailyLimit} daily limit
-                </p>
-                <p className="percentage-label">Primary performance metric</p>
-              </div>
-            )}
-
-            <div className="percentage-card attempt-overview">
-              <h3>Attempt Overview</h3>
-              <div className={`percentage-value ${attempt.attemptOverview >= 70 ? 'good' : attempt.attemptOverview >= 50 ? 'average' : 'poor'}`}>
-                {attempt.attemptOverview.toFixed(1)}%
-              </div>
-              <p className="percentage-details">
-                {attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered} questions answered (all attempts)
-              </p>
-              <p className="percentage-label">Cumulative performance across all attempts</p>
-            </div>
-
-            <div className="percentage-card overall-result">
-              <h3>Overall Result</h3>
-              <div className={`percentage-value ${attempt.overallResult >= 70 ? 'good' : attempt.overallResult >= 50 ? 'average' : 'poor'}`}>
-                {attempt.overallResult.toFixed(1)}%
-              </div>
-              <p className="percentage-details">
-                {(attempt.cumulativeCorrectAnswers ?? attempt.correct_answers)} out of {attempt.totalExamQuestions} total MCQs in exam
-              </p>
-              <p className="percentage-label">Progress against entire exam pool</p>
-            </div>
-          </div>
-
-          <div className={`readiness-banner ${isReady ? 'ready' : 'not-ready'}`}>
-            <div className="readiness-message">
-              {isReady ? (
-                <>
-                  <span className="celebrate">🎉</span> You're ready for your exam!
-                </>
-              ) : (
-                <>
-                  Keep practicing — aim for {readinessThreshold}%+ to unlock your exam.
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="results-details">
-            <h2>Question Review</h2>
-            {(!results || results.length === 0) ? (
-              <>
-                <p>No answered MCQs found for this attempt.</p>
-                {/* Lightweight diagnostics to help identify legacy attempts / RLS issues */}
-                {attemptReview?._debug && (
-                  <p style={{ opacity: 0.7, fontSize: '0.9em' }}>
-                    Debug: questionsFetched={attemptReview._debug.questionsFetched}, answersKeys={attemptReview._debug.answersKeys}, matched={attemptReview._debug.answeredMatched}
-                  </p>
-                )}
-              </>
-            ) : (
-              results.map((result, index) => (
-                <div
-                  key={result.questionId || index}
-                  className={`result-item ${result.isCorrect ? 'correct' : 'incorrect'}`}
-                >
-                  <div className="result-header">
-                    <span className="result-number">Question {index + 1}</span>
-                    <span className={`result-status ${result.isCorrect ? 'correct' : 'incorrect'}`}>
-                      {result.isCorrect ? '✓ Correct' : '✗ Incorrect'}
-                    </span>
-                  </div>
-                  <p className="result-question">{result.question}</p>
-                  {(result.option_a || result.option_b || result.option_c || result.option_d) && (
-                    <div className="result-options">
-                      <div className="answer-item"><span className="answer-label">A:</span> <span className="answer-value">{result.option_a}</span></div>
-                      <div className="answer-item"><span className="answer-label">B:</span> <span className="answer-value">{result.option_b}</span></div>
-                      <div className="answer-item"><span className="answer-label">C:</span> <span className="answer-value">{result.option_c}</span></div>
-                      <div className="answer-item"><span className="answer-label">D:</span> <span className="answer-value">{result.option_d}</span></div>
-                    </div>
-                  )}
-                  <div className="result-answers">
-                    <div className="answer-item">
-                      <span className="answer-label">Your Answer:</span>
-                      {result.userAnswer ? (
-                        <span className={`answer-value ${!result.isCorrect ? 'wrong' : ''}`}>
-                          {`${result.userAnswer}. ${getOptionTextForLabel(result, result.userAnswer)}`}
-                        </span>
-                      ) : (
-                        <span className="answer-value">Not answered</span>
-                      )}
-                    </div>
-                    {!result.isCorrect && (
-                      <div className="answer-item">
-                        <span className="answer-label">Correct Answer:</span>
-                        <span className="answer-value correct-answer">
-                          {`${result.correctAnswer}. ${getOptionTextForLabel(result, result.correctAnswer)}`}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {result.explanation && (
-                    <div className="explanation">
-                      <strong>Explanation:</strong> {result.explanation}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
       </Layout>
     );
   }
@@ -224,11 +52,6 @@ const ExamResults = () => {
     const readinessThreshold = 80;
     // Use main score (or attempt overview if no daily limit) for readiness check
     const isReady = (mainScore !== null ? mainScore : attemptOverview) >= readinessThreshold;
-
-    // Only show detailed rows for questions that actually have a recorded answer
-    const answeredResults = (results || []).filter(
-      (r) => r.userAnswer !== null && r.userAnswer !== undefined
-    );
 
     return (
       <Layout>
@@ -317,7 +140,7 @@ const ExamResults = () => {
 
           <div className="results-details">
             <h2>Question Review</h2>
-            {answeredResults.map((result, index) => (
+            {results.map((result, index) => (
               <div
                 key={index}
                 className={`result-item ${result.isCorrect ? 'correct' : 'incorrect'}`}
@@ -416,11 +239,6 @@ const ExamResults = () => {
                 <div className="detail-row">
                   <span>Completed: {new Date(attempt.completed_at).toLocaleString()}</span>
                   <span>Time: {Math.floor(attempt.time_spent / 60)} min</span>
-                </div>
-                <div className="detail-row">
-                  <Link to={`/results/attempt/${attempt.id}`} className="back-link">
-                    Review answered MCQs
-                  </Link>
                 </div>
               </div>
             </div>

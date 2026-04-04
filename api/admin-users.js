@@ -1,12 +1,17 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+// Support both VITE_* (local / copied from client) and plain names (Vercel / README)
+const supabaseUrl =
+  process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const anonKey =
+  process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-  throw new Error('Missing Supabase environment variables');
+  throw new Error(
+    'Missing Supabase environment variables (need URL, anon key, and SUPABASE_SERVICE_ROLE_KEY)'
+  );
 }
 
 const anonClient = createClient(supabaseUrl, anonKey);
@@ -27,6 +32,49 @@ const getTokenFromRequest = (req) => {
     return null;
   }
   return authHeader.replace('Bearer ', '').trim();
+};
+
+/** Vercel serverless does not run express.json(); parse body when missing or stringified */
+const readJsonBody = async (req) => {
+  if (req.body !== undefined && req.body !== null) {
+    if (Buffer.isBuffer(req.body)) {
+      try {
+        return JSON.parse(req.body.toString('utf8'));
+      } catch {
+        return {};
+      }
+    }
+    if (typeof req.body === 'string') {
+      try {
+        return req.body ? JSON.parse(req.body) : {};
+      } catch {
+        return {};
+      }
+    }
+    if (typeof req.body === 'object') {
+      return req.body;
+    }
+  }
+  return new Promise((resolve, reject) => {
+    if (req.readableEnded || req.complete) {
+      resolve({});
+      return;
+    }
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => {
+      if (!chunks.length) {
+        resolve({});
+        return;
+      }
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+      } catch {
+        resolve({});
+      }
+    });
+    req.on('error', reject);
+  });
 };
 
 const ensureAdmin = async (accessToken) => {
@@ -169,13 +217,15 @@ export default async function handler(req, res) {
       return send(res, 401, { error: adminError });
     }
 
+    const body = await readJsonBody(req);
+
     let result;
     if (req.method === 'POST') {
-      result = await createUser(req.body);
+      result = await createUser(body);
     } else if (req.method === 'PUT') {
-      result = await updateUser(req.body);
+      result = await updateUser(body);
     } else if (req.method === 'DELETE') {
-      result = await deleteUser(req.body);
+      result = await deleteUser(body);
     }
 
     return send(res, result.status, result.body);
