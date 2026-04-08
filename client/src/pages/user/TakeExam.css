@@ -30,7 +30,7 @@
 .error-message .btn-primary {
   display: inline-block;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--brand-gradient);
   color: white;
   text-decoration: none;
   border: none;
@@ -38,7 +38,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.3s, transform 0.15s ease;
-  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.35);
+  box-shadow: 0 4px 10px rgba(11, 110, 168, 0.25);
 }
 
 .error-message .btn-primary:hover {
@@ -99,7 +99,7 @@
 .timer-value {
   font-size: 20px;
   font-weight: bold;
-  color: #667eea;
+  color: var(--brand-primary);
   font-family: 'Courier New', monospace;
 }
 
@@ -151,7 +151,7 @@
 
 .question-number {
   font-weight: 600;
-  color: #667eea;
+  color: var(--brand-primary);
   font-size: 14px;
 }
 
@@ -203,13 +203,13 @@
 }
 
 .option-label:hover {
-  border-color: #667eea;
+  border-color: var(--brand-primary);
   background: #f5f5f5;
 }
 
 .option-label.selected {
-  border-color: #667eea;
-  background: #e3f2fd;
+  border-color: var(--brand-primary);
+  background: var(--brand-surface-tint);
 }
 
 .option-label input[type="radio"] {
@@ -220,7 +220,7 @@
 
 .option-letter {
   font-weight: 600;
-  color: #667eea;
+  color: var(--brand-primary);
   margin-right: 8px;
   min-width: 20px;
 }
@@ -274,20 +274,20 @@
 
 .submit-answer-button {
   padding: 10px 22px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--brand-gradient);
   color: #fff;
   border: none;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.35);
+  box-shadow: 0 4px 10px rgba(11, 110, 168, 0.25);
   transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
 }
 
 .submit-answer-button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(102, 126, 234, 0.45);
+  box-shadow: 0 6px 14px rgba(11, 110, 168, 0.32);
 }
 
 .submit-answer-button:disabled {
@@ -351,7 +351,7 @@
 
 .submit-button {
   padding: 10px 22px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--brand-gradient);
   color: white;
   border: none;
   border-radius: 999px;
@@ -359,7 +359,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.3s, transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.35);
+  box-shadow: 0 4px 10px rgba(11, 110, 168, 0.25);
 }
 
 .submit-button-small {
@@ -370,7 +370,7 @@
 .submit-button:hover:not(:disabled) {
   opacity: 0.9;
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(102, 126, 234, 0.45);
+  box-shadow: 0 6px 14px rgba(11, 110, 168, 0.32);
 }
 
 .submit-button:disabled {

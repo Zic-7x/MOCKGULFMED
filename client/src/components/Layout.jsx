@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import logoUrl from '../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
 import './Layout.css';
 
 const Layout = ({ children }) => {
@@ -20,7 +21,8 @@ const Layout = ({ children }) => {
       <nav className="navbar">
         <div className="nav-container">
           <Link to={isAdmin ? '/admin' : '/dashboard'} className="nav-logo">
-            Mock Gulf Med
+            <img className="nav-logo-image" src={logoUrl} alt="MockGulfMed" />
+            <span className="sr-only">MockGulfMed</span>
           </Link>
           <button
             className="nav-toggle"
@@ -100,6 +102,14 @@ const Layout = ({ children }) => {
                 Logout
               </button>
             </div>
+          </div>
+        </div>
+        <div className="announcement-banner" role="status" aria-live="polite">
+          <div className="announcement-banner-inner">
+            <span className="announcement-badge">Announcement</span>
+            <span className="announcement-text">
+              <strong>Mega Update</strong> coming soon on the portal.
+            </span>
           </div>
         </div>
       </nav>

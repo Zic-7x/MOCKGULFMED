@@ -81,7 +81,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
   transition: width 0.3s;
 }
 
@@ -108,7 +108,7 @@
 }
 
 .action-card h3 {
-  color: #667eea;
+  color: var(--brand-primary);
   margin-bottom: 10px;
 }
 

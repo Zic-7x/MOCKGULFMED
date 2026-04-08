@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import logoUrl from '../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
 import './Login.css';
 
 const Login = () => {
@@ -27,7 +28,8 @@ const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1>Mock Gulf Med</h1>
+          <img className="login-logo" src={logoUrl} alt="MockGulfMed" />
+          <span className="sr-only">MockGulfMed</span>
           <p>Exam Portal for Medical Professionals</p>
         </div>
         <form onSubmit={handleSubmit} className="login-form">

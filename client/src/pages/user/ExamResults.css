@@ -17,7 +17,7 @@
 }
 
 .back-link {
-  color: #667eea;
+  color: var(--brand-primary);
   text-decoration: none;
   font-weight: 500;
 }
@@ -174,7 +174,7 @@
 
 .result-number {
   font-weight: 600;
-  color: #667eea;
+  color: var(--brand-primary);
   font-size: 14px;
 }
 
@@ -258,7 +258,7 @@
 .btn-primary {
   display: inline-block;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--brand-gradient);
   color: white;
   text-decoration: none;
   border-radius: 6px;
