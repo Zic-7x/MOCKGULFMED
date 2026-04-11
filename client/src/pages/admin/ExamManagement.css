@@ -26,3 +26,52 @@
   font-family: inherit;
   resize: vertical;
 }
+
+.exam-professions-fieldset .form-section-label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.exam-professions-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.45;
+}
+
+.profession-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px 0;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.profession-checkbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.profession-checkbox-item input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.profession-link-count {
+  font-size: 13px;
+  color: #155724;
+}
+
+.profession-link-missing {
+  font-size: 12px;
+  color: #856404;
+}

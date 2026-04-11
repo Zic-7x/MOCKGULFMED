@@ -1,0 +1,337 @@
+.register-page {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.register-header {
+  border-bottom: 1px solid #eef2f6;
+  background: #ffffff;
+}
+
+.register-header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.register-brand {
+  display: inline-flex;
+  align-items: center;
+}
+
+.register-logo {
+  width: 160px;
+  height: auto;
+  display: block;
+}
+
+.register-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.register-link {
+  text-decoration: none;
+  color: #0b6ea8;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(11, 110, 168, 0.06);
+  border: 1px solid rgba(11, 110, 168, 0.14);
+}
+
+.register-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 34px 20px 50px;
+  display: grid;
+  place-items: center;
+}
+
+.register-card {
+  width: min(720px, 100%);
+  border: 1px solid #eef2f6;
+  border-radius: 18px;
+  background: linear-gradient(
+      180deg,
+      rgba(11, 110, 168, 0.06) 0%,
+      rgba(255, 255, 255, 0.9) 35%
+    ),
+    #ffffff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  padding: 18px;
+}
+
+.register-card-head h1 {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.register-card-head p {
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.register-form {
+  display: grid;
+  gap: 14px;
+}
+
+.register-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.register-field label {
+  display: block;
+  font-weight: 750;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: #0f172a;
+}
+
+.register-field input,
+.register-field select {
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  outline: none;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.register-field input:focus,
+.register-field select:focus {
+  border-color: rgba(11, 110, 168, 0.45);
+  box-shadow: 0 0 0 4px rgba(11, 110, 168, 0.12);
+}
+
+.register-submit {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--brand-gradient);
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(11, 110, 168, 0.18);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.register-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.register-submit:not(:disabled):hover {
+  transform: translateY(-1px);
+  opacity: 0.96;
+}
+
+.register-foot {
+  text-align: center;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.register-foot a {
+  color: #0b6ea8;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.register-packages-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.register-packages-legend {
+  font-weight: 800;
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+
+.register-packages-hint,
+.register-packages-empty {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.register-packages-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.register-package-card {
+  position: relative;
+  display: block;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.register-package-card:hover {
+  border-color: rgba(11, 110, 168, 0.35);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+}
+
+.register-package-card-selected {
+  border-color: rgba(11, 110, 168, 0.65);
+  box-shadow: 0 0 0 4px rgba(11, 110, 168, 0.12);
+}
+
+.register-package-card-highlight {
+  background: linear-gradient(180deg, rgba(11, 110, 168, 0.06), #ffffff 55%);
+}
+
+.register-package-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 11px;
+  font-weight: 850;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(43, 182, 115, 0.16);
+  border: 1px solid rgba(43, 182, 115, 0.35);
+  color: #166534;
+}
+
+.register-package-card-top {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding-right: 96px;
+}
+
+.register-package-card-top input[type='radio'] {
+  margin-top: 4px;
+  width: 18px;
+  height: 18px;
+  accent-color: #0b6ea8;
+}
+
+.register-package-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.register-package-name {
+  font-weight: 850;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+}
+
+.register-package-price {
+  font-weight: 900;
+  color: #0b6ea8;
+  font-size: 15px;
+}
+
+.register-package-duration {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 650;
+}
+
+.register-package-desc {
+  margin: 10px 0 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.register-package-features {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.register-package-exams {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.register-package-exams-title {
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.register-package-exam-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.register-package-exam-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
+}
+
+.register-package-exam-title {
+  font-weight: 750;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.register-package-exam-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+@media (min-width: 720px) {
+  .register-card {
+    padding: 22px;
+  }
+
+  .register-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .register-field:nth-child(1),
+  .register-field:nth-child(2),
+  .register-field:nth-child(3) {
+    grid-column: span 2;
+  }
+
+  .register-packages-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+

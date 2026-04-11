@@ -119,7 +119,7 @@ const createUser = async (payload) => {
     return { status: 400, body: { error: authError.message || 'Failed to create auth user' } };
   }
 
-  const { data: profile, error: profileError } = await serviceClient
+  /*const { data: profile, error: profileError } = await serviceClient
     .from('user_profiles')
     .insert({
       id: authData.user.id,
@@ -132,7 +132,31 @@ const createUser = async (payload) => {
       is_active: isActive !== false,
     })
     .select(profileSelectFragment)
+    .single();*/
+    const { data: profile, error: profileError } = await serviceClient
+    .from('user_profiles')
+    .insert({
+      id: authData.user.id,
+      email,
+      full_name: fullName,
+      profession_id: professionId || null,
+      health_authority_id: healthAuthorityId || null,
+      role: 'USER',
+      access_mode: packageId ? 'AUTO' : 'MANUAL', // If admin assigns package, use AUTO. Otherwise MANUAL gives them all matching exams.
+      is_active: isActive !== false,
+    })
+    .select(profileSelectFragment)
     .single();
+
+  // 2. Add Entitlement if a package was selected
+  if (packageId) {
+    await serviceClient.from('user_entitlements').insert({
+      user_id: authData.user.id,
+      package_id: packageId,
+      scope: 'PACKAGE',
+      status: 'ACTIVE' // Admin-created users usually get active access immediately
+    });
+  }
 
   if (profileError) {
     // best effort cleanup of auth user so we do not leave orphaned auth entries

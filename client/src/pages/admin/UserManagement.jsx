@@ -17,6 +17,8 @@ const UserManagement = () => {
     healthAuthorityId: '',
     dailyMcqLimit: '',
     isActive: true,
+    /** When true, access_mode is MANUAL — exams allowed without a paid package (admin grant). */
+    complimentaryAccess: false,
   });
 
   const queryClient = useQueryClient();
@@ -82,6 +84,7 @@ const UserManagement = () => {
       healthAuthorityId: '',
       dailyMcqLimit: '',
       isActive: true,
+      complimentaryAccess: false,
     });
   };
 
@@ -93,8 +96,9 @@ const UserManagement = () => {
       fullName: user.full_name,
       professionId: user.profession?.id || '',
       healthAuthorityId: user.health_authority?.id || '',
-      dailyMcqLimit: user.daily_mcq_limit || '',
+      dailyMcqLimit: user.daily_mcq_limit ?? '',
       isActive: user.is_active,
+      complimentaryAccess: user.access_mode === 'MANUAL',
     });
     setShowModal(true);
   };
@@ -103,8 +107,12 @@ const UserManagement = () => {
     e.preventDefault();
     const data = {
       ...formData,
-      dailyMcqLimit: formData.dailyMcqLimit ? parseInt(formData.dailyMcqLimit) : null,
+      dailyMcqLimit: formData.dailyMcqLimit !== '' && formData.dailyMcqLimit != null
+        ? parseInt(formData.dailyMcqLimit, 10)
+        : null,
+      accessMode: formData.complimentaryAccess ? 'MANUAL' : 'AUTO',
     };
+    delete data.complimentaryAccess;
 
     if (editingUser) {
       if (!data.password) {
@@ -149,6 +157,8 @@ const UserManagement = () => {
                 <th>Profession</th>
                 <th>Health Authority</th>
                 <th>Daily MCQ Limit</th>
+                <th>Payment</th>
+                <th>Exam access</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -160,7 +170,32 @@ const UserManagement = () => {
                   <td>{user.email}</td>
                   <td>{user.profession?.name || '-'}</td>
                   <td>{user.health_authority?.name || '-'}</td>
-                  <td>{user.daily_mcq_limit || 'Unlimited'}</td>
+                  <td>{user.daily_mcq_limit ?? '—'}</td>
+                  <td>
+                    <span
+                      className={`status-badge ${
+                        user.payment_status === 'PAID'
+                          ? 'active'
+                          : user.payment_status === 'PENDING_PAYMENT'
+                            ? 'inactive'
+                            : ''
+                      }`}
+                    >
+                      {user.payment_status || 'N/A'}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      className={`status-badge ${user.access_mode === 'MANUAL' ? 'active' : ''}`}
+                      title={
+                        user.access_mode === 'MANUAL'
+                          ? 'Admin granted: exams without package payment'
+                          : 'Requires active paid package (Freemius) for exams'
+                      }
+                    >
+                      {user.access_mode === 'MANUAL' ? 'Complimentary' : 'Standard'}
+                    </span>
+                  </td>
                   <td>
                     <span className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}>
                       {user.is_active ? 'Active' : 'Inactive'}
@@ -233,13 +268,27 @@ const UserManagement = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Daily MCQ Limit (leave blank for unlimited)</label>
+                  <label>Daily MCQ limit (blank uses 100/day default)</label>
                   <input
                     type="number"
                     min="0"
                     value={formData.dailyMcqLimit}
                     onChange={(e) => setFormData({ ...formData, dailyMcqLimit: e.target.value })}
                   />
+                </div>
+                <div className="form-group">
+                  <label className="checkbox-label-block">
+                    <input
+                      type="checkbox"
+                      checked={formData.complimentaryAccess}
+                      onChange={(e) => setFormData({ ...formData, complimentaryAccess: e.target.checked })}
+                    />
+                    <span>Allow exam access without payment</span>
+                  </label>
+                  <p className="form-hint">
+                    Enable for legacy accounts or staff: users can take exams without a Freemius package. Daily MCQ
+                    limit above still applies when set; leave blank for unlimited.
+                  </p>
                 </div>
                 <div className="form-group">
                   <label>

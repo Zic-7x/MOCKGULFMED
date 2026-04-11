@@ -1,12 +1,15 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './contexts/AuthContext';
+import Index from './pages/Index';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserDashboard from './pages/user/UserDashboard';
 import ExamList from './pages/user/ExamList';
 import TakeExam from './pages/user/TakeExam';
 import ExamResults from './pages/user/ExamResults';
+import Packages from './pages/user/Packages';
 import UserManagement from './pages/admin/UserManagement';
 import ExamManagement from './pages/admin/ExamManagement';
 import AccessManagement from './pages/admin/AccessManagement';
@@ -29,6 +32,12 @@ function App() {
           path="/login"
           element={user ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} /> : <Login />}
         />
+        <Route
+          path="/register"
+          element={user ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} /> : <Register />}
+        />
+
+        <Route path="/packages" element={<Packages />} />
         
         {/* Admin Routes */}
         {user?.role === 'ADMIN' && (
@@ -60,7 +69,7 @@ function App() {
             user ? (
               <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} />
             ) : (
-              <Navigate to="/login" />
+              <Index />
             )
           }
         />

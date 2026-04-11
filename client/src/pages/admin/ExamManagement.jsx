@@ -7,10 +7,13 @@ import {
   deleteExam,
   addQuestion,
   bulkAddQuestions,
+  getProfessions,
+  getExamProfessionAccessIds,
 } from '../../utils/supabaseQueries';
 import Layout from '../../components/Layout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import toast from 'react-hot-toast';
+import { supabase } from '../../lib/supabase';
 import './ExamManagement.css';
 
 const ExamManagement = () => {
@@ -26,6 +29,10 @@ const ExamManagement = () => {
     totalMcqs: '',
     duration: '',
     isActive: true,
+    addonEnabled: false,
+    addonFreemiusPlanId: '',
+    addonPriceDisplay: '',
+    professionIds: [],
   });
   const [questionData, setQuestionData] = useState({
     question: '',
@@ -45,10 +52,37 @@ const ExamManagement = () => {
     queryFn: getExams,
   });
 
+  const { data: professions } = useQuery({
+    queryKey: ['professions'],
+    queryFn: getProfessions,
+  });
+
+  /** exam_id -> count of profession-only exam_access rows */
+  const { data: professionLinkCounts } = useQuery({
+    queryKey: ['examProfessionLinkCounts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('exam_access')
+        .select('exam_id')
+        .is('user_id', null)
+        .is('health_authority_id', null)
+        .not('profession_id', 'is', null);
+      if (error) throw error;
+      const counts = {};
+      (data || []).forEach((row) => {
+        if (!row.exam_id) return;
+        counts[row.exam_id] = (counts[row.exam_id] || 0) + 1;
+      });
+      return counts;
+    },
+  });
+
   const createExamMutation = useMutation({
     mutationFn: (data) => createExam(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['exams']);
+      queryClient.invalidateQueries(['examAccess']);
+      queryClient.invalidateQueries(['examProfessionLinkCounts']);
       setShowModal(false);
       resetForm();
       toast.success('Exam created successfully');
@@ -62,6 +96,8 @@ const ExamManagement = () => {
     mutationFn: ({ id, data }) => updateExam(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['exams']);
+      queryClient.invalidateQueries(['examAccess']);
+      queryClient.invalidateQueries(['examProfessionLinkCounts']);
       setShowModal(false);
       setEditingExam(null);
       resetForm();
@@ -76,6 +112,8 @@ const ExamManagement = () => {
     mutationFn: (id) => deleteExam(id),
     onSuccess: () => {
       queryClient.invalidateQueries(['exams']);
+      queryClient.invalidateQueries(['examAccess']);
+      queryClient.invalidateQueries(['examProfessionLinkCounts']);
       toast.success('Exam deleted successfully');
     },
     onError: (error) => {
@@ -118,6 +156,10 @@ const ExamManagement = () => {
       totalMcqs: '',
       duration: '',
       isActive: true,
+      addonEnabled: false,
+      addonFreemiusPlanId: '',
+      addonPriceDisplay: '',
+      professionIds: [],
     });
   };
 
@@ -187,8 +229,15 @@ const ExamManagement = () => {
     bulkAddQuestionsMutation.mutate({ examId: selectedExam.id, questions });
   };
 
-  const handleEdit = (exam) => {
+  const handleEdit = async (exam) => {
     setEditingExam(exam);
+    let linkedProfessionIds = [];
+    try {
+      linkedProfessionIds = await getExamProfessionAccessIds(exam.id);
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not load linked professions');
+    }
     setFormData({
       title: exam.title,
       description: exam.description || '',
@@ -196,12 +245,20 @@ const ExamManagement = () => {
       totalMcqs: exam.total_mcqs,
       duration: exam.duration,
       isActive: exam.is_active,
+      addonEnabled: Boolean(exam.addon_enabled),
+      addonFreemiusPlanId: exam.addon_freemius_plan_id || '',
+      addonPriceDisplay: exam.addon_price_display || '',
+      professionIds: linkedProfessionIds,
     });
     setShowModal(true);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!formData.professionIds || formData.professionIds.length === 0) {
+      toast.error('Select at least one profession so learners in that profession can see this exam.');
+      return;
+    }
     // Map UI form fields (camelCase) to DB columns (snake_case)
     const data = {
       title: formData.title,
@@ -210,6 +267,14 @@ const ExamManagement = () => {
       total_mcqs: parseInt(formData.totalMcqs, 10),
       duration: parseInt(formData.duration, 10),
       is_active: formData.isActive,
+      addon_enabled: Boolean(formData.addonEnabled),
+      addon_freemius_plan_id: formData.addonEnabled
+        ? (formData.addonFreemiusPlanId || '').trim() || null
+        : null,
+      addon_price_display: formData.addonEnabled
+        ? (formData.addonPriceDisplay || '').trim() || null
+        : null,
+      professionIds: formData.professionIds,
     };
 
     if (editingExam) {
@@ -217,6 +282,15 @@ const ExamManagement = () => {
     } else {
       createExamMutation.mutate(data);
     }
+  };
+
+  const toggleProfession = (professionId) => {
+    setFormData((prev) => {
+      const set = new Set(prev.professionIds || []);
+      if (set.has(professionId)) set.delete(professionId);
+      else set.add(professionId);
+      return { ...prev, professionIds: [...set] };
+    });
   };
 
   const handleQuestionSubmit = (e) => {
@@ -257,6 +331,8 @@ const ExamManagement = () => {
                 <th>Total MCQs</th>
                 <th>Duration (min)</th>
                 <th>Status</th>
+                <th>Professions</th>
+                <th>Addon Charge</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -271,6 +347,20 @@ const ExamManagement = () => {
                     <span className={`status-badge ${exam.is_active ? 'active' : 'inactive'}`}>
                       {exam.is_active ? 'Active' : 'Inactive'}
                     </span>
+                  </td>
+                  <td>
+                    {professionLinkCounts?.[exam.id] ? (
+                      <span className="profession-link-count" title="Profession links (exam_access)">
+                        {professionLinkCounts[exam.id]} linked
+                      </span>
+                    ) : (
+                      <span className="profession-link-missing">None — edit to add</span>
+                    )}
+                  </td>
+                  <td>
+                    {exam.addon_enabled
+                      ? `${exam.addon_price_display || 'Custom'} (${exam.addon_freemius_plan_id || 'No plan ID'})`
+                      : 'Off'}
                   </td>
                   <td>
                     <button onClick={() => handleEdit(exam)} className="btn-edit">Edit</button>
@@ -348,6 +438,29 @@ const ExamManagement = () => {
                     required
                   />
                 </div>
+                <div className="form-group exam-professions-fieldset">
+                  <span className="form-section-label">Professions</span>
+                  <p className="form-hint exam-professions-hint">
+                    Select which professions can see this exam (required). Users only see exams linked to their
+                    profession.
+                  </p>
+                  {!professions?.length ? (
+                    <p className="form-hint">Loading professions…</p>
+                  ) : (
+                    <div className="profession-checkbox-grid">
+                      {professions.map((p) => (
+                        <label key={p.id} className="profession-checkbox-item">
+                          <input
+                            type="checkbox"
+                            checked={formData.professionIds?.includes(p.id)}
+                            onChange={() => toggleProfession(p.id)}
+                          />
+                          <span>{p.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div className="form-group">
                   <label>
                     <input
@@ -358,6 +471,50 @@ const ExamManagement = () => {
                     Active
                   </label>
                 </div>
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={formData.addonEnabled}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          addonEnabled: e.target.checked,
+                          ...(e.target.checked
+                            ? {}
+                            : { addonFreemiusPlanId: '', addonPriceDisplay: '' }),
+                        })
+                      }
+                    />
+                    Enable optional addon charge for this exam
+                  </label>
+                </div>
+                {formData.addonEnabled && (
+                  <>
+                    <div className="form-group">
+                      <label>Addon Freemius Plan ID</label>
+                      <input
+                        type="text"
+                        value={formData.addonFreemiusPlanId}
+                        onChange={(e) =>
+                          setFormData({ ...formData, addonFreemiusPlanId: e.target.value })
+                        }
+                        required={formData.addonEnabled}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Addon Price Label (optional)</label>
+                      <input
+                        type="text"
+                        value={formData.addonPriceDisplay}
+                        onChange={(e) =>
+                          setFormData({ ...formData, addonPriceDisplay: e.target.value })
+                        }
+                        placeholder="e.g. $4.99 one-time"
+                      />
+                    </div>
+                  </>
+                )}
                 <div className="modal-actions">
                   <button type="button" onClick={() => { setShowModal(false); setEditingExam(null); resetForm(); }} className="btn-secondary">
                     Cancel

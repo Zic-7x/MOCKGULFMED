@@ -1,6 +1,106 @@
 import { supabase } from '../lib/supabase';
+import { fetchPackageExamIdsForPackage } from './publicApi';
 
 const adminUsersApiUrl = import.meta.env.VITE_ADMIN_USERS_API_URL || '/api/admin-users';
+
+/** Default cap when profile/package does not specify one (new accounts, MANUAL without a number). */
+export const DEFAULT_DAILY_MCQ_LIMIT = 100;
+
+/*const userMatchesExamAccessRule = (rule, userId, profile) => {
+  // Direct ID grant always wins
+  if (rule.user_id === userId) return true;
+
+  // Check profession match
+  const professionMatches = 
+    rule.profession_id && 
+    profile.profession_id && 
+    rule.profession_id === profile.profession_id;
+
+  // Check authority match (if rule has an authority, profile must match it)
+  const authorityMatches = 
+    !rule.health_authority_id || 
+    (profile.health_authority_id && rule.health_authority_id === profile.health_authority_id);
+
+  return !!(professionMatches && authorityMatches);
+};
+
+const userHasExamAccessFromRules = (rules, userId, profile) => {
+  if (!rules || rules.length === 0) return false;
+  return rules.some((rule) => userMatchesExamAccessRule(rule, userId, profile));
+};
+
+/** True if the user's profession/HA (or direct user grant) matches this exam_access row. */
+/*const userMatchesExamAccessRule = (rule, userId, profile) => {
+  const isDirectUserGrant = rule.user_id && rule.user_id === userId;
+  const professionMatches =
+    rule.profession_id && profile.profession_id && rule.profession_id === profile.profession_id;
+  const authorityMatches =
+    !rule.health_authority_id ||
+    (profile.health_authority_id && rule.health_authority_id === profile.health_authority_id);
+  return isDirectUserGrant || (professionMatches && authorityMatches);
+};
+
+/**
+ * Non-admin users need at least one exam_access row that matches their profile.
+ * Exams with no rows are not shown (avoids "paid = all professions").
+ */
+/*const userHasExamAccessFromRules = (rules, userId, profile) => {
+  if (!rules || rules.length === 0) return false;
+  return rules.some((rule) => userMatchesExamAccessRule(rule, userId, profile));
+};*/
+
+const userMatchesExamAccessRule = (rule, userId, profile) => {
+  // Use .toString() to ensure we aren't comparing a string to an object
+  // and check for existence
+  if (rule.user_id && userId && rule.user_id.toString() === userId.toString()) {
+    return true;
+  }
+
+  const professionMatches = 
+    rule.profession_id && 
+    profile?.profession_id && 
+    rule.profession_id.toString() === profile.profession_id.toString();
+
+  const authorityMatches = 
+    !rule.health_authority_id || 
+    (profile?.health_authority_id && 
+     rule.health_authority_id.toString() === profile.health_authority_id.toString());
+
+  return !!(professionMatches && authorityMatches);
+};
+
+const userHasExamAccessFromRules = (rules, userId, profile) => {
+  if (!rules || rules.length === 0) return false;
+  return rules.some((rule) => userMatchesExamAccessRule(rule, userId, profile));
+};
+
+/** Normalize UUIDs from PostgREST/JS so Set/Map lookups stay reliable. */
+const idKey = (v) => (v == null ? '' : String(v));
+
+/** PACKAGE row is valid if ends_at is null or still in the future (status must be ACTIVE). */
+const isPackageEntitlementTimeValid = (row) => {
+  if (!row) return false;
+  if (row.ends_at == null || row.ends_at === '') return true;
+  return new Date(row.ends_at) > new Date();
+};
+
+/**
+ * Loads recent ACTIVE PACKAGE entitlements and drops rows past ends_at.
+ * DB status may still be ACTIVE until a job marks EXPIRED — app enforces window.
+ */
+const queryValidPackageEntitlements = async (userId, select) => {
+  const { data: rows, error } = await supabase
+    .from('user_entitlements')
+    .select(select)
+    .eq('user_id', userId)
+    .eq('scope', 'PACKAGE')
+    .eq('status', 'ACTIVE')
+    .order('created_at', { ascending: false })
+    .limit(30);
+
+  if (error) throw error;
+  return (rows || []).filter(isPackageEntitlementTimeValid);
+};
 
 const getSessionToken = async () => {
   const { data, error } = await supabase.auth.getSession();
@@ -39,6 +139,91 @@ const callAdminUsersApi = async (method, payload) => {
   return result?.data;
 };
 
+const getDailyLimitForPackageName = (packageName) => {
+  if (!packageName) return null;
+  const normalized = String(packageName).trim().toLowerCase();
+
+  if (normalized.includes('mastering')) return 300;
+  if (normalized.includes('acing')) return 150;
+  if (normalized.includes('starter') || normalized.includes('basic')) return 100;
+
+  return null;
+};
+
+/** Prefer DB column on packages; fall back to name heuristics (migration 014 adds daily_mcq_limit). */
+const getDailyLimitFromPackageRow = (pkg) => {
+  if (!pkg) return null;
+  const n = pkg.daily_mcq_limit;
+  if (typeof n === 'number' && n >= 0) return n;
+  return getDailyLimitForPackageName(pkg.name);
+};
+
+/**
+ * MANUAL: profile cap, else default (never unlimited unless admin sets a very high number explicitly).
+ * AUTO: paid package row, else default when package metadata is incomplete, else 0 if unpaid.
+ */
+const resolveEffectiveDailyLimit = async ({ userId, profileDailyLimit, accessMode }) => {
+  const mode = accessMode || 'AUTO';
+  if (!userId || mode !== 'AUTO') {
+    if (profileDailyLimit !== null && profileDailyLimit !== undefined && profileDailyLimit !== '') {
+      const n = Number(profileDailyLimit);
+      if (!Number.isNaN(n) && n >= 0) return n;
+    }
+    return DEFAULT_DAILY_MCQ_LIMIT;
+  }
+
+  const rows = await queryValidPackageEntitlements(
+    userId,
+    'package_id, ends_at, created_at, package:packages(id, name, daily_mcq_limit)'
+  );
+
+  const pkg = rows?.[0]?.package;
+  if (pkg) {
+    const limit = getDailyLimitFromPackageRow(pkg);
+    if (limit !== null && limit !== undefined) return limit;
+    return DEFAULT_DAILY_MCQ_LIMIT;
+  }
+
+  return 0;
+};
+
+/**
+ * AUTO users must have an ACTIVE PACKAGE entitlement (paid) to use exams.
+ * ADMIN and MANUAL profiles keep existing behavior (admin / manual grants).
+ */
+export async function assertPaidAccessForExams(profile, userId) {
+  if (!profile) throw new Error('User not found');
+  if (profile.role === 'ADMIN') return;
+  if (profile.access_mode === 'MANUAL') return;
+
+  const rows = await queryValidPackageEntitlements(userId, 'id, ends_at');
+
+  if (!rows?.length) {
+    throw new Error(
+      'Active subscription required. Complete your package purchase to access exams.'
+    );
+  }
+}
+
+/** Used by the exam list page to show paywall vs empty catalog. */
+export async function canUserTakeExams(userId) {
+  const { data: profile, error: pErr } = await supabase
+    .from('user_profiles')
+    .select('role, access_mode')
+    .eq('id', userId)
+    .single();
+
+  if (pErr) throw pErr;
+  if (!profile) return { allowed: false, reason: 'no_profile' };
+  if (profile.role === 'ADMIN') return { allowed: true };
+  if (profile.access_mode === 'MANUAL') return { allowed: true };
+
+  const rows = await queryValidPackageEntitlements(userId, 'id, ends_at');
+
+  if (!rows?.length) return { allowed: false, reason: 'subscription_required' };
+  return { allowed: true };
+}
+
 // User Management (Admin only)
 export const getUserProfiles = async () => {
   const { data, error } = await supabase
@@ -51,7 +236,44 @@ export const getUserProfiles = async () => {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data;
+  const users = data || [];
+  const userIds = users.map((u) => u.id).filter(Boolean);
+  if (userIds.length === 0) return users;
+
+  const [{ data: intents }, { data: entitlements }] = await Promise.all([
+    supabase
+      .from('registration_intents')
+      .select('id, user_id, package_id, status, created_at')
+      .in('user_id', userIds)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('user_entitlements')
+      .select('user_id, scope, status, source, created_at')
+      .in('user_id', userIds)
+      .eq('scope', 'PACKAGE')
+      .eq('status', 'ACTIVE'),
+  ]);
+
+  const latestIntentByUser = new Map();
+  for (const intent of intents || []) {
+    if (!latestIntentByUser.has(intent.user_id)) {
+      latestIntentByUser.set(intent.user_id, intent);
+    }
+  }
+
+  const activePaidUsers = new Set((entitlements || []).map((row) => row.user_id));
+
+  return users.map((user) => {
+    const latestIntent = latestIntentByUser.get(user.id) || null;
+    const paymentStatus = activePaidUsers.has(user.id)
+      ? 'PAID'
+      : latestIntent?.status || 'N/A';
+    return {
+      ...user,
+      registration_intent_status: latestIntent?.status || null,
+      payment_status: paymentStatus,
+    };
+  });
 };
 
 export const createUserProfile = async (userData) => {
@@ -63,6 +285,7 @@ export const createUserProfile = async (userData) => {
     healthAuthorityId: userData.healthAuthorityId || null,
     dailyMcqLimit: typeof userData.dailyMcqLimit === 'number' ? userData.dailyMcqLimit : userData.dailyMcqLimit || null,
     isActive: userData.isActive !== false,
+    accessMode: userData.accessMode === 'MANUAL' ? 'MANUAL' : 'AUTO',
   };
 
   if (payload.dailyMcqLimit !== null) {
@@ -81,6 +304,7 @@ export const updateUserProfile = async (userId, userData) => {
     dailyMcqLimit: typeof userData.dailyMcqLimit === 'number' ? userData.dailyMcqLimit : userData.dailyMcqLimit || null,
     isActive: userData.isActive,
     password: userData.password,
+    accessMode: userData.accessMode === 'MANUAL' ? 'MANUAL' : 'AUTO',
   };
 
   if (payload.dailyMcqLimit !== null) {
@@ -187,100 +411,323 @@ export const getExams = async () => {
   return data;
 };
 
-export const getAvailableExams = async (userId) => {
-  // Get user profile first
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('profession_id, health_authority_id, role')
-    .eq('id', userId)
-    .single();
+    /*export const getAvailableExams = async (userId) => {
+      // Get user profile first
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('profession_id, health_authority_id, role, access_mode')
+        .eq('id', userId)
+        .single();
 
-  if (!profile) return [];
+      if (!profile) return [];
 
-  let exams = [];
+      const accessMode = profile.access_mode || 'AUTO';
 
-  // If admin, return all active exams
-  if (profile.role === 'ADMIN') {
-    const { data, error } = await supabase
-      .from('exams')
-      .select('*')
-      .eq('is_active', true);
+      let userPackageId = null;
 
-    if (error) throw error;
-    exams = data || [];
-  } else {
-    // Get accessible exam IDs from exam_access
-    const { data: accessData, error: accessError } = await supabase
-      .from('exam_access')
-      .select('exam_id')
-      .or(
-        `user_id.eq.${userId},profession_id.eq.${profile.profession_id || 'null'},health_authority_id.eq.${profile.health_authority_id || 'null'}`
-      );
-
-    if (accessError) throw accessError;
-
-    const examIds = [...new Set(accessData.map((a) => a.exam_id))];
-
-    if (examIds.length === 0) return [];
-
-    const { data, error } = await supabase
-      .from('exams')
-      .select('*')
-      .in('id', examIds)
-      .eq('is_active', true);
-
-    if (error) throw error;
-    exams = data || [];
-  }
-
-  // Get actual question counts for each exam from the database
-  const examsWithCounts = await Promise.all(
-    exams.map(async (exam) => {
-      const { count, error: countError } = await supabase
-        .from('questions')
-        .select('*', { count: 'exact', head: true })
-        .eq('exam_id', exam.id);
-
-      if (countError) {
-        console.error(`Error getting question count for exam ${exam.id}:`, countError);
-        return { ...exam, questions: [] };
+      if (profile.role !== 'ADMIN' && accessMode === 'AUTO') {
+        const { data: entRows, error: entErr } = await supabase
+          .from('user_entitlements')
+          .select('package_id')
+          .eq('user_id', userId)
+          .eq('scope', 'PACKAGE')
+          .eq('status', 'ACTIVE')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (entErr) throw entErr;
+        if (!entRows?.length) return [];
+        userPackageId = entRows[0]?.package_id ?? null;
       }
 
-      return {
-        ...exam,
-        questions: Array(count || 0).fill(null).map((_, i) => ({ id: i })), // Create array for compatibility
-        _questionCount: count || 0, // Store actual count
-      };
-    })
-  );
+      let exams = [];
 
-  return examsWithCounts;
-};
+      // If admin, return all active exams
+      if (profile.role === 'ADMIN') {
+        const { data, error } = await supabase
+          .from('exams')
+          .select('*')
+          .eq('is_active', true);
+
+        if (error) throw error;
+        exams = data || [];
+      } else {
+        const { data: activeExams, error: activeExamsError } = await supabase
+          .from('exams')
+          .select('*')
+          .eq('is_active', true);
+
+        if (activeExamsError) throw activeExamsError;
+        if (!activeExams || activeExams.length === 0) return [];
+
+        const activeExamIds = activeExams.map((exam) => exam.id).filter(Boolean);
+        const { data: allAccessRules, error: accessError } = await supabase
+          .from('exam_access')
+          .select('exam_id, user_id, profession_id, health_authority_id')
+          .in('exam_id', activeExamIds);
+
+        if (accessError) throw accessError;
+
+        const accessByExamId = new Map();
+        (allAccessRules || []).forEach((rule) => {
+          if (!accessByExamId.has(rule.exam_id)) {
+            accessByExamId.set(rule.exam_id, []);
+          }
+          accessByExamId.get(rule.exam_id).push(rule);
+        });
+
+        exams = activeExams.filter((exam) => {
+          const rules = accessByExamId.get(exam.id) || [];
+          return userHasExamAccessFromRules(rules, userId, profile);
+        });
+      }*/
+
+        export const getAvailableExams = async (userId) => {
+          // 1. Fetch User Profile
+          const { data: profile, error: pErr } = await supabase
+            .from('user_profiles')
+            .select('profession_id, health_authority_id, role, access_mode')
+            .eq('id', userId)
+            .single();
+        
+          if (pErr || !profile) {
+            console.error("DEBUG: Profile not found for ID:", userId);
+            return [];
+          }
+        
+          if (import.meta.env.DEV) {
+            console.log('DEBUG: User Profile Loaded:', { userId, role: profile.role, profession: profile.profession_id });
+          }
+        
+          const accessMode = profile.access_mode || 'AUTO';
+          let exams = [];
+        
+          // 2. Handle Admins (Show all active exams)
+          if (profile.role === 'ADMIN') {
+            const { data: adminExams } = await supabase
+              .from('exams')
+              .select('*')
+              .eq('is_active', true);
+            
+            exams = adminExams || [];
+          } else {
+            // 3. Handle Regular Users
+            let userPackageId = null;
+            if (accessMode === 'AUTO') {
+              const entRows = await queryValidPackageEntitlements(userId, 'package_id, ends_at, created_at');
+
+              if (!entRows?.length) {
+                console.warn('DEBUG: No valid (non-expired) PACKAGE entitlement found for user.');
+                return [];
+              }
+              userPackageId = entRows[0].package_id;
+              if (import.meta.env.DEV) {
+                console.log('DEBUG: Active Package ID:', userPackageId);
+              }
+            }
+        
+            // 4. Fetch All Active Exams and Rules
+            const { data: activeExams } = await supabase
+              .from('exams')
+              .select('*')
+              .eq('is_active', true);
+        
+            if (import.meta.env.DEV) {
+              console.log('DEBUG: Total Active Exams in DB:', activeExams?.length || 0);
+            }
+        
+            if (!activeExams?.length) return [];
+        
+            const activeExamIds = activeExams.map((e) => e.id);
+            const { data: allAccessRules } = await supabase
+              .from('exam_access')
+              .select('exam_id, user_id, profession_id, health_authority_id')
+              .in('exam_id', activeExamIds);
+        
+            const accessByExamId = new Map();
+            (allAccessRules || []).forEach((rule) => {
+              const key = idKey(rule.exam_id);
+              if (!accessByExamId.has(key)) accessByExamId.set(key, []);
+              accessByExamId.get(key).push(rule);
+            });
+        
+            // 5. Gate 1: Profession Filtering
+            let filteredByProfession = activeExams.filter((exam) => {
+              const rules = accessByExamId.get(idKey(exam.id)) || [];
+              const hasAccess = userHasExamAccessFromRules(rules, userId, profile);
+              if (import.meta.env.DEV && !hasAccess) {
+                console.log(`DEBUG: Exam "${exam.title}" REJECTED by Profession Gate. Rules found:`, rules.length);
+              }
+              return hasAccess;
+            });
+        
+            if (import.meta.env.DEV) {
+              console.log('DEBUG: Exams remaining after Profession Gate:', filteredByProfession.length);
+            }
+        
+            // 6. Gate 2: Package Filtering (ONLY for AUTO users)
+            if (accessMode === 'AUTO' && userPackageId) {
+              const { data: peRows, error: peErr } = await supabase
+                .from('package_exams')
+                .select('exam_id')
+                .eq('package_id', userPackageId);
+
+              if (peErr) {
+                console.error('[getAvailableExams] package_exams:', peErr.message || peErr);
+              }
+
+              let allowedInPackage = new Set((peRows || []).map((r) => idKey(r.exam_id)));
+
+              // Direct read can return [] when RLS blocks the client even though rows exist.
+              // Catalog API uses the service role and returns the same package ↔ exam links.
+              if (allowedInPackage.size === 0) {
+                allowedInPackage = await fetchPackageExamIdsForPackage(userPackageId);
+              }
+
+              if (allowedInPackage.size === 0) {
+                console.warn(
+                  '[getAvailableExams] No exam IDs resolved for package; using profession filter only.',
+                  userPackageId
+                );
+                exams = filteredByProfession;
+              } else {
+                exams = filteredByProfession.filter((e) => {
+                  const isAllowed = allowedInPackage.has(idKey(e.id));
+                  if (import.meta.env.DEV && !isAllowed) {
+                    console.log(`DEBUG: Exam "${e.title}" REJECTED by Package Gate. Not in package:`, userPackageId);
+                  }
+                  return isAllowed;
+                });
+              }
+            } else {
+              exams = filteredByProfession;
+            }
+          }
+        
+          if (import.meta.env.DEV) {
+            console.log('DEBUG: Final Exam Count to be displayed:', exams.length);
+          }
+        
+          if (!exams || exams.length === 0) return [];
+        
+          // 7. Get actual question counts for each filtered exam
+          const examsWithCounts = await Promise.all(
+            exams.map(async (exam) => {
+              const { count, error: countError } = await supabase
+                .from('questions')
+                .select('*', { count: 'exact', head: true })
+                .eq('exam_id', exam.id);
+        
+              if (countError) {
+                return { ...exam, questions: [], _questionCount: 0 };
+              }
+        
+              return {
+                ...exam,
+                questions: Array(count || 0).fill(null).map((_, i) => ({ id: i })),
+                _questionCount: count || 0,
+              };
+            })
+          );
+        
+          // 8. Determine Addon Purchase Status
+          const finalExamIds = examsWithCounts.map((exam) => exam.id).filter(Boolean);
+          let paidExamEntitlements = new Set();
+          
+          if (finalExamIds.length > 0) {
+            const { data: entitlements } = await supabase
+              .from('user_entitlements')
+              .select('exam_id')
+              .eq('user_id', userId)
+              .eq('scope', 'EXAM')
+              .eq('status', 'ACTIVE')
+              .in('exam_id', finalExamIds);
+        
+            paidExamEntitlements = new Set((entitlements || []).map((e) => idKey(e.exam_id)).filter(Boolean));
+          }
+        
+          return examsWithCounts.map((exam) => ({
+            ...exam,
+            addonPurchased: !exam.addon_enabled || paidExamEntitlements.has(idKey(exam.id)),
+          }));
+        }; // This is line 620 - ensure no extra "}" follow it until "export const getExam"
 
 export const getExam = async (examId, userId) => {
   // Check access first
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('profession_id, health_authority_id, role, daily_mcq_limit')
+    .select('profession_id, health_authority_id, role, daily_mcq_limit, access_mode')
     .eq('id', userId)
     .single();
 
   if (!profile) throw new Error('User not found');
 
+  await assertPaidAccessForExams(profile, userId);
+
+  const effectiveDailyLimit = await resolveEffectiveDailyLimit({
+    userId,
+    profileDailyLimit: profile.daily_mcq_limit,
+    accessMode: profile.access_mode,
+  });
+
   // Check if user has access
   if (profile.role !== 'ADMIN') {
-    const { data: accessData } = await supabase
+    const { data: accessRules, error: accessError } = await supabase
       .from('exam_access')
-      .select('id')
-      .eq('exam_id', examId)
-      .or(
-        `user_id.eq.${userId},profession_id.eq.${profile.profession_id || 'null'},health_authority_id.eq.${profile.health_authority_id || 'null'}`
-      )
-      .limit(1)
-      .single();
+      .select('id, user_id, profession_id, health_authority_id')
+      .eq('exam_id', examId);
 
-    if (!accessData) {
+    if (accessError) throw accessError;
+
+    const hasAccess = userHasExamAccessFromRules(accessRules || [], userId, profile);
+
+    if (!hasAccess) {
       throw new Error('You have no access to this exam. Please contact your representative.');
+    }
+
+    const examAccessMode = profile.access_mode || 'AUTO';
+    if (examAccessMode === 'AUTO') {
+      const pkgEntRows = await queryValidPackageEntitlements(userId, 'package_id, ends_at');
+      const pid = pkgEntRows?.[0]?.package_id;
+      if (pid) {
+        const { data: peRow, error: peErr } = await supabase
+          .from('package_exams')
+          .select('exam_id')
+          .eq('package_id', pid)
+          .eq('exam_id', examId)
+          .maybeSingle();
+        if (peErr) throw peErr;
+        if (!peRow) {
+          throw new Error('This exam is not included in your package.');
+        }
+      }
+    }
+
+    // Block exam start when an admin-enabled addon charge is active and unpaid.
+    // This runs only after access is confirmed, so users from other professions
+    // do not see addon pricing/gating for exams they cannot access.
+    const { data: examMeta, error: examMetaError } = await supabase
+      .from('exams')
+      .select('id, title, addon_enabled')
+      .eq('id', examId)
+      .maybeSingle();
+
+    if (examMetaError) throw examMetaError;
+    if (examMeta?.addon_enabled) {
+      const { data: addonEntitlement, error: addonError } = await supabase
+        .from('user_entitlements')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('scope', 'EXAM')
+        .eq('status', 'ACTIVE')
+        .eq('exam_id', examId)
+        .maybeSingle();
+
+      if (addonError) throw addonError;
+      if (!addonEntitlement) {
+        throw new Error(
+          `This exam requires an additional addon purchase before you can start.`
+        );
+      }
     }
   }
 
@@ -644,7 +1091,7 @@ export const getExam = async (examId, userId) => {
 
   // Check daily limit
   let usageRecord = null;
-  if (profile.daily_mcq_limit !== null) {
+  if (effectiveDailyLimit !== null) {
     const today = new Date().toISOString().split('T')[0];
     const { data: usage } = await supabase
       .from('daily_mcq_usage')
@@ -655,12 +1102,12 @@ export const getExam = async (examId, userId) => {
 
     usageRecord = usage;
     const used = usageRecord?.mcq_count || 0;
-    const remaining = profile.daily_mcq_limit - used;
+    const remaining = effectiveDailyLimit - used;
 
     // Only throw error if user has no MCQs remaining
     if (remaining <= 0) {
       throw new Error(
-        `Daily MCQ limit reached. You have used all ${profile.daily_mcq_limit} MCQs for today.`
+        `Daily MCQ limit reached. You have used all ${effectiveDailyLimit} MCQs for today.`
       );
     }
 
@@ -674,17 +1121,65 @@ export const getExam = async (examId, userId) => {
     exam: examDataWithRandomQuestions,
     dailyUsage: {
       mcqCount: usageRecord?.mcq_count || 0,
-      limit: profile.daily_mcq_limit,
+      limit: effectiveDailyLimit,
       remaining:
-        profile.daily_mcq_limit !== null
-          ? profile.daily_mcq_limit - (usageRecord?.mcq_count || 0)
+        effectiveDailyLimit !== null
+          ? effectiveDailyLimit - (usageRecord?.mcq_count || 0)
           : null,
     },
   };
 };
 
+/**
+ * Profession-only exam_access rows (no user grant, no HA): used by Exam Management to scope exams by profession.
+ */
+export const getExamProfessionAccessIds = async (examId) => {
+  if (!examId) return [];
+  const { data, error } = await supabase
+    .from('exam_access')
+    .select('profession_id')
+    .eq('exam_id', examId)
+    .is('user_id', null)
+    .is('health_authority_id', null)
+    .not('profession_id', 'is', null);
+
+  if (error) throw error;
+  return [...new Set((data || []).map((r) => r.profession_id).filter(Boolean))];
+};
+
+/**
+ * Replace profession-only access rows for an exam (does not remove user-specific or HA-composite rows from Access Management).
+ */
+export const syncExamProfessionAccess = async (examId, professionIds) => {
+  if (!examId) return;
+
+  const { error: delError } = await supabase
+    .from('exam_access')
+    .delete()
+    .eq('exam_id', examId)
+    .is('user_id', null)
+    .is('health_authority_id', null)
+    .not('profession_id', 'is', null);
+
+  if (delError) throw delError;
+
+  const ids = [...new Set((professionIds || []).filter(Boolean))];
+  if (ids.length === 0) return;
+
+  const rows = ids.map((profession_id) => ({
+    exam_id: examId,
+    profession_id,
+    health_authority_id: null,
+    user_id: null,
+    source: 'ADMIN',
+  }));
+
+  const { error: insError } = await supabase.from('exam_access').insert(rows);
+  if (insError) throw insError;
+};
+
 export const createExam = async (examData) => {
-  const { questions, ...examInfo } = examData;
+  const { questions, professionIds, ...examInfo } = examData;
 
   const { data: exam, error: examError } = await supabase
     .from('exams')
@@ -693,6 +1188,10 @@ export const createExam = async (examData) => {
     .single();
 
   if (examError) throw examError;
+
+  if (professionIds !== undefined) {
+    await syncExamProfessionAccess(exam.id, professionIds);
+  }
 
   if (questions && questions.length > 0) {
     const questionsData = questions.map((q) => ({
@@ -716,14 +1215,21 @@ export const createExam = async (examData) => {
 };
 
 export const updateExam = async (id, examData) => {
+  const { professionIds, ...examFields } = examData;
+
   const { data, error } = await supabase
     .from('exams')
-    .update(examData)
+    .update(examFields)
     .eq('id', id)
     .select()
     .single();
 
   if (error) throw error;
+
+  if (professionIds !== undefined) {
+    await syncExamProfessionAccess(id, professionIds);
+  }
+
   return data;
 };
 
@@ -915,10 +1421,17 @@ export const submitExam = async (examId, userId, answers, timeSpent, clientCorre
   // Get user daily limit and total exam questions count
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('daily_mcq_limit')
+    .select('daily_mcq_limit, access_mode, role')
     .eq('id', userId)
     .single();
-  const dailyLimit = profile?.daily_mcq_limit ?? null;
+
+  await assertPaidAccessForExams(profile, userId);
+
+  const dailyLimit = await resolveEffectiveDailyLimit({
+    userId,
+    profileDailyLimit: profile?.daily_mcq_limit ?? null,
+    accessMode: profile?.access_mode || null,
+  });
 
   // Get total questions in exam from database
   const { count: totalExamQuestionsInDB } = await supabase
@@ -1146,10 +1659,14 @@ export const getUserAttempts = async (userId, examId = null) => {
   // Fetch user profile once so we can compute daily-limit-based percentages
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('daily_mcq_limit')
+    .select('daily_mcq_limit, access_mode')
     .eq('id', userId)
     .maybeSingle();
-  const dailyLimit = profile?.daily_mcq_limit ?? null;
+  const dailyLimit = await resolveEffectiveDailyLimit({
+    userId,
+    profileDailyLimit: profile?.daily_mcq_limit ?? null,
+    accessMode: profile?.access_mode || null,
+  });
 
   let query = supabase
     .from('exam_attempts')
@@ -1312,11 +1829,15 @@ export const getAttemptReview = async (userId, attemptId) => {
   if (answeredQuestionIds.length === 0) {
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('daily_mcq_limit')
+      .select('daily_mcq_limit, access_mode')
       .eq('id', userId)
       .maybeSingle();
 
-    const dailyLimit = profile?.daily_mcq_limit ?? null;
+    const dailyLimit = await resolveEffectiveDailyLimit({
+      userId,
+      profileDailyLimit: profile?.daily_mcq_limit ?? null,
+      accessMode: profile?.access_mode || null,
+    });
 
     const { count: totalExamQuestionsInDB } = await supabase
       .from('questions')
@@ -1386,11 +1907,15 @@ export const getAttemptReview = async (userId, attemptId) => {
   // Reuse the same normalization logic as lists (dailyLimit/overall totals will be calculated by caller in UI as needed).
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('daily_mcq_limit')
+    .select('daily_mcq_limit, access_mode')
     .eq('id', userId)
     .maybeSingle();
 
-  const dailyLimit = profile?.daily_mcq_limit ?? null;
+  const dailyLimit = await resolveEffectiveDailyLimit({
+    userId,
+    profileDailyLimit: profile?.daily_mcq_limit ?? null,
+    accessMode: profile?.access_mode || null,
+  });
 
   // total questions in exam (for overallResult) - prefer DB count
   const { count: totalExamQuestionsInDB } = await supabase
@@ -1430,6 +1955,11 @@ export const getUserDashboard = async (userId) => {
     .single();
 
   if (profileError) throw profileError;
+  const effectiveDailyLimit = await resolveEffectiveDailyLimit({
+    userId,
+    profileDailyLimit: profile.daily_mcq_limit,
+    accessMode: profile.access_mode,
+  });
 
   const today = new Date().toISOString().split('T')[0];
   const { data: usage } = await supabase
@@ -1506,13 +2036,13 @@ export const getUserDashboard = async (userId) => {
       ...profile,
       profession: profile.profession,
       healthAuthority: profile.health_authority,
-      dailyMcqLimit: profile.daily_mcq_limit,
+      dailyMcqLimit: effectiveDailyLimit,
       fullName: profile.full_name,
     },
     recentAttempts: (attempts || []).map((attempt) => 
       normalizeAttempt(
         attempt, 
-        profile.daily_mcq_limit, 
+        effectiveDailyLimit, 
         examQuestionCounts[attempt.exam_id],
         cumulativeMetrics[attempt.id]?.cumulativeCorrectAnswers,
         cumulativeMetrics[attempt.id]?.cumulativeAnsweredQuestions
@@ -1520,10 +2050,10 @@ export const getUserDashboard = async (userId) => {
     ),
     dailyUsage: {
       used: usage?.mcq_count || 0,
-      limit: profile.daily_mcq_limit,
+      limit: effectiveDailyLimit,
       remaining:
-        profile.daily_mcq_limit !== null
-          ? profile.daily_mcq_limit - (usage?.mcq_count || 0)
+        effectiveDailyLimit !== null
+          ? effectiveDailyLimit - (usage?.mcq_count || 0)
           : null,
     },
   };
@@ -1540,12 +2070,34 @@ export const getAdminStats = async () => {
     monthAgo.setMonth(monthAgo.getMonth() - 1);
 
     // Basic counts
-    const [usersResult, examsResult, attemptsResult, professionsResult, healthAuthoritiesResult] = await Promise.all([
+    const [
+      usersResult,
+      examsResult,
+      attemptsResult,
+      professionsResult,
+      healthAuthoritiesResult,
+      pendingPaymentsResult,
+      readyIntentResult,
+      paidEntitlementsResult,
+    ] = await Promise.all([
       supabase.from('user_profiles').select('id', { count: 'exact', head: true }),
       supabase.from('exams').select('id', { count: 'exact', head: true }),
       supabase.from('exam_attempts').select('id', { count: 'exact', head: true }),
       supabase.from('professions').select('id', { count: 'exact', head: true }),
       supabase.from('health_authorities').select('id', { count: 'exact', head: true }),
+      supabase
+        .from('registration_intents')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'PENDING_PAYMENT'),
+      supabase
+        .from('registration_intents')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'READY'),
+      supabase
+        .from('user_entitlements')
+        .select('user_id')
+        .eq('scope', 'PACKAGE')
+        .eq('status', 'ACTIVE'),
     ]);
 
     // Get all attempts for analytics
@@ -1648,6 +2200,9 @@ export const getAdminStats = async () => {
       attemptsResult.error,
       professionsResult.error,
       healthAuthoritiesResult.error,
+      pendingPaymentsResult.error,
+      readyIntentResult.error,
+      paidEntitlementsResult.error,
       attemptsError,
     ].filter(Boolean);
 
@@ -1710,6 +2265,8 @@ export const getAdminStats = async () => {
       }
     }
 
+    const paidUserCount = new Set((paidEntitlementsResult.data || []).map((row) => row.user_id)).size;
+
     return {
       // Basic counts
       totalUsers: usersResult.count || 0,
@@ -1717,6 +2274,9 @@ export const getAdminStats = async () => {
       totalAttempts: attemptsResult.count || 0,
       totalProfessions: professionsResult.count || 0,
       totalHealthAuthorities: healthAuthoritiesResult.count || 0,
+      pendingPayments: pendingPaymentsResult.count || 0,
+      readyIntents: readyIntentResult.count || 0,
+      paidUsers: paidUserCount,
       
       // Performance metrics
       averageScore: Math.round(averageScore * 10) / 10,

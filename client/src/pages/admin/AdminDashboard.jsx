@@ -130,6 +130,21 @@ const AdminDashboard = () => {
             </div>
           </div>
           <div className="stat-card">
+            <div className="stat-icon">⏳</div>
+            <div className="stat-content">
+              <h3>Pending Payments</h3>
+              <p className="stat-number">{stats?.pendingPayments || 0}</p>
+            </div>
+          </div>
+          <div className="stat-card success">
+            <div className="stat-icon">💳</div>
+            <div className="stat-content">
+              <h3>Paid Users</h3>
+              <p className="stat-number">{stats?.paidUsers || 0}</p>
+              <p className="stat-change">{stats?.readyIntents || 0} intents marked READY</p>
+            </div>
+          </div>
+          <div className="stat-card">
             <div className="stat-icon">💼</div>
             <div className="stat-content">
               <h3>Professions</h3>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import logoUrl from '../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
 import './Login.css';
 
@@ -60,7 +61,9 @@ const Login = () => {
           </button>
         </form>
         <div className="login-footer">
-          <p>Contact admin for account access</p>
+          <p>
+            New here? <Link to="/register">Create an account</Link>
+          </p>
         </div>
       </div>
     </div>
