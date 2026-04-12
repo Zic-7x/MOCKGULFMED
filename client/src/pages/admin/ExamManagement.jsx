@@ -9,6 +9,8 @@ import {
   bulkAddQuestions,
   getProfessions,
   getExamProfessionAccessIds,
+  getPackagesForAdmin,
+  getExamPackageIds,
 } from '../../utils/supabaseQueries';
 import Layout from '../../components/Layout';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -33,6 +35,7 @@ const ExamManagement = () => {
     addonFreemiusPlanId: '',
     addonPriceDisplay: '',
     professionIds: [],
+    packageIds: [],
   });
   const [questionData, setQuestionData] = useState({
     question: '',
@@ -57,6 +60,11 @@ const ExamManagement = () => {
     queryFn: getProfessions,
   });
 
+  const { data: packages } = useQuery({
+    queryKey: ['packagesAdmin'],
+    queryFn: getPackagesForAdmin,
+  });
+
   /** exam_id -> count of profession-only exam_access rows */
   const { data: professionLinkCounts } = useQuery({
     queryKey: ['examProfessionLinkCounts'],
@@ -77,12 +85,28 @@ const ExamManagement = () => {
     },
   });
 
+  /** exam_id -> how many subscription packages include this exam */
+  const { data: packageLinkCounts } = useQuery({
+    queryKey: ['examPackageLinkCounts'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('package_exams').select('exam_id');
+      if (error) throw error;
+      const counts = {};
+      (data || []).forEach((row) => {
+        if (!row.exam_id) return;
+        counts[row.exam_id] = (counts[row.exam_id] || 0) + 1;
+      });
+      return counts;
+    },
+  });
+
   const createExamMutation = useMutation({
     mutationFn: (data) => createExam(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['exams']);
       queryClient.invalidateQueries(['examAccess']);
       queryClient.invalidateQueries(['examProfessionLinkCounts']);
+      queryClient.invalidateQueries(['examPackageLinkCounts']);
       setShowModal(false);
       resetForm();
       toast.success('Exam created successfully');
@@ -98,6 +122,7 @@ const ExamManagement = () => {
       queryClient.invalidateQueries(['exams']);
       queryClient.invalidateQueries(['examAccess']);
       queryClient.invalidateQueries(['examProfessionLinkCounts']);
+      queryClient.invalidateQueries(['examPackageLinkCounts']);
       setShowModal(false);
       setEditingExam(null);
       resetForm();
@@ -114,6 +139,7 @@ const ExamManagement = () => {
       queryClient.invalidateQueries(['exams']);
       queryClient.invalidateQueries(['examAccess']);
       queryClient.invalidateQueries(['examProfessionLinkCounts']);
+      queryClient.invalidateQueries(['examPackageLinkCounts']);
       toast.success('Exam deleted successfully');
     },
     onError: (error) => {
@@ -160,6 +186,7 @@ const ExamManagement = () => {
       addonFreemiusPlanId: '',
       addonPriceDisplay: '',
       professionIds: [],
+      packageIds: [],
     });
   };
 
@@ -232,11 +259,13 @@ const ExamManagement = () => {
   const handleEdit = async (exam) => {
     setEditingExam(exam);
     let linkedProfessionIds = [];
+    let linkedPackageIds = [];
     try {
       linkedProfessionIds = await getExamProfessionAccessIds(exam.id);
+      linkedPackageIds = await getExamPackageIds(exam.id);
     } catch (err) {
       console.error(err);
-      toast.error('Could not load linked professions');
+      toast.error('Could not load linked professions or packages');
     }
     setFormData({
       title: exam.title,
@@ -249,6 +278,7 @@ const ExamManagement = () => {
       addonFreemiusPlanId: exam.addon_freemius_plan_id || '',
       addonPriceDisplay: exam.addon_price_display || '',
       professionIds: linkedProfessionIds,
+      packageIds: linkedPackageIds,
     });
     setShowModal(true);
   };
@@ -275,6 +305,7 @@ const ExamManagement = () => {
         ? (formData.addonPriceDisplay || '').trim() || null
         : null,
       professionIds: formData.professionIds,
+      packageIds: formData.packageIds,
     };
 
     if (editingExam) {
@@ -291,6 +322,34 @@ const ExamManagement = () => {
       else set.add(professionId);
       return { ...prev, professionIds: [...set] };
     });
+  };
+
+  const togglePackage = (packageId) => {
+    setFormData((prev) => {
+      const set = new Set(prev.packageIds || []);
+      if (set.has(packageId)) set.delete(packageId);
+      else set.add(packageId);
+      return { ...prev, packageIds: [...set] };
+    });
+  };
+
+  const openCreateExamModal = () => {
+    setEditingExam(null);
+    const activePackageIds = (packages || []).filter((p) => p.is_active).map((p) => p.id);
+    setFormData({
+      title: '',
+      description: '',
+      examType: 'PROMETRIC',
+      totalMcqs: '',
+      duration: '',
+      isActive: true,
+      addonEnabled: false,
+      addonFreemiusPlanId: '',
+      addonPriceDisplay: '',
+      professionIds: [],
+      packageIds: activePackageIds,
+    });
+    setShowModal(true);
   };
 
   const handleQuestionSubmit = (e) => {
@@ -317,7 +376,7 @@ const ExamManagement = () => {
       <div className="exam-management">
         <div className="page-header">
           <h1>Exam Management</h1>
-          <button onClick={() => { setEditingExam(null); resetForm(); setShowModal(true); }} className="btn-primary">
+          <button type="button" onClick={openCreateExamModal} className="btn-primary">
             Add Exam
           </button>
         </div>
@@ -332,6 +391,7 @@ const ExamManagement = () => {
                 <th>Duration (min)</th>
                 <th>Status</th>
                 <th>Professions</th>
+                <th>Packages</th>
                 <th>Addon Charge</th>
                 <th>Actions</th>
               </tr>
@@ -352,6 +412,18 @@ const ExamManagement = () => {
                     {professionLinkCounts?.[exam.id] ? (
                       <span className="profession-link-count" title="Profession links (exam_access)">
                         {professionLinkCounts[exam.id]} linked
+                      </span>
+                    ) : (
+                      <span className="profession-link-missing">None — edit to add</span>
+                    )}
+                  </td>
+                  <td>
+                    {packageLinkCounts?.[exam.id] ? (
+                      <span
+                        className="profession-link-count"
+                        title="Subscription packages that include this exam (package_exams)"
+                      >
+                        {packageLinkCounts[exam.id]} linked
                       </span>
                     ) : (
                       <span className="profession-link-missing">None — edit to add</span>
@@ -456,6 +528,36 @@ const ExamManagement = () => {
                             onChange={() => toggleProfession(p.id)}
                           />
                           <span>{p.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="form-group exam-professions-fieldset">
+                  <span className="form-section-label">Subscription packages</span>
+                  <p className="form-hint exam-professions-hint">
+                    Paid users (AUTO) only see exams that are linked to their active package. New exams default to
+                    all active packages; uncheck to exclude a tier. Apply Supabase migration 018 (admin package_exams
+                    policies) once so these links can be saved from the browser.
+                  </p>
+                  {!packages?.length ? (
+                    <p className="form-hint">Loading packages…</p>
+                  ) : (
+                    <div className="profession-checkbox-grid">
+                      {packages.map((pkg) => (
+                        <label
+                          key={pkg.id}
+                          className={`profession-checkbox-item ${pkg.is_active ? '' : 'package-inactive'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.packageIds?.includes(pkg.id)}
+                            onChange={() => togglePackage(pkg.id)}
+                          />
+                          <span>
+                            {pkg.name}
+                            {!pkg.is_active ? ' (inactive)' : ''}
+                          </span>
                         </label>
                       ))}
                     </div>

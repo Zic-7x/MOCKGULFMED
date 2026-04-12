@@ -19,7 +19,7 @@ const Login = () => {
     const result = await login(email, password);
     
     if (result.success) {
-      navigate(result.user.role === 'ADMIN' ? '/admin' : '/dashboard');
+      navigate(result.role === 'ADMIN' ? '/admin' : '/dashboard');
     }
     
     setLoading(false);

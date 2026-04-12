@@ -9,3 +9,20 @@
   margin-bottom: 20px;
   font-style: italic;
 }
+
+.access-section-divider {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.access-subheader {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.access-subheader h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}

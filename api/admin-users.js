@@ -26,6 +26,17 @@ const send = (res, status, payload) => {
   res.status(status).json(payload);
 };
 
+const DEFAULT_DAILY_MCQ = 100;
+
+function dailyMcqFromPackageName(name) {
+  if (!name) return DEFAULT_DAILY_MCQ;
+  const n = String(name).toLowerCase();
+  if (n.includes('mastering')) return 300;
+  if (n.includes('acing')) return 150;
+  if (n.includes('starter') || n.includes('basic')) return 100;
+  return DEFAULT_DAILY_MCQ;
+}
+
 const getTokenFromRequest = (req) => {
   const authHeader = req.headers.authorization || '';
   if (!authHeader.startsWith('Bearer ')) {
@@ -103,7 +114,17 @@ const ensureAdmin = async (accessToken) => {
 };
 
 const createUser = async (payload) => {
-  const { email, password, fullName, professionId, healthAuthorityId, dailyMcqLimit, isActive } = payload || {};
+  const {
+    email,
+    password,
+    fullName,
+    professionId,
+    healthAuthorityId,
+    dailyMcqLimit,
+    isActive,
+    packageId,
+    accessMode,
+  } = payload || {};
 
   if (!email || !password || !fullName) {
     return { status: 400, body: { error: 'email, password and fullName are required' } };
@@ -119,56 +140,71 @@ const createUser = async (payload) => {
     return { status: 400, body: { error: authError.message || 'Failed to create auth user' } };
   }
 
-  /*const { data: profile, error: profileError } = await serviceClient
+  const userId = authData.user.id;
+
+  let dailyMcq = null;
+  if (typeof dailyMcqLimit === 'number' && !Number.isNaN(dailyMcqLimit)) {
+    dailyMcq = dailyMcqLimit;
+  } else if (packageId) {
+    const { data: pkgRow } = await serviceClient
+      .from('packages')
+      .select('name')
+      .eq('id', packageId)
+      .maybeSingle();
+    dailyMcq = pkgRow ? dailyMcqFromPackageName(pkgRow.name) : DEFAULT_DAILY_MCQ;
+  }
+
+  const accessModeDb = packageId ? 'AUTO' : accessMode === 'MANUAL' ? 'MANUAL' : 'AUTO';
+
+  const { data: profile, error: profileError } = await serviceClient
     .from('user_profiles')
     .insert({
-      id: authData.user.id,
+      id: userId,
       email,
       full_name: fullName,
       profession_id: professionId || null,
       health_authority_id: healthAuthorityId || null,
-      daily_mcq_limit: typeof dailyMcqLimit === 'number' ? dailyMcqLimit : null,
+      daily_mcq_limit: dailyMcq,
       role: 'USER',
-      is_active: isActive !== false,
-    })
-    .select(profileSelectFragment)
-    .single();*/
-    const { data: profile, error: profileError } = await serviceClient
-    .from('user_profiles')
-    .insert({
-      id: authData.user.id,
-      email,
-      full_name: fullName,
-      profession_id: professionId || null,
-      health_authority_id: healthAuthorityId || null,
-      role: 'USER',
-      access_mode: packageId ? 'AUTO' : 'MANUAL', // If admin assigns package, use AUTO. Otherwise MANUAL gives them all matching exams.
+      access_mode: accessModeDb,
       is_active: isActive !== false,
     })
     .select(profileSelectFragment)
     .single();
 
-  // 2. Add Entitlement if a package was selected
-  if (packageId) {
-    await serviceClient.from('user_entitlements').insert({
-      user_id: authData.user.id,
-      package_id: packageId,
-      scope: 'PACKAGE',
-      status: 'ACTIVE' // Admin-created users usually get active access immediately
-    });
+  if (profileError) {
+    await serviceClient.auth.admin.deleteUser(userId);
+    return { status: 400, body: { error: profileError.message || 'Failed to create profile' } };
   }
 
-  if (profileError) {
-    // best effort cleanup of auth user so we do not leave orphaned auth entries
-    await serviceClient.auth.admin.deleteUser(authData.user.id);
-    return { status: 400, body: { error: profileError.message || 'Failed to create profile' } };
+  if (packageId) {
+    const { error: entError } = await serviceClient.from('user_entitlements').insert({
+      user_id: userId,
+      package_id: packageId,
+      scope: 'PACKAGE',
+      status: 'ACTIVE',
+      source: 'ADMIN',
+    });
+    if (entError) {
+      await serviceClient.auth.admin.deleteUser(userId);
+      return { status: 400, body: { error: entError.message || 'Failed to create package entitlement' } };
+    }
   }
 
   return { status: 200, body: { data: profile } };
 };
 
 const updateUser = async (payload) => {
-  const { id, password, fullName, professionId, healthAuthorityId, dailyMcqLimit, isActive } = payload || {};
+  const {
+    id,
+    password,
+    fullName,
+    professionId,
+    healthAuthorityId,
+    dailyMcqLimit,
+    isActive,
+    accessMode,
+  } = payload || {};
 
   if (!id) {
     return { status: 400, body: { error: 'id is required' } };
@@ -187,6 +223,8 @@ const updateUser = async (payload) => {
     health_authority_id: healthAuthorityId || null,
     daily_mcq_limit: typeof dailyMcqLimit === 'number' ? dailyMcqLimit : null,
     is_active: typeof isActive === 'boolean' ? isActive : undefined,
+    access_mode:
+      accessMode === 'MANUAL' ? 'MANUAL' : accessMode === 'AUTO' ? 'AUTO' : undefined,
   };
 
   Object.keys(updateData).forEach((key) => {

@@ -2,6 +2,8 @@ import { supabase } from '../lib/supabase';
 import { fetchPackageExamIdsForPackage } from './publicApi';
 
 const adminUsersApiUrl = import.meta.env.VITE_ADMIN_USERS_API_URL || '/api/admin-users';
+const adminExamGrantsApiUrl =
+  import.meta.env.VITE_ADMIN_EXAM_GRANTS_API_URL || '/api/admin-exam-grants';
 
 /** Default cap when profile/package does not specify one (new accounts, MANUAL without a number). */
 export const DEFAULT_DAILY_MCQ_LIMIT = 100;
@@ -139,6 +141,79 @@ const callAdminUsersApi = async (method, payload) => {
   return result?.data;
 };
 
+const callAdminExamGrantsApi = async (method, payload) => {
+  const token = await getSessionToken();
+  const response = await fetch(adminExamGrantsApiUrl, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: payload ? JSON.stringify(payload) : undefined,
+  });
+
+  let result = {};
+  try {
+    result = await response.json();
+  } catch {
+    // ignore
+  }
+
+  if (!response.ok) {
+    throw new Error(result?.error || 'Request failed');
+  }
+
+  return result;
+};
+
+/** Admin-granted or purchased per-exam access; respects ends_at like package entitlements. */
+const queryValidExamEntitlements = async (userId, select = 'exam_id, ends_at') => {
+  const { data: rows, error } = await supabase
+    .from('user_entitlements')
+    .select(select)
+    .eq('user_id', userId)
+    .eq('scope', 'EXAM')
+    .eq('status', 'ACTIVE')
+    .order('created_at', { ascending: false })
+    .limit(500);
+
+  if (error) throw error;
+  return (rows || []).filter(isPackageEntitlementTimeValid);
+};
+
+export const getAdminExamEntitlements = async () => {
+  const { data, error } = await supabase
+    .from('user_entitlements')
+    .select(
+      `
+      id,
+      user_id,
+      exam_id,
+      status,
+      source,
+      created_at,
+      ends_at,
+      exam:exams(id, title, addon_enabled),
+      user:user_profiles(id, email, full_name)
+    `
+    )
+    .eq('scope', 'EXAM')
+    .eq('source', 'ADMIN')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+};
+
+export const grantUserExamEntitlement = async (userId, examId) => {
+  const res = await callAdminExamGrantsApi('POST', { userId, examId });
+  return res?.data;
+};
+
+export const revokeUserExamEntitlement = async (userId, examId) => {
+  await callAdminExamGrantsApi('DELETE', { userId, examId });
+};
+
 const getDailyLimitForPackageName = (packageName) => {
   if (!packageName) return null;
   const normalized = String(packageName).trim().toLowerCase();
@@ -248,7 +323,7 @@ export const getUserProfiles = async () => {
       .order('created_at', { ascending: false }),
     supabase
       .from('user_entitlements')
-      .select('user_id, scope, status, source, created_at')
+      .select('user_id, scope, status, source, created_at, ends_at')
       .in('user_id', userIds)
       .eq('scope', 'PACKAGE')
       .eq('status', 'ACTIVE'),
@@ -261,7 +336,9 @@ export const getUserProfiles = async () => {
     }
   }
 
-  const activePaidUsers = new Set((entitlements || []).map((row) => row.user_id));
+  const activePaidUsers = new Set(
+    (entitlements || []).filter(isPackageEntitlementTimeValid).map((row) => row.user_id)
+  );
 
   return users.map((user) => {
     const latestIntent = latestIntentByUser.get(user.id) || null;
@@ -286,6 +363,7 @@ export const createUserProfile = async (userData) => {
     dailyMcqLimit: typeof userData.dailyMcqLimit === 'number' ? userData.dailyMcqLimit : userData.dailyMcqLimit || null,
     isActive: userData.isActive !== false,
     accessMode: userData.accessMode === 'MANUAL' ? 'MANUAL' : 'AUTO',
+    packageId: userData.packageId || null,
   };
 
   if (payload.dailyMcqLimit !== null) {
@@ -524,6 +602,11 @@ export const getExams = async () => {
                 console.log('DEBUG: Active Package ID:', userPackageId);
               }
             }
+
+            const examGrantRows = await queryValidExamEntitlements(userId);
+            const grantedExamIdSet = new Set(
+              (examGrantRows || []).map((r) => idKey(r.exam_id)).filter(Boolean)
+            );
         
             // 4. Fetch All Active Exams and Rules
             const { data: activeExams } = await supabase
@@ -550,8 +633,11 @@ export const getExams = async () => {
               accessByExamId.get(key).push(rule);
             });
         
-            // 5. Gate 1: Profession Filtering
+            // 5. Gate 1: Profession / access rules (admin or purchased per-exam grant bypasses rules)
             let filteredByProfession = activeExams.filter((exam) => {
+              if (grantedExamIdSet.has(idKey(exam.id))) {
+                return true;
+              }
               const rules = accessByExamId.get(idKey(exam.id)) || [];
               const hasAccess = userHasExamAccessFromRules(rules, userId, profile);
               if (import.meta.env.DEV && !hasAccess) {
@@ -564,7 +650,7 @@ export const getExams = async () => {
               console.log('DEBUG: Exams remaining after Profession Gate:', filteredByProfession.length);
             }
         
-            // 6. Gate 2: Package Filtering (ONLY for AUTO users)
+            // 6. Gate 2: Package Filtering (ONLY for AUTO users); per-exam entitlement bypasses package
             if (accessMode === 'AUTO' && userPackageId) {
               const { data: peRows, error: peErr } = await supabase
                 .from('package_exams')
@@ -583,21 +669,26 @@ export const getExams = async () => {
                 allowedInPackage = await fetchPackageExamIdsForPackage(userPackageId);
               }
 
+              const passesPackageGate = (e) => {
+                if (grantedExamIdSet.has(idKey(e.id))) return true;
+                if (allowedInPackage.size === 0) return true;
+                return allowedInPackage.has(idKey(e.id));
+              };
+
               if (allowedInPackage.size === 0) {
                 console.warn(
                   '[getAvailableExams] No exam IDs resolved for package; using profession filter only.',
                   userPackageId
                 );
-                exams = filteredByProfession;
-              } else {
-                exams = filteredByProfession.filter((e) => {
-                  const isAllowed = allowedInPackage.has(idKey(e.id));
-                  if (import.meta.env.DEV && !isAllowed) {
-                    console.log(`DEBUG: Exam "${e.title}" REJECTED by Package Gate. Not in package:`, userPackageId);
-                  }
-                  return isAllowed;
-                });
               }
+
+              exams = filteredByProfession.filter((e) => {
+                const ok = passesPackageGate(e);
+                if (import.meta.env.DEV && !ok) {
+                  console.log(`DEBUG: Exam "${e.title}" REJECTED by Package Gate. Not in package:`, userPackageId);
+                }
+                return ok;
+              });
             } else {
               exams = filteredByProfession;
             }
@@ -636,13 +727,18 @@ export const getExams = async () => {
           if (finalExamIds.length > 0) {
             const { data: entitlements } = await supabase
               .from('user_entitlements')
-              .select('exam_id')
+              .select('exam_id, ends_at')
               .eq('user_id', userId)
               .eq('scope', 'EXAM')
               .eq('status', 'ACTIVE')
               .in('exam_id', finalExamIds);
-        
-            paidExamEntitlements = new Set((entitlements || []).map((e) => idKey(e.exam_id)).filter(Boolean));
+
+            paidExamEntitlements = new Set(
+              (entitlements || [])
+                .filter(isPackageEntitlementTimeValid)
+                .map((e) => idKey(e.exam_id))
+                .filter(Boolean)
+            );
           }
         
           return examsWithCounts.map((exam) => ({
@@ -671,6 +767,11 @@ export const getExam = async (examId, userId) => {
 
   // Check if user has access
   if (profile.role !== 'ADMIN') {
+    const examEntitlementRows = await queryValidExamEntitlements(userId);
+    const hasExamEntitlement = examEntitlementRows.some(
+      (r) => idKey(r.exam_id) === idKey(examId)
+    );
+
     const { data: accessRules, error: accessError } = await supabase
       .from('exam_access')
       .select('id, user_id, profession_id, health_authority_id')
@@ -678,9 +779,9 @@ export const getExam = async (examId, userId) => {
 
     if (accessError) throw accessError;
 
-    const hasAccess = userHasExamAccessFromRules(accessRules || [], userId, profile);
+    const hasRuleAccess = userHasExamAccessFromRules(accessRules || [], userId, profile);
 
-    if (!hasAccess) {
+    if (!hasRuleAccess && !hasExamEntitlement) {
       throw new Error('You have no access to this exam. Please contact your representative.');
     }
 
@@ -688,7 +789,7 @@ export const getExam = async (examId, userId) => {
     if (examAccessMode === 'AUTO') {
       const pkgEntRows = await queryValidPackageEntitlements(userId, 'package_id, ends_at');
       const pid = pkgEntRows?.[0]?.package_id;
-      if (pid) {
+      if (pid && !hasExamEntitlement) {
         const { data: peRow, error: peErr } = await supabase
           .from('package_exams')
           .select('exam_id')
@@ -702,9 +803,6 @@ export const getExam = async (examId, userId) => {
       }
     }
 
-    // Block exam start when an admin-enabled addon charge is active and unpaid.
-    // This runs only after access is confirmed, so users from other professions
-    // do not see addon pricing/gating for exams they cannot access.
     const { data: examMeta, error: examMetaError } = await supabase
       .from('exams')
       .select('id, title, addon_enabled')
@@ -712,22 +810,10 @@ export const getExam = async (examId, userId) => {
       .maybeSingle();
 
     if (examMetaError) throw examMetaError;
-    if (examMeta?.addon_enabled) {
-      const { data: addonEntitlement, error: addonError } = await supabase
-        .from('user_entitlements')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('scope', 'EXAM')
-        .eq('status', 'ACTIVE')
-        .eq('exam_id', examId)
-        .maybeSingle();
-
-      if (addonError) throw addonError;
-      if (!addonEntitlement) {
-        throw new Error(
-          `This exam requires an additional addon purchase before you can start.`
-        );
-      }
+    if (examMeta?.addon_enabled && !hasExamEntitlement) {
+      throw new Error(
+        `This exam requires an additional addon purchase before you can start.`
+      );
     }
   }
 
@@ -1178,8 +1264,49 @@ export const syncExamProfessionAccess = async (examId, professionIds) => {
   if (insError) throw insError;
 };
 
+/** Package IDs linked to an exam (subscription catalog / package gate for AUTO users). */
+export const getExamPackageIds = async (examId) => {
+  if (!examId) return [];
+  const { data, error } = await supabase
+    .from('package_exams')
+    .select('package_id')
+    .eq('exam_id', examId);
+
+  if (error) throw error;
+  return [...new Set((data || []).map((r) => r.package_id).filter(Boolean))];
+};
+
+/**
+ * Replace all package_exams rows for an exam. Empty list = exam not in any package (paid users
+ * won't see it unless they have a direct exam entitlement).
+ */
+export const syncExamPackageLinks = async (examId, packageIds) => {
+  if (!examId) return;
+
+  const { error: delError } = await supabase.from('package_exams').delete().eq('exam_id', examId);
+  if (delError) throw delError;
+
+  const ids = [...new Set((packageIds || []).filter(Boolean))];
+  if (ids.length === 0) return;
+
+  const rows = ids.map((package_id) => ({ package_id, exam_id: examId }));
+  const { error: insError } = await supabase.from('package_exams').insert(rows);
+  if (insError) throw insError;
+};
+
+/** All packages for admin UI (includes inactive). */
+export const getPackagesForAdmin = async () => {
+  const { data, error } = await supabase
+    .from('packages')
+    .select('id, name, is_active, sort_order')
+    .order('sort_order', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+};
+
 export const createExam = async (examData) => {
-  const { questions, professionIds, ...examInfo } = examData;
+  const { questions, professionIds, packageIds, ...examInfo } = examData;
 
   const { data: exam, error: examError } = await supabase
     .from('exams')
@@ -1191,6 +1318,10 @@ export const createExam = async (examData) => {
 
   if (professionIds !== undefined) {
     await syncExamProfessionAccess(exam.id, professionIds);
+  }
+
+  if (packageIds !== undefined) {
+    await syncExamPackageLinks(exam.id, packageIds);
   }
 
   if (questions && questions.length > 0) {
@@ -1215,7 +1346,7 @@ export const createExam = async (examData) => {
 };
 
 export const updateExam = async (id, examData) => {
-  const { professionIds, ...examFields } = examData;
+  const { professionIds, packageIds, ...examFields } = examData;
 
   const { data, error } = await supabase
     .from('exams')
@@ -1228,6 +1359,10 @@ export const updateExam = async (id, examData) => {
 
   if (professionIds !== undefined) {
     await syncExamProfessionAccess(id, professionIds);
+  }
+
+  if (packageIds !== undefined) {
+    await syncExamPackageLinks(id, packageIds);
   }
 
   return data;
@@ -2095,7 +2230,7 @@ export const getAdminStats = async () => {
         .eq('status', 'READY'),
       supabase
         .from('user_entitlements')
-        .select('user_id')
+        .select('user_id, ends_at')
         .eq('scope', 'PACKAGE')
         .eq('status', 'ACTIVE'),
     ]);
@@ -2112,10 +2247,25 @@ export const getAdminStats = async () => {
       .select(`
         *,
         exam:exams(title, exam_type),
-        user:user_profiles(full_name, email, daily_mcq_limit)
+        user:user_profiles(full_name, email, daily_mcq_limit, access_mode)
       `)
       .order('completed_at', { ascending: false })
       .limit(10);
+
+    const recentUserIds = [...new Set((recentAttempts || []).map((a) => a.user_id).filter(Boolean))];
+    const effectiveDailyByUser = new Map();
+    await Promise.all(
+      recentUserIds.map(async (uid) => {
+        const row = (recentAttempts || []).find((a) => a.user_id === uid);
+        const u = row?.user;
+        const limit = await resolveEffectiveDailyLimit({
+          userId: uid,
+          profileDailyLimit: u?.daily_mcq_limit ?? null,
+          accessMode: u?.access_mode ?? 'AUTO',
+        });
+        effectiveDailyByUser.set(uid, limit);
+      })
+    );
 
     // Get new users (last 7 days)
     const { data: newUsers } = await supabase
@@ -2265,7 +2415,11 @@ export const getAdminStats = async () => {
       }
     }
 
-    const paidUserCount = new Set((paidEntitlementsResult.data || []).map((row) => row.user_id)).size;
+    const paidUserCount = new Set(
+      (paidEntitlementsResult.data || [])
+        .filter(isPackageEntitlementTimeValid)
+        .map((row) => row.user_id)
+    ).size;
 
     return {
       // Basic counts
@@ -2291,7 +2445,7 @@ export const getAdminStats = async () => {
       
       // Recent activity
       recentAttempts: recentAttempts?.map(attempt => {
-        const dailyLimit = attempt.user?.daily_mcq_limit ?? null;
+        const dailyLimit = effectiveDailyByUser.get(attempt.user_id) ?? null;
         const totalExamQuestions = adminExamQuestionCounts[attempt.exam_id] ?? attempt.total_questions;
         const key = `${attempt.user_id}_${attempt.exam_id}_${attempt.id}`;
         

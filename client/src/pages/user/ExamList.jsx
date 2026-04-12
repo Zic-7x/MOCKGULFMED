@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAvailableExams, canUserTakeExams } from '../../utils/supabaseQueries';
+import { syncFreemiusEntitlement } from '../../utils/freemiusEntitlementSync';
 import Layout from '../../components/Layout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -44,21 +45,6 @@ function ensureFreemiusCheckoutScript() {
   });
 
   return freemiusScriptPromise;
-}
-
-async function syncExamAddonEntitlement({ userId, examId, externalRef }) {
-  if (!userId || !examId) return;
-  await fetch(FREEMIUS_WEBHOOK_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId,
-      examId,
-      scope: 'EXAM',
-      status: 'ACTIVE',
-      externalRef: externalRef || null,
-    }),
-  });
 }
 
 const ExamList = () => {
@@ -125,11 +111,16 @@ const ExamList = () => {
             response?.license?.key ||
             response?.order?.id ||
             null;
-          syncExamAddonEntitlement({
-            userId: user?.id,
-            examId: exam.id,
-            externalRef,
-          })
+          syncFreemiusEntitlement(
+            {
+              userId: user?.id,
+              examId: exam.id,
+              scope: 'EXAM',
+              status: 'ACTIVE',
+              externalRef: externalRef || null,
+            },
+            FREEMIUS_WEBHOOK_API_URL
+          )
             .then(() => {
               markExamAsUnlocked(exam.id);
               toast.success('Addon purchase completed. You can now start the exam.');

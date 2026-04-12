@@ -4,7 +4,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import Layout from '../../components/Layout';
 import logoUrl from '../../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
 import { fetchPublicCatalog } from '../../utils/publicApi';
+import { syncFreemiusEntitlement } from '../../utils/freemiusEntitlementSync';
 import { supabase } from '../../lib/supabase';
+import toast from 'react-hot-toast';
 import './Packages.css';
 
 const FREEMIUS_PRODUCT_ID = import.meta.env.VITE_FREEMIUS_PRODUCT_ID || '27532';
@@ -66,21 +68,6 @@ function packageRankValue(pkg) {
   return 0;
 }
 
-async function syncEntitlementToBackend({ userId, packageId, externalRef }) {
-  if (!userId || !packageId) return;
-
-  await fetch(FREEMIUS_WEBHOOK_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId,
-      packageId,
-      status: 'ACTIVE',
-      externalRef: externalRef || null,
-    }),
-  });
-}
-
 const Packages = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -90,6 +77,7 @@ const Packages = () => {
   const [checkoutError, setCheckoutError] = useState(null);
   const [activeCheckoutPackageId, setActiveCheckoutPackageId] = useState(null);
   const [currentPackage, setCurrentPackage] = useState(null);
+  const [entitlementRefreshKey, setEntitlementRefreshKey] = useState(0);
 
   const freemiusReady = useMemo(
     () => Boolean(FREEMIUS_PUBLIC_KEY && FREEMIUS_PRODUCT_ID),
@@ -128,15 +116,14 @@ const Packages = () => {
         return;
       }
 
-      const { data, error } = await supabase
+      const { data: entRows, error } = await supabase
         .from('user_entitlements')
-        .select('package_id, created_at')
+        .select('package_id, created_at, ends_at')
         .eq('user_id', user.id)
         .eq('scope', 'PACKAGE')
         .eq('status', 'ACTIVE')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(5);
 
       if (!mounted) return;
       if (error) {
@@ -144,7 +131,12 @@ const Packages = () => {
         setCurrentPackage(null);
         return;
       }
-      const pkg = (packages || []).find((p) => p.id === data?.package_id) || null;
+      const now = new Date();
+      const row = (entRows || []).find((r) => {
+        if (r.ends_at == null || r.ends_at === '') return true;
+        return new Date(r.ends_at) > now;
+      });
+      const pkg = (packages || []).find((p) => p.id === row?.package_id) || null;
       setCurrentPackage(pkg);
     };
 
@@ -152,7 +144,7 @@ const Packages = () => {
     return () => {
       mounted = false;
     };
-  }, [user?.id, packages]);
+  }, [user?.id, packages, entitlementRefreshKey]);
 
   const getPlanIdForPackage = (pkg) => {
     if (pkg?.freemius_plan_id) return String(pkg.freemius_plan_id);
@@ -206,13 +198,23 @@ const Packages = () => {
               response?.license?.key ||
               response?.order?.id ||
               null;
-            syncEntitlementToBackend({
-              userId: user.id,
-              packageId: pkg.id,
-              externalRef,
-            }).catch((syncErr) => {
-              console.error('[Freemius] backend sync failed:', syncErr);
-            });
+            syncFreemiusEntitlement(
+              {
+                userId: user.id,
+                packageId: pkg.id,
+                status: 'ACTIVE',
+                externalRef: externalRef || null,
+              },
+              FREEMIUS_WEBHOOK_API_URL
+            )
+              .then(() => {
+                toast.success('Purchase recorded. Your package exams are unlocking now.');
+                setEntitlementRefreshKey((k) => k + 1);
+              })
+              .catch((syncErr) => {
+                console.error('[Freemius] backend sync failed:', syncErr);
+                toast.error(syncErr?.message || 'Purchase sync failed. Contact support with your receipt.');
+              });
           }
         },
         success: (response) => {

@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 
 import adminUsersHandler from './api/admin-users.js';
+import adminExamGrantsHandler from './api/admin-exam-grants.js';
 import publicCatalogHandler from './api/public-catalog.js';
 import registerHandler from './api/register.js';
 import freemiusWebhookHandler from './api/freemius-webhook.js';
@@ -27,6 +28,8 @@ app.use(express.json());
 
 // Wire the existing handler to the REST route
 app.all('/api/admin-users', asyncRoute(adminUsersHandler));
+
+app.all('/api/admin-exam-grants', asyncRoute(adminExamGrantsHandler));
 
 app.all('/api/public-catalog', asyncRoute(publicCatalogHandler));
 

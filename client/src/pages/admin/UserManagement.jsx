@@ -286,8 +286,8 @@ const UserManagement = () => {
                     <span>Allow exam access without payment</span>
                   </label>
                   <p className="form-hint">
-                    Enable for legacy accounts or staff: users can take exams without a Freemius package. Daily MCQ
-                    limit above still applies when set; leave blank for unlimited.
+                    Enable for legacy accounts or staff: users can take exams without a Freemius package. Leave daily
+                    limit blank to use the default (100/day for manual access); set a number to cap them explicitly.
                   </p>
                 </div>
                 <div className="form-group">

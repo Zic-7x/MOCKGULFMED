@@ -82,8 +82,10 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
       setUserProfile(data);
+      return data;
     } catch (error) {
       console.error('Error loading user profile:', error);
+      return null;
     }
   };
 
@@ -98,14 +100,16 @@ export const AuthProvider = ({ children }) => {
 
       if (data.user) {
         setUser(data.user);
-        await loadUserProfile(data.user.id);
+        const profile = await loadUserProfile(data.user.id);
+        const role = profile?.role || 'USER';
         toast.success('Login successful!');
-        return { success: true, user: data.user };
+        return { success: true, user: data.user, role };
       }
     } catch (error) {
       toast.error(error.message || 'Login failed');
       return { success: false, error: error.message };
     }
+    return { success: false, error: 'Login failed' };
   };
 
   const logout = async () => {

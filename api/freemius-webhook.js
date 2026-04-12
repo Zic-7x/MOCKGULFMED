@@ -11,8 +11,32 @@ if (!supabaseUrl || !serviceRoleKey || !anonKey) {
   );
 }
 
-createClient(supabaseUrl, anonKey); // validates config; not used directly
+const anonClient = createClient(supabaseUrl, anonKey);
 const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
+const getBearerToken = (req) => {
+  const raw = req.headers?.authorization || req.headers?.Authorization || '';
+  if (typeof raw !== 'string' || !raw.startsWith('Bearer ')) return null;
+  return raw.slice('Bearer '.length).trim() || null;
+};
+
+async function assertCallerIsUser(req, userId) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return { ok: false, status: 401, error: 'Authorization required' };
+  }
+  const {
+    data: { user },
+    error,
+  } = await anonClient.auth.getUser(token);
+  if (error || !user?.id) {
+    return { ok: false, status: 401, error: 'Invalid or expired session' };
+  }
+  if (String(user.id) !== String(userId)) {
+    return { ok: false, status: 403, error: 'userId does not match signed-in user' };
+  }
+  return { ok: true };
+}
 
 const send = (res, status, payload) => {
   res.status(status).json(payload);
@@ -98,6 +122,11 @@ export default async function handler(req, res) {
     if (!userId) {
       return send(res, 400, { error: 'userId is required' });
     }
+
+    const authGate = await assertCallerIsUser(req, userId);
+    if (!authGate.ok) {
+      return send(res, authGate.status, { error: authGate.error });
+    }
     if (!['PACKAGE', 'EXAM'].includes(scope)) {
       return send(res, 400, { error: 'Invalid scope' });
     }
@@ -113,26 +142,135 @@ export default async function handler(req, res) {
       return send(res, 400, { error: 'Invalid status' });
     }
 
-    const { data: entitlement, error: entitlementError } = await serviceClient
-      .from('user_entitlements')
-      .insert({
-        user_id: userId,
-        scope,
-        package_id: scope === 'PACKAGE' ? packageId : null,
-        exam_id: scope === 'EXAM' ? examId : null,
-        status: normalizedStatus,
-        source: 'FREEMIUS',
-        external_ref: externalRef,
-      })
-      .select('*')
-      .single();
+    let entitlement;
+    if (scope === 'EXAM') {
+      const { data: existingExamEnt, error: findExamErr } = await serviceClient
+        .from('user_entitlements')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('scope', 'EXAM')
+        .eq('exam_id', examId)
+        .eq('status', 'ACTIVE')
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-    if (entitlementError) {
-      return send(res, 400, { error: entitlementError.message || 'Failed to create entitlement' });
+      if (findExamErr) {
+        return send(res, 400, { error: findExamErr.message || 'Failed to look up exam entitlement' });
+      }
+
+      const existingExamId = existingExamEnt?.[0]?.id;
+      if (existingExamId) {
+        const { data: updated, error: upErr } = await serviceClient
+          .from('user_entitlements')
+          .update({
+            status: normalizedStatus,
+            source: 'FREEMIUS',
+            external_ref: externalRef,
+          })
+          .eq('id', existingExamId)
+          .select('*')
+          .single();
+        if (upErr) {
+          return send(res, 400, { error: upErr.message || 'Failed to update exam entitlement' });
+        }
+        entitlement = updated;
+      } else {
+        const { data: inserted, error: insErr } = await serviceClient
+          .from('user_entitlements')
+          .insert({
+            user_id: userId,
+            scope: 'EXAM',
+            package_id: null,
+            exam_id: examId,
+            status: normalizedStatus,
+            source: 'FREEMIUS',
+            external_ref: externalRef,
+          })
+          .select('*')
+          .single();
+        if (insErr) {
+          return send(res, 400, { error: insErr.message || 'Failed to create exam entitlement' });
+        }
+        entitlement = inserted;
+      }
+
+      if (normalizedStatus === 'ACTIVE') {
+        const { error: examAccessErr } = await serviceClient.from('exam_access').upsert(
+          {
+            exam_id: examId,
+            user_id: userId,
+            profession_id: null,
+            health_authority_id: null,
+            source: 'FREEMIUS',
+          },
+          { onConflict: 'exam_id,user_id' }
+        );
+        if (examAccessErr) {
+          return send(res, 400, { error: examAccessErr.message || 'Failed to provision exam access' });
+        }
+      } else {
+        const { error: delErr } = await serviceClient
+          .from('exam_access')
+          .delete()
+          .eq('user_id', userId)
+          .eq('exam_id', examId)
+          .eq('source', 'FREEMIUS');
+        if (delErr) {
+          return send(res, 400, { error: delErr.message || 'Failed to revoke exam access' });
+        }
+      }
+
+      return send(res, 200, { data: { entitlement, provisionedExamCount: normalizedStatus === 'ACTIVE' ? 1 : 0 } });
     }
 
-    if (scope === 'EXAM') {
-      return send(res, 200, { data: { entitlement, provisionedExamCount: 0 } });
+    const { data: existingPkgRows, error: findPkgErr } = await serviceClient
+      .from('user_entitlements')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('scope', 'PACKAGE')
+      .eq('package_id', packageId)
+      .eq('status', 'ACTIVE')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (findPkgErr) {
+      return send(res, 400, { error: findPkgErr.message || 'Failed to look up package entitlement' });
+    }
+
+    const existingPkgId = existingPkgRows?.[0]?.id;
+    if (existingPkgId) {
+      const { data: updated, error: upPkgErr } = await serviceClient
+        .from('user_entitlements')
+        .update({
+          status: normalizedStatus,
+          source: 'FREEMIUS',
+          external_ref: externalRef,
+        })
+        .eq('id', existingPkgId)
+        .select('*')
+        .single();
+      if (upPkgErr) {
+        return send(res, 400, { error: upPkgErr.message || 'Failed to update package entitlement' });
+      }
+      entitlement = updated;
+    } else {
+      const { data: inserted, error: insPkgErr } = await serviceClient
+        .from('user_entitlements')
+        .insert({
+          user_id: userId,
+          scope: 'PACKAGE',
+          package_id: packageId,
+          exam_id: null,
+          status: normalizedStatus,
+          source: 'FREEMIUS',
+          external_ref: externalRef,
+        })
+        .select('*')
+        .single();
+      if (insPkgErr) {
+        return send(res, 400, { error: insPkgErr.message || 'Failed to create package entitlement' });
+      }
+      entitlement = inserted;
     }
 
     // Mark any pending registration intent as READY (best-effort)
