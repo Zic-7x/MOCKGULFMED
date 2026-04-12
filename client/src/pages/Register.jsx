@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import logoUrl from '../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
 import { fetchPublicCatalog, registerUser } from '../utils/publicApi';
+import { packageFeaturesForDisplay } from '../utils/packageFeaturesDisplay';
 import './Register.css';
 
 const Register = () => {
@@ -48,7 +49,7 @@ const Register = () => {
           !(data?.professions?.length || data?.healthAuthorities?.length) &&
           !(data?.packages?.length)
         ) {
-          toast.error('Could not load catalog. Run Supabase migrations (003 + 005–007) and check your API env vars.');
+          toast.error('Could not load registration options. Please refresh the page or try again later.');
         }
       })
       .catch((err) => {
@@ -107,12 +108,14 @@ const Register = () => {
     }
   };
 
-  const packageFeatures = (pkg) =>
-    pkg.featuresNormalized?.length
+  const packageFeatures = (pkg) => {
+    const raw = pkg.featuresNormalized?.length
       ? pkg.featuresNormalized
       : Array.isArray(pkg.features)
         ? pkg.features.map(String)
         : [];
+    return packageFeaturesForDisplay(raw);
+  };
 
   return (
     <div className="register-page">
@@ -137,9 +140,10 @@ const Register = () => {
           <div className="register-card-head">
             <h1>Create your account</h1>
             <p>
-              Choose your <strong>profession</strong> and <strong>health authority</strong>, then pick a{' '}
-              <strong>package</strong> below. After payment (Freemius), the exams included in that package unlock for
-              your account.
+              Select your <strong>profession</strong> and <strong>health authority</strong>, then choose a subscription
+              plan. After checkout completes, the mock exams linked to that plan unlock for your account. Plans that
+              list <strong>clinical scenario</strong> practice include vignette-style questions that are{' '}
+              <strong>recommended to pass the exam</strong>; those lines are called out on each card below.
             </p>
           </div>
 
@@ -225,8 +229,8 @@ const Register = () => {
               {loadingCatalog && <p className="register-packages-hint">Loading packages…</p>}
               {!loadingCatalog && catalog.packages.length === 0 && (
                 <p className="register-packages-empty">
-                  No packages are configured yet. Ask an admin to add packages in Supabase (migration 007 seeds
-                  defaults) or run migrations.
+                  No subscription plans are available right now. Please try again later or contact support for help
+                  completing registration.
                 </p>
               )}
               <div className="register-packages-grid">

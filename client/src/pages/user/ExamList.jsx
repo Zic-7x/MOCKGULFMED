@@ -168,6 +168,9 @@ const ExamList = () => {
     );
   }
 
+  const packageLocked = accessGate?.examAccessLocked === true;
+  const renewalWarning = accessGate?.renewalWarning;
+
   if (error) {
     toast.error('Failed to load exams');
     return (
@@ -184,6 +187,27 @@ const ExamList = () => {
     <Layout>
       <div className="exam-list">
         <h1>Available Exams</h1>
+        {renewalWarning && (
+          <div className="exam-list-banner exam-list-banner--warning" role="status">
+            <strong>Your package access is ending soon.</strong>{' '}
+            {renewalWarning.daysRemaining === 1
+              ? 'Access expires tomorrow.'
+              : `About ${renewalWarning.daysRemaining} days left.`}{' '}
+            Renew now to avoid interruption.
+            <Link to="/packages" className="exam-list-banner-link">
+              Renew package
+            </Link>
+          </div>
+        )}
+        {packageLocked && (
+          <div className="exam-list-banner exam-list-banner--locked" role="status">
+            <strong>Your package access has ended.</strong> Your account and past exam activity are still here — renew your
+            package to unlock exams again.
+            <Link to="/packages" className="exam-list-banner-link">
+              Renew package
+            </Link>
+          </div>
+        )}
         {exams && exams.length === 0 ? (
           <div className="no-exams">
             <p>No exams are available for your profession yet. Please contact support if you believe this is a mistake.</p>
@@ -191,7 +215,10 @@ const ExamList = () => {
         ) : (
           <div className="exams-grid">
             {exams?.map((exam) => (
-              <div key={exam.id} className="exam-card">
+              <div
+                key={exam.id}
+                className={`exam-card${packageLocked ? ' exam-card--locked' : ''}`}
+              >
                 <div className="exam-header">
                   <h3>{exam.title}</h3>
                   <span className={`exam-type-badge ${exam.exam_type?.toLowerCase() || 'prometric'}`}>
@@ -211,10 +238,15 @@ const ExamList = () => {
                     <span className="detail-value">{exam.duration} minutes</span>
                   </div>
                 </div>
-                {exam.addon_enabled && !exam.addonPurchased && !unlockingExamIds.has(exam.id) ? (
+                {packageLocked ? (
+                  <Link to="/packages" className="start-exam-button start-exam-button--secondary">
+                    Renew package to unlock
+                  </Link>
+                ) : exam.addon_enabled && !exam.addonPurchased && !unlockingExamIds.has(exam.id) ? (
                   <>
                     <p className="exam-description">
                       Addon required{exam.addon_price_display ? `: ${exam.addon_price_display}` : ''}.
+                      {exam.addonExpired ? ' Your previous addon period has ended.' : ''}
                     </p>
                     <button
                       type="button"
@@ -222,12 +254,16 @@ const ExamList = () => {
                       onClick={() => handleAddonPurchase(exam)}
                       disabled={activeAddonExamId === exam.id}
                     >
-                      {activeAddonExamId === exam.id ? 'Opening Checkout...' : 'Buy Addon to Start'}
+                      {activeAddonExamId === exam.id
+                        ? 'Opening Checkout...'
+                        : exam.addonExpired
+                          ? 'Renew addon to start'
+                          : 'Buy addon to start'}
                     </button>
                   </>
                 ) : (
                   <Link to={`/exams/${exam.id}`} className="start-exam-button">
-                    Start Exam
+                    Start exam
                   </Link>
                 )}
               </div>

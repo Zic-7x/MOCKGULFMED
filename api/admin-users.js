@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import { endsAtForPackageName, toIso } from '../lib/entitlementEndsAt.js';
 
 // Support both VITE_* (local / copied from client) and plain names (Vercel / README)
 const supabaseUrl =
@@ -142,16 +143,21 @@ const createUser = async (payload) => {
 
   const userId = authData.user.id;
 
-  let dailyMcq = null;
-  if (typeof dailyMcqLimit === 'number' && !Number.isNaN(dailyMcqLimit)) {
-    dailyMcq = dailyMcqLimit;
-  } else if (packageId) {
-    const { data: pkgRow } = await serviceClient
+  let pkgRowForPackage = null;
+  if (packageId) {
+    const { data: pr } = await serviceClient
       .from('packages')
       .select('name')
       .eq('id', packageId)
       .maybeSingle();
-    dailyMcq = pkgRow ? dailyMcqFromPackageName(pkgRow.name) : DEFAULT_DAILY_MCQ;
+    pkgRowForPackage = pr;
+  }
+
+  let dailyMcq = null;
+  if (typeof dailyMcqLimit === 'number' && !Number.isNaN(dailyMcqLimit)) {
+    dailyMcq = dailyMcqLimit;
+  } else if (pkgRowForPackage) {
+    dailyMcq = dailyMcqFromPackageName(pkgRowForPackage.name);
   }
 
   const accessModeDb = packageId ? 'AUTO' : accessMode === 'MANUAL' ? 'MANUAL' : 'AUTO';
@@ -178,12 +184,15 @@ const createUser = async (payload) => {
   }
 
   if (packageId) {
+    const entEndsAt = pkgRowForPackage?.name ? toIso(endsAtForPackageName(pkgRowForPackage.name)) : null;
     const { error: entError } = await serviceClient.from('user_entitlements').insert({
       user_id: userId,
       package_id: packageId,
       scope: 'PACKAGE',
       status: 'ACTIVE',
       source: 'ADMIN',
+      starts_at: new Date().toISOString(),
+      ends_at: entEndsAt,
     });
     if (entError) {
       await serviceClient.auth.admin.deleteUser(userId);

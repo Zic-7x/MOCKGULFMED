@@ -1,5 +1,12 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import {
+  endsAtForPackageName,
+  endsAtForAddon,
+  extendPackageEndsAt,
+  extendAddonEndsAt,
+  toIso,
+} from '../lib/entitlementEndsAt.js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
@@ -146,7 +153,7 @@ export default async function handler(req, res) {
     if (scope === 'EXAM') {
       const { data: existingExamEnt, error: findExamErr } = await serviceClient
         .from('user_entitlements')
-        .select('id')
+        .select('id, ends_at, external_ref, starts_at')
         .eq('user_id', userId)
         .eq('scope', 'EXAM')
         .eq('exam_id', examId)
@@ -158,15 +165,39 @@ export default async function handler(req, res) {
         return send(res, 400, { error: findExamErr.message || 'Failed to look up exam entitlement' });
       }
 
-      const existingExamId = existingExamEnt?.[0]?.id;
-      if (existingExamId) {
-        const { data: updated, error: upErr } = await serviceClient
-          .from('user_entitlements')
-          .update({
+      const existingExamRow = existingExamEnt?.[0];
+      const existingExamId = existingExamRow?.id;
+      const nowIso = new Date().toISOString();
+
+      const buildExamPayload = () => {
+        if (normalizedStatus !== 'ACTIVE') {
+          return {
             status: normalizedStatus,
             source: 'FREEMIUS',
             external_ref: externalRef,
-          })
+          };
+        }
+        const refChanged =
+          String(externalRef || '') !== String(existingExamRow?.external_ref || '');
+        const endsAt =
+          existingExamId && refChanged
+            ? toIso(extendAddonEndsAt(existingExamRow?.ends_at))
+            : existingExamId
+              ? existingExamRow?.ends_at
+              : toIso(endsAtForAddon());
+        return {
+          status: normalizedStatus,
+          source: 'FREEMIUS',
+          external_ref: externalRef,
+          starts_at: existingExamRow?.starts_at || nowIso,
+          ends_at: endsAt,
+        };
+      };
+
+      if (existingExamId) {
+        const { data: updated, error: upErr } = await serviceClient
+          .from('user_entitlements')
+          .update(buildExamPayload())
           .eq('id', existingExamId)
           .select('*')
           .single();
@@ -175,17 +206,32 @@ export default async function handler(req, res) {
         }
         entitlement = updated;
       } else {
+        const examPayload =
+          normalizedStatus === 'ACTIVE'
+            ? {
+                user_id: userId,
+                scope: 'EXAM',
+                package_id: null,
+                exam_id: examId,
+                status: normalizedStatus,
+                source: 'FREEMIUS',
+                external_ref: externalRef,
+                starts_at: nowIso,
+                ends_at: toIso(endsAtForAddon()),
+              }
+            : {
+                user_id: userId,
+                scope: 'EXAM',
+                package_id: null,
+                exam_id: examId,
+                status: normalizedStatus,
+                source: 'FREEMIUS',
+                external_ref: externalRef,
+              };
+
         const { data: inserted, error: insErr } = await serviceClient
           .from('user_entitlements')
-          .insert({
-            user_id: userId,
-            scope: 'EXAM',
-            package_id: null,
-            exam_id: examId,
-            status: normalizedStatus,
-            source: 'FREEMIUS',
-            external_ref: externalRef,
-          })
+          .insert(examPayload)
           .select('*')
           .single();
         if (insErr) {
@@ -223,9 +269,21 @@ export default async function handler(req, res) {
       return send(res, 200, { data: { entitlement, provisionedExamCount: normalizedStatus === 'ACTIVE' ? 1 : 0 } });
     }
 
+    const { data: pkgMeta, error: pkgMetaErr } = await serviceClient
+      .from('packages')
+      .select('name')
+      .eq('id', packageId)
+      .maybeSingle();
+
+    if (pkgMetaErr) {
+      return send(res, 400, { error: pkgMetaErr.message || 'Failed to load package' });
+    }
+
+    const packageName = pkgMeta?.name || '';
+
     const { data: existingPkgRows, error: findPkgErr } = await serviceClient
       .from('user_entitlements')
-      .select('id')
+      .select('id, ends_at, external_ref, starts_at')
       .eq('user_id', userId)
       .eq('scope', 'PACKAGE')
       .eq('package_id', packageId)
@@ -237,15 +295,39 @@ export default async function handler(req, res) {
       return send(res, 400, { error: findPkgErr.message || 'Failed to look up package entitlement' });
     }
 
-    const existingPkgId = existingPkgRows?.[0]?.id;
-    if (existingPkgId) {
-      const { data: updated, error: upPkgErr } = await serviceClient
-        .from('user_entitlements')
-        .update({
+    const existingPkgRow = existingPkgRows?.[0];
+    const existingPkgId = existingPkgRow?.id;
+    const nowIso = new Date().toISOString();
+
+    const buildPackagePayload = () => {
+      if (normalizedStatus !== 'ACTIVE') {
+        return {
           status: normalizedStatus,
           source: 'FREEMIUS',
           external_ref: externalRef,
-        })
+        };
+      }
+      const refChanged =
+        String(externalRef || '') !== String(existingPkgRow?.external_ref || '');
+      const endsAt =
+        existingPkgId && refChanged
+          ? toIso(extendPackageEndsAt(existingPkgRow?.ends_at, packageName))
+          : existingPkgId
+            ? existingPkgRow?.ends_at
+            : toIso(endsAtForPackageName(packageName));
+      return {
+        status: normalizedStatus,
+        source: 'FREEMIUS',
+        external_ref: externalRef,
+        starts_at: existingPkgRow?.starts_at || nowIso,
+        ends_at: endsAt,
+      };
+    };
+
+    if (existingPkgId) {
+      const { data: updated, error: upPkgErr } = await serviceClient
+        .from('user_entitlements')
+        .update(buildPackagePayload())
         .eq('id', existingPkgId)
         .select('*')
         .single();
@@ -254,17 +336,32 @@ export default async function handler(req, res) {
       }
       entitlement = updated;
     } else {
+      const insertPayload =
+        normalizedStatus === 'ACTIVE'
+          ? {
+              user_id: userId,
+              scope: 'PACKAGE',
+              package_id: packageId,
+              exam_id: null,
+              status: normalizedStatus,
+              source: 'FREEMIUS',
+              external_ref: externalRef,
+              starts_at: nowIso,
+              ends_at: toIso(endsAtForPackageName(packageName)),
+            }
+          : {
+              user_id: userId,
+              scope: 'PACKAGE',
+              package_id: packageId,
+              exam_id: null,
+              status: normalizedStatus,
+              source: 'FREEMIUS',
+              external_ref: externalRef,
+            };
+
       const { data: inserted, error: insPkgErr } = await serviceClient
         .from('user_entitlements')
-        .insert({
-          user_id: userId,
-          scope: 'PACKAGE',
-          package_id: packageId,
-          exam_id: null,
-          status: normalizedStatus,
-          source: 'FREEMIUS',
-          external_ref: externalRef,
-        })
+        .insert(insertPayload)
         .select('*')
         .single();
       if (insPkgErr) {

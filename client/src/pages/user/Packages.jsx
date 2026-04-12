@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import Layout from '../../components/Layout';
 import logoUrl from '../../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
 import { fetchPublicCatalog } from '../../utils/publicApi';
+import { packageFeaturesForDisplay } from '../../utils/packageFeaturesDisplay';
 import { syncFreemiusEntitlement } from '../../utils/freemiusEntitlementSync';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
@@ -54,9 +55,12 @@ function ensureFreemiusCheckoutScript() {
 }
 
 function packageFeaturesList(pkg) {
-  if (pkg.featuresNormalized?.length) return pkg.featuresNormalized;
-  if (Array.isArray(pkg.features)) return pkg.features.map(String);
-  return [];
+  const raw = pkg.featuresNormalized?.length
+    ? pkg.featuresNormalized
+    : Array.isArray(pkg.features)
+      ? pkg.features.map(String)
+      : [];
+  return packageFeaturesForDisplay(raw);
 }
 
 function packageRankValue(pkg) {
@@ -66,6 +70,30 @@ function packageRankValue(pkg) {
   }
   if (typeof pkg?.sort_order === 'number') return pkg.sort_order;
   return 0;
+}
+
+function PackageCardSkeleton({ highlight }) {
+  return (
+    <div
+      className={`package-card package-card-skeleton ${highlight ? 'package-card-skeleton-popular' : ''}`}
+      aria-hidden
+    >
+      {highlight ? <div className="package-skeleton-badge packages-skeleton-shimmer" /> : null}
+      <div className="package-skeleton-block package-skeleton-title packages-skeleton-shimmer" />
+      <div className="package-skeleton-block package-skeleton-price packages-skeleton-shimmer" />
+      <div className="package-skeleton-block package-skeleton-duration packages-skeleton-shimmer" />
+      <div className="package-skeleton-desc">
+        <div className="package-skeleton-line packages-skeleton-shimmer" />
+        <div className="package-skeleton-line package-skeleton-line-short packages-skeleton-shimmer" />
+      </div>
+      <div className="package-skeleton-features">
+        <div className="package-skeleton-feature packages-skeleton-shimmer" />
+        <div className="package-skeleton-feature packages-skeleton-shimmer" />
+        <div className="package-skeleton-feature package-skeleton-feature-short packages-skeleton-shimmer" />
+      </div>
+      <div className="package-skeleton-block package-skeleton-button packages-skeleton-shimmer" />
+    </div>
+  );
 }
 
 const Packages = () => {
@@ -212,7 +240,7 @@ const Packages = () => {
                 setEntitlementRefreshKey((k) => k + 1);
               })
               .catch((syncErr) => {
-                console.error('[Freemius] backend sync failed:', syncErr);
+                console.error('[Freemius] entitlement sync failed:', syncErr);
                 toast.error(syncErr?.message || 'Purchase sync failed. Contact support with your receipt.');
               });
           }
@@ -231,80 +259,110 @@ const Packages = () => {
 
   const content = (
     <div className="packages-page">
-      <div className="packages-header">
-        <h1>Packages</h1>
-        <p>Choose the plan that matches your preparation timeline and daily MCQ target. Data is loaded from Supabase (with an optional API merge when your backend is running).</p>
+      <div className="packages-hero">
+        <p className="packages-eyebrow">Mock exams for Gulf licensing</p>
+        <h1 className="packages-title">Choose your study plan</h1>
+        <p className="packages-lead">
+          Each plan unlocks the mock exams included for your profession. Compare access length and how many
+          multiple-choice questions you can practise per day. Clinical scenario–style items mirror real exam pacing and
+          decision-making; they are marked as recommended to pass the exam on each plan below.
+        </p>
         {loadError && <p className="packages-load-error">{loadError}</p>}
         {checkoutError && <p className="packages-load-error">{checkoutError}</p>}
         {user && currentPackage?.name && (
-          <p className="packages-loading">Your current package: <strong>{currentPackage.name}</strong></p>
+          <p className="packages-current-banner">
+            <span className="packages-current-label">Your active plan</span>
+            <span className="packages-current-name">{currentPackage.name}</span>
+          </p>
         )}
-        {loading && <p className="packages-loading">Loading packages…</p>}
+        {loading && (
+          <div className="packages-loading-strip" role="status" aria-live="polite">
+            <span className="packages-loading-spinner" aria-hidden />
+            <div className="packages-loading-strip-text">
+              <span className="packages-loading-strip-title">Fetching plans</span>
+              <span className="packages-loading-strip-sub">Preparing pricing and what each tier includes</span>
+            </div>
+          </div>
+        )}
         {!loading && !loadError && packages.length === 0 && (
           <p className="packages-empty">
-            No packages found. Run migration <code>007_public_catalog_read_policies_and_package_details.sql</code> in
-            Supabase to seed defaults, or add rows in the <code>packages</code> table.
+            No subscription plans are available at the moment. Please refresh the page or try again later. If the
+            problem continues, contact support and we will help you get access.
           </p>
         )}
       </div>
 
-      <div className="packages-grid">
-        {packages.map((pkg) => {
-          const feats = packageFeaturesList(pkg);
-          const hasCurrent = Boolean(currentPackage?.id);
-          const isCurrent = hasCurrent && currentPackage.id === pkg.id;
-          const isUpgrade =
-            hasCurrent &&
-            !isCurrent &&
-            packageRankValue(pkg) > packageRankValue(currentPackage);
-          const isLockedLowerTier = hasCurrent && !isCurrent && !isUpgrade;
-          const buttonLabel = isCurrent
-            ? 'Current Package'
-            : isUpgrade
-              ? 'Upgrade Package'
-              : isLockedLowerTier
-                ? 'Current plan covers this'
-                : 'Buy Now';
+      <div className="packages-grid" aria-busy={loading}>
+        {loading ? (
+          <>
+            <PackageCardSkeleton />
+            <PackageCardSkeleton highlight />
+            <PackageCardSkeleton />
+          </>
+        ) : (
+          packages.map((pkg) => {
+            const feats = packageFeaturesList(pkg);
+            const hasCurrent = Boolean(currentPackage?.id);
+            const isCurrent = hasCurrent && currentPackage.id === pkg.id;
+            const isUpgrade =
+              hasCurrent &&
+              !isCurrent &&
+              packageRankValue(pkg) > packageRankValue(currentPackage);
+            const isLockedLowerTier = hasCurrent && !isCurrent && !isUpgrade;
+            const buttonLabel = isCurrent
+              ? 'Current Package'
+              : isUpgrade
+                ? 'Upgrade Package'
+                : isLockedLowerTier
+                  ? 'Current plan covers this'
+                  : 'Buy Now';
 
-          return (
-            <div
-              key={pkg.id}
-              className={`package-card ${pkg.highlight ? 'package-card-highlight' : ''}`}
-            >
-              {pkg.highlight && <div className="package-badge">Most Popular</div>}
-              <div className="package-top">
-                <h2 className="package-name">{pkg.name}</h2>
-                {pkg.price_display ? <div className="package-price">{pkg.price_display}</div> : null}
-                {pkg.duration_label ? <div className="package-duration">{pkg.duration_label}</div> : null}
-              </div>
-
-              {pkg.description ? <p className="package-description">{pkg.description}</p> : null}
-
-              {feats.length > 0 && (
-                <ul className="package-features">
-                  {feats.map((feature) => (
-                    <li key={feature}>{feature}</li>
-                  ))}
-                </ul>
-              )}
-
-              <button
-                type="button"
-                className="package-buy-button"
-                onClick={() => handleBuy(pkg)}
-                disabled={activeCheckoutPackageId === pkg.id || isCurrent || isLockedLowerTier}
+            return (
+              <div
+                key={pkg.id}
+                className={`package-card ${pkg.highlight ? 'package-card-highlight' : ''}`}
               >
-                {activeCheckoutPackageId === pkg.id ? 'Opening checkout...' : buttonLabel}
-              </button>
-            </div>
-          );
-        })}
+                {pkg.highlight && <div className="package-badge">Most popular</div>}
+                <div className="package-top">
+                  <h2 className="package-name">{pkg.name}</h2>
+                  <div className="package-price-row">
+                    {pkg.price_display ? <div className="package-price">{pkg.price_display}</div> : null}
+                    {pkg.duration_label ? <div className="package-duration">{pkg.duration_label}</div> : null}
+                  </div>
+                </div>
+
+                {pkg.description ? <p className="package-description">{pkg.description}</p> : null}
+
+                {feats.length > 0 && (
+                  <ul className="package-features" aria-label="Plan includes">
+                    {feats.map((feature) => (
+                      <li key={feature}>{feature}</li>
+                    ))}
+                  </ul>
+                )}
+
+                <button
+                  type="button"
+                  className="package-buy-button"
+                  onClick={() => handleBuy(pkg)}
+                  disabled={activeCheckoutPackageId === pkg.id || isCurrent || isLockedLowerTier}
+                >
+                  {activeCheckoutPackageId === pkg.id ? 'Opening checkout...' : buttonLabel}
+                </button>
+              </div>
+            );
+          })
+        )}
       </div>
 
-      {!user && (
-        <p className="packages-register-cta">
-          Ready to start? <Link to="/register">Create an account</Link>
-        </p>
+      {!user && !loading && (
+        <div className="packages-bottom-cta">
+          <p className="packages-register-cta">
+            New to MockGulfMed?{' '}
+            <Link to="/register">Create an account</Link>
+            {' — '}you can complete checkout right after sign-up.
+          </p>
+        </div>
       )}
     </div>
   );

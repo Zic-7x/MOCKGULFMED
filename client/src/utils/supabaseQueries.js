@@ -104,6 +104,85 @@ const queryValidPackageEntitlements = async (userId, select) => {
   return (rows || []).filter(isPackageEntitlementTimeValid);
 };
 
+/** Days before package end to show an in-app renewal reminder (banner). */
+const PACKAGE_RENEWAL_WARNING_DAYS = 7;
+
+/**
+ * AUTO users: classify package subscription for gating and UI.
+ * - active: time-valid ACTIVE row
+ * - expired: had a paid package window that is over (EXPIRED or ACTIVE past ends_at)
+ * - none: no qualifying entitlement (never paid / only CANCELED)
+ */
+export async function getAutoPackageAccessContext(userId) {
+  const { data: rows, error } = await supabase
+    .from('user_entitlements')
+    .select(
+      `
+      id,
+      package_id,
+      status,
+      ends_at,
+      created_at,
+      starts_at,
+      package:packages(id, name, daily_mcq_limit)
+    `
+    )
+    .eq('user_id', userId)
+    .eq('scope', 'PACKAGE')
+    .order('created_at', { ascending: false })
+    .limit(40);
+
+  if (error) throw error;
+  const list = rows || [];
+
+  for (const row of list) {
+    if (row.status === 'CANCELED') continue;
+    if (row.status === 'ACTIVE' && isPackageEntitlementTimeValid(row)) {
+      let renewalWarning = null;
+      if (row.ends_at) {
+        const endMs = new Date(row.ends_at).getTime();
+        const msLeft = endMs - Date.now();
+        const daysLeft = msLeft / 86400000;
+        if (daysLeft > 0 && daysLeft <= PACKAGE_RENEWAL_WARNING_DAYS) {
+          renewalWarning = {
+            endsAt: row.ends_at,
+            daysRemaining: Math.max(1, Math.ceil(daysLeft)),
+          };
+        }
+      }
+      return {
+        kind: 'active',
+        packageId: row.package_id,
+        endsAt: row.ends_at,
+        entitlement: row,
+        renewalWarning,
+      };
+    }
+  }
+
+  for (const row of list) {
+    if (row.status === 'CANCELED') continue;
+    if (row.status === 'EXPIRED') {
+      return {
+        kind: 'expired',
+        packageId: row.package_id,
+        endsAt: row.ends_at,
+        entitlement: row,
+      };
+    }
+    if (row.status === 'ACTIVE' && !isPackageEntitlementTimeValid(row)) {
+      return {
+        kind: 'expired',
+        packageId: row.package_id,
+        endsAt: row.ends_at,
+        entitlement: row,
+      };
+    }
+  }
+
+  return { kind: 'none' };
+}
+
 const getSessionToken = async () => {
   const { data, error } = await supabase.auth.getSession();
   if (error) {
@@ -271,13 +350,16 @@ export async function assertPaidAccessForExams(profile, userId) {
   if (profile.role === 'ADMIN') return;
   if (profile.access_mode === 'MANUAL') return;
 
-  const rows = await queryValidPackageEntitlements(userId, 'id, ends_at');
-
-  if (!rows?.length) {
+  const ctx = await getAutoPackageAccessContext(userId);
+  if (ctx.kind === 'active') return;
+  if (ctx.kind === 'expired') {
     throw new Error(
-      'Active subscription required. Complete your package purchase to access exams.'
+      'Your package access has ended. Renew your package to continue — your profile and past results are still saved.'
     );
   }
+  throw new Error(
+    'Active subscription required. Complete your package purchase to access exams.'
+  );
 }
 
 /** Used by the exam list page to show paywall vs empty catalog. */
@@ -293,10 +375,24 @@ export async function canUserTakeExams(userId) {
   if (profile.role === 'ADMIN') return { allowed: true };
   if (profile.access_mode === 'MANUAL') return { allowed: true };
 
-  const rows = await queryValidPackageEntitlements(userId, 'id, ends_at');
-
-  if (!rows?.length) return { allowed: false, reason: 'subscription_required' };
-  return { allowed: true };
+  const ctx = await getAutoPackageAccessContext(userId);
+  if (ctx.kind === 'active') {
+    return {
+      allowed: true,
+      renewalWarning: ctx.renewalWarning || undefined,
+      packageEndsAt: ctx.endsAt || undefined,
+    };
+  }
+  if (ctx.kind === 'expired') {
+    return {
+      allowed: true,
+      examAccessLocked: true,
+      reason: 'package_expired',
+      packageId: ctx.packageId,
+      packageEndedAt: ctx.endsAt,
+    };
+  }
+  return { allowed: false, reason: 'subscription_required' };
 }
 
 // User Management (Admin only)
@@ -578,7 +674,9 @@ export const getExams = async () => {
         
           const accessMode = profile.access_mode || 'AUTO';
           let exams = [];
-        
+          let packageAccessLocked = false;
+          let packageEndedAt = null;
+
           // 2. Handle Admins (Show all active exams)
           if (profile.role === 'ADMIN') {
             const { data: adminExams } = await supabase
@@ -591,15 +689,18 @@ export const getExams = async () => {
             // 3. Handle Regular Users
             let userPackageId = null;
             if (accessMode === 'AUTO') {
-              const entRows = await queryValidPackageEntitlements(userId, 'package_id, ends_at, created_at');
-
-              if (!entRows?.length) {
-                console.warn('DEBUG: No valid (non-expired) PACKAGE entitlement found for user.');
+              const pkgCtx = await getAutoPackageAccessContext(userId);
+              if (pkgCtx.kind === 'none') {
+                console.warn('DEBUG: No PACKAGE entitlement found for user.');
                 return [];
               }
-              userPackageId = entRows[0].package_id;
+              userPackageId = pkgCtx.packageId;
+              if (pkgCtx.kind === 'expired') {
+                packageAccessLocked = true;
+                packageEndedAt = pkgCtx.endsAt || null;
+              }
               if (import.meta.env.DEV) {
-                console.log('DEBUG: Active Package ID:', userPackageId);
+                console.log('DEBUG: Package context:', pkgCtx.kind, userPackageId);
               }
             }
 
@@ -740,11 +841,43 @@ export const getExams = async () => {
                 .filter(Boolean)
             );
           }
-        
-          return examsWithCounts.map((exam) => ({
-            ...exam,
-            addonPurchased: !exam.addon_enabled || paidExamEntitlements.has(idKey(exam.id)),
-          }));
+
+          const latestExamEntitlementByExam = new Map();
+          if (finalExamIds.length > 0) {
+            const { data: examEntHistory } = await supabase
+              .from('user_entitlements')
+              .select('exam_id, status, ends_at, created_at')
+              .eq('user_id', userId)
+              .eq('scope', 'EXAM')
+              .in('exam_id', finalExamIds)
+              .order('created_at', { ascending: false });
+
+            for (const r of examEntHistory || []) {
+              const k = idKey(r.exam_id);
+              if (!latestExamEntitlementByExam.has(k)) {
+                latestExamEntitlementByExam.set(k, r);
+              }
+            }
+          }
+
+          return examsWithCounts.map((exam) => {
+            const ek = idKey(exam.id);
+            const latestEnt = latestExamEntitlementByExam.get(ek);
+            const addonExpired =
+              !!exam.addon_enabled &&
+              !paidExamEntitlements.has(ek) &&
+              !!latestEnt &&
+              (latestEnt.status === 'EXPIRED' ||
+                (latestEnt.status === 'ACTIVE' && !isPackageEntitlementTimeValid(latestEnt)));
+
+            return {
+              ...exam,
+              addonPurchased: !exam.addon_enabled || paidExamEntitlements.has(ek),
+              addonExpired,
+              packageAccessLocked,
+              packageEndedAt: packageAccessLocked ? packageEndedAt : null,
+            };
+          });
         }; // This is line 620 - ensure no extra "}" follow it until "export const getExam"
 
 export const getExam = async (examId, userId) => {
