@@ -1,0 +1,43 @@
+.refund-policy h1 {
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.refund-policy-updated {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 22px;
+}
+
+.refund-policy section {
+  margin-bottom: 22px;
+}
+
+.refund-policy h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #0f172a;
+}
+
+.refund-policy p,
+.refund-policy li {
+  color: #334155;
+  line-height: 1.65;
+  font-size: 15px;
+}
+
+.refund-policy ul {
+  margin: 8px 0 0 1.1em;
+  padding: 0;
+}
+
+.refund-policy li {
+  margin-bottom: 6px;
+}
+
+.refund-policy strong {
+  color: #0f172a;
+}

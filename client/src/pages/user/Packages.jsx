@@ -21,6 +21,12 @@ const FALLBACK_PLAN_BY_PACKAGE_NAME = {
   'Mastering the Exam Annual (12 Months)': '45537',
 };
 
+const DIRECT_CHECKOUT_BY_PACKAGE_NAME = {
+  'Basic Monthly':
+    import.meta.env.VITE_BASIC_MONTHLY_TRIAL_CHECKOUT_URL ||
+    'https://checkout.freemius.com/product/27532/plan/45534/?trial=paid',
+};
+
 let freemiusScriptPromise;
 
 function ensureFreemiusCheckoutScript() {
@@ -72,6 +78,18 @@ function packageRankValue(pkg) {
   return 0;
 }
 
+function parsePriceAmount(pkg) {
+  if (!pkg?.price_display) return null;
+  const amount = Number(String(pkg.price_display).replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  return amount;
+}
+
+function packageCallout(pkg) {
+  if (pkg?.name === 'Basic Monthly') return '3-day free trial. Card required.';
+  return null;
+}
+
 function PackageCardSkeleton({ highlight }) {
   return (
     <div
@@ -94,6 +112,13 @@ function PackageCardSkeleton({ highlight }) {
       <div className="package-skeleton-block package-skeleton-button packages-skeleton-shimmer" />
     </div>
   );
+}
+
+function formatCurrencyAmount(amount, referencePriceDisplay) {
+  if (amount == null || !Number.isFinite(amount)) return null;
+  const rounded = Number(amount.toFixed(2));
+  const prefix = String(referencePriceDisplay || '').replace(/[0-9.,\s]/g, '').trim();
+  return prefix ? `${prefix}${rounded.toFixed(2)}` : rounded.toFixed(2);
 }
 
 const Packages = () => {
@@ -182,10 +207,16 @@ const Packages = () => {
 
   const handleBuy = async (pkg) => {
     const planId = getPlanIdForPackage(pkg);
+    const directCheckoutUrl = DIRECT_CHECKOUT_BY_PACKAGE_NAME[pkg?.name] || null;
     setCheckoutError(null);
 
     if (!user?.id) {
       navigate(`/register?packageId=${encodeURIComponent(pkg.id)}`);
+      return;
+    }
+
+    if (directCheckoutUrl) {
+      window.location.assign(directCheckoutUrl);
       return;
     }
 
@@ -290,6 +321,45 @@ const Packages = () => {
             problem continues, contact support and we will help you get access.
           </p>
         )}
+        {!loading && !loadError && packages.length > 0 && (
+          <div className="packages-compare-strip" role="note" aria-label="Plan price comparison">
+            {(() => {
+              const monthly = packages.find((p) => p.name === 'Basic Monthly');
+              const threeMonth = packages.find((p) => p.name === 'Acing the Exam (3 Months)');
+              const annual = packages.find((p) => p.name === 'Mastering the Exam Annual (12 Months)');
+              const monthlyPrice = parsePriceAmount(monthly);
+              const threeMonthPrice = parsePriceAmount(threeMonth);
+              const annualPrice = parsePriceAmount(annual);
+              const monthlyEquivalent3M =
+                monthlyPrice && threeMonthPrice ? Number(((monthlyPrice * 3 - threeMonthPrice).toFixed(2))) : null;
+              const monthlyEquivalentAnnual =
+                monthlyPrice && annualPrice ? Number(((monthlyPrice * 12 - annualPrice).toFixed(2))) : null;
+              const threeMonthSavingsLabel = formatCurrencyAmount(monthlyEquivalent3M, monthly?.price_display);
+              const annualSavingsLabel = formatCurrencyAmount(monthlyEquivalentAnnual, monthly?.price_display);
+
+              return (
+                <>
+                  <span className="packages-compare-pill packages-compare-pill-trial">
+                    <span className="packages-pill-kicker">TRIAL</span>
+                    <strong>Basic Monthly</strong>: 3-day free trial before first charge
+                  </span>
+                  {monthlyEquivalent3M !== null && monthlyEquivalent3M > 0 && (
+                    <span className="packages-compare-pill packages-compare-pill-savings">
+                      <span className="packages-pill-kicker">SAVE</span>
+                      3 Months saves <strong>{threeMonthSavingsLabel}</strong> vs monthly x3
+                    </span>
+                  )}
+                  {monthlyEquivalentAnnual !== null && monthlyEquivalentAnnual > 0 && (
+                    <span className="packages-compare-pill packages-compare-pill-savings packages-compare-pill-best-value">
+                      <span className="packages-pill-kicker">BEST VALUE</span>
+                      Annual saves <strong>{annualSavingsLabel}</strong> vs monthly x12
+                    </span>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
       </div>
 
       <div className="packages-grid" aria-busy={loading}>
@@ -332,6 +402,12 @@ const Packages = () => {
                 </div>
 
                 {pkg.description ? <p className="package-description">{pkg.description}</p> : null}
+                {packageCallout(pkg) ? (
+                  <p className="package-callout">
+                    <span className="package-callout-chip">3-DAY TRIAL</span>
+                    {packageCallout(pkg)}
+                  </p>
+                ) : null}
 
                 {feats.length > 0 && (
                   <ul className="package-features" aria-label="Plan includes">

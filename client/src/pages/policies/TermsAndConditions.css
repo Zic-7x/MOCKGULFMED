@@ -1,0 +1,52 @@
+.terms-conditions h1 {
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.terms-conditions-updated {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 22px;
+}
+
+.terms-conditions section {
+  margin-bottom: 22px;
+}
+
+.terms-conditions h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #0f172a;
+}
+
+.terms-conditions p,
+.terms-conditions li {
+  color: #334155;
+  line-height: 1.65;
+  font-size: 15px;
+}
+
+.terms-conditions ul {
+  margin: 8px 0 0 1.1em;
+  padding: 0;
+}
+
+.terms-conditions li {
+  margin-bottom: 6px;
+}
+
+.terms-conditions strong {
+  color: #0f172a;
+}
+
+.terms-conditions a {
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.terms-conditions a:hover {
+  text-decoration: underline;
+}

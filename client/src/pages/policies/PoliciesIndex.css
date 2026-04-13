@@ -1,0 +1,45 @@
+.policies-index h1 {
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.policies-index-lead {
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  max-width: 60ch;
+}
+
+.policies-index-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.policies-index-list a {
+  display: block;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #eef2f6;
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.policies-index-list a:hover {
+  border-color: rgba(11, 110, 168, 0.35);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.policies-index-list a span {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: #64748b;
+  margin-top: 4px;
+}

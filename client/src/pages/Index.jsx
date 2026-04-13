@@ -13,9 +13,9 @@ const Index = () => {
           </div>
 
           <div className="index-hero-content">
-            <h1 className="index-title">Exam Portal for Medical Professionals</h1>
+            <h1 className="index-title">Medical Licensing Exam Preparation for Gulf Healthcare Professionals</h1>
             <p className="index-subtitle">
-              Prepare with realistic practice exams, track your progress, and review results — all from a clean and focused portal.
+              Prepare with realistic practice exams, track your progress, and review results for SCFHS, QCHP, HAAD, MOHAP, OMSB, DHA, NHRA, and MOH licensing pathways.
             </p>
 
             <div className="index-cta">
@@ -31,10 +31,25 @@ const Index = () => {
             </div>
 
             <div className="index-trust">
-              <span className="index-pill">Secure sign-in</span>
-              <span className="index-pill">Timed exams</span>
-              <span className="index-pill">Clear review</span>
-              <span className="index-pill">Progress tracking</span>
+              <span className="index-pill">Prometric and Pearson style practice</span>
+              <span className="index-pill">Gulf licensing focused</span>
+              <span className="index-pill">Timed full-length simulations</span>
+              <span className="index-pill">Smart progress tracking</span>
+            </div>
+
+            <div className="index-metrics" aria-label="Portal impact">
+              <div className="index-metric">
+                <strong>10k+</strong>
+                <span>Practice attempts supported</span>
+              </div>
+              <div className="index-metric">
+                <strong>8 Boards</strong>
+                <span>SCFHS, QCHP, HAAD, MOHAP, OMSB, DHA, NHRA, MOH</span>
+              </div>
+              <div className="index-metric">
+                <strong>Prometric + Pearson</strong>
+                <span>Master both exam ecosystems with one platform</span>
+              </div>
             </div>
           </div>
         </div>
@@ -63,6 +78,62 @@ const Index = () => {
             <article className="index-card">
               <h3>Focused workflow</h3>
               <p>From sign-in to taking exams to reviewing results — everything is structured and predictable.</p>
+            </article>
+          </div>
+        </section>
+
+        <section className="index-section index-services" aria-label="Our services">
+          <div className="index-section-head">
+            <h2>Our services</h2>
+            <p>
+              MockGulfMed provides end-to-end preparation for major Gulf medical licensing exams. Whether your target exam is delivered through Prometric or Pearson VUE, our system helps you practice with confidence, improve weak areas, and approach test day fully prepared.
+            </p>
+          </div>
+
+          <div className="index-services-grid">
+            <article className="index-service-card">
+              <h3>Comprehensive question banks</h3>
+              <p>
+                Access practice sets aligned with common competency domains tested across Gulf licensing pathways.
+              </p>
+              <ul>
+                <li>Coverage across SCFHS, QCHP, HAAD, MOHAP, OMSB, DHA, NHRA, and MOH-oriented topics</li>
+                <li>Topic-based drills and mixed mock sessions</li>
+                <li>Built for repeated, high-volume mastery practice</li>
+              </ul>
+            </article>
+            <article className="index-service-card">
+              <h3>Timed simulation exams</h3>
+              <p>
+                Build exam confidence with realistic timed simulations that match the pace and structure of real licensing tests.
+              </p>
+              <ul>
+                <li>Prometric-style and Pearson-style mock experience</li>
+                <li>Timer-driven attempts with smooth navigation</li>
+                <li>Consistent submission and scoring flow before exam day</li>
+              </ul>
+            </article>
+            <article className="index-service-card">
+              <h3>Performance reporting</h3>
+              <p>
+                Understand strengths and weak areas after every attempt with clear, actionable reporting.
+              </p>
+              <ul>
+                <li>Attempt history with measurable progress over time</li>
+                <li>Weak-topic identification for focused revision</li>
+                <li>Clear direction for your next study cycle</li>
+              </ul>
+            </article>
+            <article className="index-service-card">
+              <h3>Mastery-driven preparation workflow</h3>
+              <p>
+                Follow a practical cycle to master your exam: learn, practice, analyze, improve, and retake until you are exam-ready.
+              </p>
+              <ul>
+                <li>Designed for both first-attempt candidates and repeat test takers</li>
+                <li>Minimal-distraction interface for long sessions</li>
+                <li>Reliable day-to-day preparation workflow</li>
+              </ul>
             </article>
           </div>
         </section>
@@ -162,6 +233,18 @@ const Index = () => {
             •
           </span>
           <span>Exam Portal</span>
+          <span className="index-footer-sep" aria-hidden="true">
+            •
+          </span>
+          <Link to="/policies">Policies</Link>
+          <span className="index-footer-sep" aria-hidden="true">
+            •
+          </span>
+          <Link to="/policies/terms">Terms</Link>
+          <span className="index-footer-sep" aria-hidden="true">
+            •
+          </span>
+          <Link to="/policies/refund">Refund policy</Link>
         </div>
       </footer>
     </div>

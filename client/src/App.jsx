@@ -16,6 +16,10 @@ import AccessManagement from './pages/admin/AccessManagement';
 import ProfessionManagement from './pages/admin/ProfessionManagement';
 import HealthAuthorityManagement from './pages/admin/HealthAuthorityManagement';
 import LoadingSpinner from './components/LoadingSpinner';
+import PolicyLayout from './pages/policies/PolicyLayout';
+import PoliciesIndex from './pages/policies/PoliciesIndex';
+import RefundPolicy from './pages/policies/RefundPolicy';
+import TermsAndConditions from './pages/policies/TermsAndConditions';
 
 function App() {
   const { user, loading } = useAuth();
@@ -38,7 +42,13 @@ function App() {
         />
 
         <Route path="/packages" element={<Packages />} />
-        
+
+        <Route path="/policies" element={<PolicyLayout />}>
+          <Route index element={<PoliciesIndex />} />
+          <Route path="terms" element={<TermsAndConditions />} />
+          <Route path="refund" element={<RefundPolicy />} />
+        </Route>
+
         {/* Admin Routes */}
         {user?.role === 'ADMIN' && (
           <>

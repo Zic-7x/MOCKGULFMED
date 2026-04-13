@@ -164,9 +164,72 @@
   color: #0f172a;
 }
 
+.packages-compare-strip {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.packages-compare-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(11, 110, 168, 0.2);
+  color: #0f172a;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.packages-compare-pill strong {
+  color: #0b6ea8;
+}
+
+.packages-compare-pill-trial {
+  border-color: rgba(11, 110, 168, 0.34);
+  background: linear-gradient(180deg, rgba(11, 110, 168, 0.1) 0%, #ffffff 100%);
+}
+
+.packages-compare-pill-savings {
+  border-color: rgba(43, 182, 115, 0.38);
+  background: linear-gradient(180deg, rgba(43, 182, 115, 0.11) 0%, #ffffff 100%);
+}
+
+.packages-compare-pill-best-value {
+  border-color: rgba(22, 163, 74, 0.52);
+  background: linear-gradient(180deg, rgba(22, 163, 74, 0.2) 0%, rgba(255, 255, 255, 1) 100%);
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.18);
+}
+
+.packages-pill-kicker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  background: #0b6ea8;
+}
+
+.packages-compare-pill-savings .packages-pill-kicker {
+  background: #15803d;
+}
+
+.packages-compare-pill-best-value .packages-pill-kicker {
+  background: linear-gradient(180deg, #15803d 0%, #166534 100%);
+}
+
 .packages-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(288px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 22px;
   align-items: stretch;
 }
@@ -247,6 +310,32 @@
   color: #4b5563;
   font-size: 14px;
   line-height: 1.55;
+}
+
+.package-callout {
+  margin: 12px 0 0;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.package-callout-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #0b6ea8 0%, #0a5f92 100%);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(11, 110, 168, 0.28);
 }
 
 .package-exams-block {
@@ -607,13 +696,219 @@
   cursor: not-allowed;
 }
 
+@media (max-width: 920px) {
+  .packages-public-inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .packages-public-nav {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .packages-public-main {
+    padding: 24px 16px 48px;
+  }
+
+  .packages-hero {
+    margin-bottom: 22px;
+  }
+}
+
+@media (max-width: 768px) {
+  .packages-public-logo {
+    height: 44px;
+  }
+
+  .packages-public-link,
+  .packages-public-cta {
+    padding: 9px 10px;
+    font-size: 13px;
+  }
+
+  .packages-title {
+    font-size: 1.55rem;
+  }
+
+  .packages-lead {
+    font-size: 14px;
+    line-height: 1.58;
+  }
+
+  .packages-grid {
+    gap: 16px;
+  }
+
+  .package-card {
+    padding: 18px 16px 16px;
+    border-radius: 14px;
+  }
+
+  .package-name {
+    font-size: 1.05rem;
+    margin-bottom: 10px;
+  }
+
+  .package-price {
+    font-size: 1.55rem;
+  }
+
+  .package-description,
+  .package-features {
+    font-size: 13.5px;
+  }
+
+  .package-buy-button {
+    min-height: 44px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+}
+
 @media (max-width: 520px) {
+  .packages-public-inner {
+    padding: 14px 12px;
+    gap: 10px;
+  }
+
+  .packages-public-main {
+    padding: 18px 12px 36px;
+  }
+
+  .packages-public-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .packages-public-link,
+  .packages-public-cta {
+    width: 100%;
+  }
+
+  .packages-hero {
+    padding: 16px 12px 16px;
+    border-radius: 14px;
+  }
+
+  .packages-eyebrow {
+    font-size: 11px;
+  }
+
+  .packages-title {
+    font-size: 1.38rem;
+    margin-bottom: 10px;
+  }
+
+  .packages-current-banner {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .packages-current-label {
+    font-size: 10px;
+  }
+
   .package-top {
     padding-right: 0;
   }
 
-  .packages-hero {
-    padding: 18px 16px 20px;
+  .packages-compare-pill {
+    width: 100%;
+    border-radius: 14px;
+    font-size: 12.5px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1);
+  }
+
+  .packages-pill-kicker {
+    margin-top: 1px;
+    min-width: 74px;
+    justify-content: center;
+    font-size: 9px;
+    padding: 4px 8px;
+  }
+
+  .packages-compare-pill-trial {
+    border: 1px solid rgba(11, 110, 168, 0.4);
+    background: linear-gradient(180deg, rgba(11, 110, 168, 0.16) 0%, #ffffff 100%);
+  }
+
+  .packages-compare-pill-savings {
+    border: 1px solid rgba(43, 182, 115, 0.42);
+    background: linear-gradient(180deg, rgba(43, 182, 115, 0.16) 0%, #ffffff 100%);
+  }
+
+  .packages-compare-pill-best-value {
+    border: 2px solid rgba(22, 163, 74, 0.55);
+    background: linear-gradient(180deg, rgba(22, 163, 74, 0.24) 0%, #ffffff 100%);
+    box-shadow: 0 12px 28px rgba(22, 163, 74, 0.22);
+    transform: translateY(-1px);
+  }
+
+  .packages-compare-pill-best-value .packages-pill-kicker {
+    min-width: 92px;
+    font-size: 8.5px;
+    letter-spacing: 0.08em;
+    background: linear-gradient(180deg, #166534 0%, #14532d 100%);
+  }
+
+  .packages-compare-pill-best-value strong {
+    color: #14532d;
+    font-size: 13.5px;
+  }
+
+  .packages-compare-pill strong {
+    font-size: 13px;
+  }
+
+  .packages-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .package-card {
+    padding: 16px 14px 14px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+  }
+
+  .package-badge {
+    top: 10px;
+    right: 10px;
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+
+  .package-callout {
+    font-size: 12.5px;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 10px 10px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(11, 110, 168, 0.12) 0%, rgba(11, 110, 168, 0.03) 100%);
+    border: 1px solid rgba(11, 110, 168, 0.26);
+  }
+
+  .package-callout-chip {
+    font-size: 9px;
+    padding: 4px 9px;
+    box-shadow: 0 6px 14px rgba(11, 110, 168, 0.24);
+  }
+
+  .package-buy-button {
+    margin-top: 14px;
+  }
+
+  .packages-bottom-cta {
+    margin-top: 22px;
+    padding: 14px 12px;
+    border-radius: 12px;
+  }
+
+  .packages-register-cta {
+    font-size: 14px;
   }
 }
 
