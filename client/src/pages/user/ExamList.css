@@ -1,5 +1,7 @@
 .exam-list {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .exam-list h1 {
@@ -14,6 +16,7 @@
   font-size: 15px;
   line-height: 1.5;
   color: #1a1a1a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
 
 .exam-list-banner--warning {
@@ -56,14 +59,47 @@ button.start-exam-button--secondary {
 .no-exams {
   background: white;
   padding: 40px;
-  border-radius: 8px;
+  border-radius: 12px;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
 
 .no-exams p {
   color: #666;
   font-size: 16px;
+}
+
+.no-exams-subscription-gate {
+  text-align: left;
+}
+
+.subscription-gate-section {
+  border-radius: 10px;
+}
+
+.subscription-gate-section + .subscription-gate-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.subscription-gate-section--trial h3 {
+  margin: 0 0 8px;
+  color: #1f2937;
+  font-size: 18px;
+}
+
+.subscription-gate-section--trial {
+  background: linear-gradient(180deg, #f8fbff 0%, #f2f7ff 100%);
+  border: 1px solid #dbe9ff;
+  padding: 16px;
+}
+
+.subscription-gate-button {
+  display: inline-block;
+  margin-top: 12px;
+  width: auto;
+  min-width: 220px;
 }
 
 .exams-grid {
@@ -75,8 +111,9 @@ button.start-exam-button--secondary {
 .exam-card {
   background: white;
   padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  border: 1px solid #eef2f7;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
   transition: transform 0.3s, box-shadow 0.3s;
 }
 
@@ -96,6 +133,8 @@ button.start-exam-button--secondary {
   color: #333;
   margin: 0;
   flex: 1;
+  font-size: 1.1rem;
+  line-height: 1.4;
 }
 
 .exam-type-badge {
@@ -158,9 +197,127 @@ button.start-exam-button--secondary {
   text-decoration: none;
   border-radius: 6px;
   font-weight: 600;
-  transition: opacity 0.3s;
+  transition: opacity 0.3s, transform 0.2s ease;
 }
 
 .start-exam-button:hover {
   opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.start-exam-button:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 992px) {
+  .exam-list {
+    padding: 16px;
+  }
+
+  .exams-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .exam-card {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .exam-list {
+    padding: 12px;
+  }
+
+  .exam-list h1 {
+    margin-bottom: 18px;
+    font-size: 1.45rem;
+  }
+
+  .exam-list-banner {
+    font-size: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+  }
+
+  .exam-list-banner-link {
+    margin-left: 0;
+    margin-top: 8px;
+  }
+
+  .no-exams {
+    padding: 18px 16px;
+    border-radius: 10px;
+  }
+
+  .no-exams p {
+    font-size: 15px;
+  }
+
+  .subscription-gate-section + .subscription-gate-section {
+    margin-top: 14px;
+    padding-top: 14px;
+  }
+
+  .subscription-gate-section--trial {
+    padding: 14px;
+  }
+
+  .subscription-gate-section--trial h3 {
+    font-size: 16px;
+  }
+
+  .subscription-gate-button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .exams-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .exam-card {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .exam-header {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .exam-header h3 {
+    font-size: 1rem;
+  }
+
+  .exam-type-badge {
+    margin-left: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .exam-description {
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .exam-details {
+    margin-bottom: 14px;
+    padding-top: 12px;
+    gap: 6px;
+  }
+
+  .detail-label,
+  .detail-value {
+    font-size: 13px;
+  }
+
+  .start-exam-button {
+    min-height: 44px;
+    padding: 11px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
 }

@@ -152,16 +152,27 @@ const ExamList = () => {
       <Layout>
         <div className="exam-list">
           <h1>Available Exams</h1>
-          <div className="no-exams">
-            <p>
-              <strong>Subscription required.</strong> Complete your package purchase to unlock exams and your daily
-              MCQ allowance.
-            </p>
-            <p>
-              <Link to="/packages" className="start-exam-button" style={{ display: 'inline-block', marginTop: '1rem' }}>
-                View packages &amp; pay
-              </Link>
-            </p>
+          <div className="no-exams no-exams-subscription-gate">
+            <div className="subscription-gate-section">
+              <p>
+                <strong>Subscription required.</strong> Complete your package purchase to unlock exams and your daily
+                MCQ allowance.
+              </p>
+              <p>
+                <Link to="/packages" className="start-exam-button subscription-gate-button">
+                  View packages &amp; pay
+                </Link>
+              </p>
+            </div>
+            <div className="subscription-gate-section subscription-gate-section--trial">
+              <h3>Get 3 Days Trial</h3>
+              <p>Start with the Basic Monthly 3-day free trial and begin your exam practice today.</p>
+              <p>
+                <Link to="/packages" className="start-exam-button subscription-gate-button">
+                  Get 3 Days Trial
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </Layout>
