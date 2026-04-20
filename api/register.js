@@ -63,6 +63,15 @@ const readJsonBody = async (req) => {
 };
 
 const isEmail = (value) => typeof value === 'string' && value.includes('@') && value.length <= 255;
+const isPhone = (value) => {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (trimmed.length < 7 || trimmed.length > 32) return false;
+  // allow +, spaces, hyphens, parentheses; ensure at least digits
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length < 7) return false;
+  return /^[0-9+\-()\s]+$/.test(trimmed);
+};
 
 const DEFAULT_DAILY_MCQ = 100;
 
@@ -91,13 +100,14 @@ export default async function handler(req, res) {
     const email = (body?.email || '').trim().toLowerCase();
     const password = body?.password || '';
     const fullName = (body?.fullName || '').trim();
+    const phone = (body?.phone || '').trim();
     const professionId = body?.professionId || null;
     const healthAuthorityId = body?.healthAuthorityId || null;
     const packageId = body?.packageId || null;
 
-    if (!isEmail(email) || !password || password.length < 8 || !fullName) {
+    if (!isEmail(email) || !isPhone(phone) || !password || password.length < 8 || !fullName) {
       return send(res, 400, {
-        error: 'Invalid input (email, password>=8 chars, fullName are required)',
+        error: 'Invalid input (email, phone, password>=8 chars, fullName are required)',
       });
     }
 
@@ -135,6 +145,7 @@ export default async function handler(req, res) {
         id: userId,
         email,
         full_name: fullName,
+        phone,
         role: 'USER',
         profession_id: professionId,
         health_authority_id: healthAuthorityId,

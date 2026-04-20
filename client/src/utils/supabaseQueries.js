@@ -124,7 +124,7 @@ export async function getAutoPackageAccessContext(userId) {
       ends_at,
       created_at,
       starts_at,
-      package:packages(id, name, daily_mcq_limit)
+      package:packages(id, name, daily_mcq_limit, duration_label)
     `
     )
     .eq('user_id', userId)
@@ -181,6 +181,111 @@ export async function getAutoPackageAccessContext(userId) {
   }
 
   return { kind: 'none' };
+}
+
+/** Minimum subscription length (months) required for the signed-in eligibility assessment (not the public checker). */
+export const ELIGIBILITY_ASSESSMENT_MIN_PACKAGE_MONTHS = 3;
+
+/**
+ * Infer commercial package length in months from catalog fields (name + duration_label).
+ * Returns null if unknown — callers should treat unknown as ineligible for gated features.
+ */
+export function inferPackageDurationMonths(pkg) {
+  if (!pkg) return null;
+  const name = String(pkg.name || '');
+  const dl = String(pkg.duration_label || '');
+  const s = `${name} ${dl}`.toLowerCase();
+  if (/\b(12|twelve)\s*months?\b|annual|yearly|\b12\s*month\b/.test(s)) return 12;
+  if (/\b(3|three)\s*months?\b|\b3\s*month\b|acing/.test(s)) return 3;
+  if (/\b(1|one)\s*months?\b|basic\s*monthly|monthly\s*plan|\b1\s*month\b/.test(s)) return 1;
+  const m = s.match(/(\d+)\s*months?/);
+  if (m) return Number(m[1]);
+  return null;
+}
+
+export function packageMeetsEligibilityMinimum(pkg, minMonths = ELIGIBILITY_ASSESSMENT_MIN_PACKAGE_MONTHS) {
+  const months = inferPackageDurationMonths(pkg);
+  if (months == null) return false;
+  return months >= minMonths;
+}
+
+/**
+ * AUTO users need an active package of at least ELIGIBILITY_ASSESSMENT_MIN_PACKAGE_MONTHS.
+ * ADMIN and MANUAL profiles keep access (operational / representative accounts).
+ */
+export async function canUserAccessEligibilityAssessment(userId) {
+  const { data: profile, error: pErr } = await supabase
+    .from('user_profiles')
+    .select('role, access_mode')
+    .eq('id', userId)
+    .single();
+
+  if (pErr) throw pErr;
+  if (!profile) return { allowed: false, reason: 'no_profile' };
+  if (profile.role === 'ADMIN') return { allowed: true, reason: 'admin' };
+  if (profile.access_mode === 'MANUAL') return { allowed: true, reason: 'manual' };
+
+  const ctx = await getAutoPackageAccessContext(userId);
+  if (ctx.kind !== 'active') {
+    if (ctx.kind === 'expired') {
+      return { allowed: false, reason: 'package_expired', endsAt: ctx.endsAt };
+    }
+    return { allowed: false, reason: 'subscription_required' };
+  }
+
+  const pkg = ctx.entitlement?.package;
+  const months = inferPackageDurationMonths(pkg);
+  if (packageMeetsEligibilityMinimum(pkg)) {
+    return {
+      allowed: true,
+      reason: 'package',
+      packageId: ctx.packageId,
+      packageName: pkg?.name,
+      packageMonths: months,
+      endsAt: ctx.endsAt,
+    };
+  }
+
+  return {
+    allowed: false,
+    reason: 'package_too_short',
+    packageId: ctx.packageId,
+    packageName: pkg?.name,
+    packageMonths: months,
+    endsAt: ctx.endsAt,
+  };
+}
+
+export async function assertEligibilityAssessmentAccess(userId) {
+  const { data: profile, error: pErr } = await supabase
+    .from('user_profiles')
+    .select('role, access_mode')
+    .eq('id', userId)
+    .single();
+
+  if (pErr) throw pErr;
+  if (!profile) throw new Error('User not found');
+  if (profile.role === 'ADMIN') return;
+  if (profile.access_mode === 'MANUAL') return;
+
+  const ctx = await getAutoPackageAccessContext(userId);
+  if (ctx.kind !== 'active') {
+    if (ctx.kind === 'expired') {
+      throw new Error(
+        'Your package access has ended. Renew a 3-month or annual plan to use the eligibility assessment.'
+      );
+    }
+    throw new Error(
+      'Eligibility assessment requires an active subscription. Choose a 3-month or annual plan on the Packages page.'
+    );
+  }
+
+  const pkg = ctx.entitlement?.package;
+  if (!packageMeetsEligibilityMinimum(pkg)) {
+    throw new Error(
+      'Eligibility assessment is included with 3-month and annual plans. Upgrade on the Packages page.'
+    );
+  }
 }
 
 const getSessionToken = async () => {
@@ -2603,3 +2708,137 @@ export const getAdminStats = async () => {
     throw error;
   }
 };
+
+/** Supabase Storage bucket for eligibility assessment uploads (see migration 020). */
+export const ELIGIBILITY_STORAGE_BUCKET = 'eligibility-documents';
+
+const ELIGIBILITY_MAX_FILE_BYTES = 15 * 1024 * 1024;
+
+function assertEligibilityFileSize(file) {
+  if (file && file.size > ELIGIBILITY_MAX_FILE_BYTES) {
+    throw new Error('Each file must be 15 MB or smaller.');
+  }
+}
+
+async function uploadEligibilityDocument(userId, submissionId, partName, file, index) {
+  if (!file) return null;
+  assertEligibilityFileSize(file);
+  const dot = file.name.lastIndexOf('.');
+  const ext = dot >= 0 ? file.name.slice(dot) : '';
+  const suffix = index != null ? `-${index}` : '';
+  const path = `${userId}/${submissionId}/${partName}${suffix}${ext}`;
+  const { error } = await supabase.storage.from(ELIGIBILITY_STORAGE_BUCKET).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) throw error;
+  return path;
+}
+
+/**
+ * Uploads optional documents and inserts one eligibility_assessments row.
+ * @param {string} userId
+ * @param {object} data — answers and File objects from the client form
+ */
+export async function submitEligibilityAssessment(userId, data) {
+  if (!userId) throw new Error('Not logged in');
+
+  await assertEligibilityAssessmentAccess(userId);
+
+  const submissionId = crypto.randomUUID();
+
+  const graduationYearDoc = await uploadEligibilityDocument(
+    userId,
+    submissionId,
+    'graduation-year',
+    data.graduationYearDoc,
+    null
+  );
+  const degreeIssuedYearDoc = await uploadEligibilityDocument(
+    userId,
+    submissionId,
+    'degree-issued-year',
+    data.degreeIssuedYearDoc,
+    null
+  );
+  const cf = data.credentialFiles || {};
+  const credentialUploads = [
+    ['diploma-certificate', cf.diplomaCertificate],
+    ['diploma-transcript', cf.diplomaTranscript],
+    ['bs-degree', cf.bsDegree],
+    ['bs-transcript', cf.bsTranscript],
+    ['masters-degree', cf.mastersDegree],
+    ['masters-transcript', cf.mastersTranscript],
+    ['phd-degree', cf.phdDegree],
+    ['phd-transcript', cf.phdTranscript],
+  ];
+  const credentials = {};
+  for (const [partName, file] of credentialUploads) {
+    credentials[partName.replace(/-/g, '_')] = await uploadEligibilityDocument(
+      userId,
+      submissionId,
+      partName,
+      file,
+      null
+    );
+  }
+
+  const healthLicense = await uploadEligibilityDocument(
+    userId,
+    submissionId,
+    'health-license',
+    data.healthLicenseFile,
+    null
+  );
+
+  const experienceLetterPaths = [];
+  const letters = Array.isArray(data.experienceLetterFiles) ? data.experienceLetterFiles : [];
+  for (let i = 0; i < letters.length; i += 1) {
+    const p = await uploadEligibilityDocument(userId, submissionId, 'experience-letter', letters[i], i);
+    if (p) experienceLetterPaths.push(p);
+  }
+
+  const payload = {
+    graduation_year: data.graduationYear,
+    degree_issued_year: data.degreeIssuedYear,
+    document_attestation: data.documentAttestation || null,
+    has_health_license: data.hasHealthLicense === 'yes',
+    experience: {
+      start: data.experienceStart || null,
+      end: data.stillWorking ? null : data.experienceEnd || null,
+      still_working: !!data.stillWorking,
+    },
+    multiple_experience_letters: data.multipleExperienceLetters === 'yes',
+    file_paths: {
+      graduation_year_doc: graduationYearDoc,
+      degree_issued_year_doc: degreeIssuedYearDoc,
+      credentials,
+      health_license: healthLicense,
+      experience_letters: experienceLetterPaths,
+    },
+  };
+
+  const { data: row, error } = await supabase
+    .from('eligibility_assessments')
+    .insert({
+      user_id: userId,
+      qualification_level: data.qualificationLevel,
+      profession_id: data.professionId ?? null,
+      health_authority_id: data.healthAuthorityId ?? null,
+      payload,
+    })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return { id: row.id, submissionId };
+}
+
+/** Updates the signed-in user's profession and health authority (RPC; see migration 021). */
+export async function updateMyProfessionAndHealthAuthority(professionId, healthAuthorityId) {
+  const { error } = await supabase.rpc('set_user_profession_and_health_authority', {
+    p_profession_id: professionId,
+    p_health_authority_id: healthAuthorityId,
+  });
+  if (error) throw error;
+}

@@ -21,6 +21,7 @@ const Register = () => {
   const [form, setForm] = useState({
     fullName: '',
     email: '',
+    phone: '',
     password: '',
     professionId: '',
     healthAuthorityId: '',
@@ -69,6 +70,7 @@ const Register = () => {
     return (
       form.fullName.trim().length > 1 &&
       form.email.includes('@') &&
+      form.phone.trim().length >= 7 &&
       form.password.length >= 8 &&
       form.professionId &&
       form.healthAuthorityId &&
@@ -90,6 +92,7 @@ const Register = () => {
       const data = await registerUser({
         fullName: form.fullName,
         email: form.email,
+        phone: form.phone,
         password: form.password,
         professionId: form.professionId,
         healthAuthorityId: form.healthAuthorityId,
@@ -170,6 +173,20 @@ const Register = () => {
                   onChange={handleChange('email')}
                   placeholder="Enter your email"
                   autoComplete="email"
+                  required
+                />
+              </div>
+
+              <div className="register-field">
+                <label htmlFor="phone">Phone number</label>
+                <input
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  value={form.phone}
+                  onChange={handleChange('phone')}
+                  placeholder="e.g. +966 5X XXX XXXX"
+                  autoComplete="tel"
                   required
                 />
               </div>

@@ -139,6 +139,12 @@ export const AuthProvider = ({ children }) => {
       }
     : user;
 
+  const refreshUserProfile = async () => {
+    const id = user?.id;
+    if (!id) return null;
+    return loadUserProfile(id);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -148,6 +154,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         checkSession,
+        refreshUserProfile,
       }}
     >
       {children}

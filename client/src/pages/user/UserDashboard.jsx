@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getUserDashboard } from '../../utils/supabaseQueries';
+import { canUserAccessEligibilityAssessment, getUserDashboard } from '../../utils/supabaseQueries';
 import Layout from '../../components/Layout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import './UserDashboard.css';
@@ -17,6 +17,12 @@ const UserDashboard = () => {
       if (!user?.id) return null;
       return await getUserDashboard(user.id);
     },
+    enabled: !!user?.id,
+  });
+
+  const { data: eligibilityAccess } = useQuery({
+    queryKey: ['eligibilityAssessmentAccess', user?.id],
+    queryFn: () => canUserAccessEligibilityAssessment(user.id),
     enabled: !!user?.id,
   });
 
@@ -95,6 +101,19 @@ const UserDashboard = () => {
           <Link to="/results" className="action-card">
             <h3>View Results</h3>
             <p>Check your exam history</p>
+          </Link>
+          <Link
+            to={eligibilityAccess?.allowed === false ? '/packages' : '/eligibility-assessment'}
+            className="action-card"
+          >
+            <h3>Eligibility assessment</h3>
+            <p>
+              {eligibilityAccess?.allowed === false
+                ? 'Included on 3-month and annual plans — view packages to upgrade'
+                : eligibilityAccess?.allowed
+                  ? 'Submit your qualifications and documents for review'
+                  : 'Open the full workflow to submit qualifications and documents for review.'}
+            </p>
           </Link>
         </div>
 

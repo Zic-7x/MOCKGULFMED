@@ -105,6 +105,15 @@ const Layout = ({ children }) => {
                   Packages
                 </Link>
                 <Link
+                  to="/eligibility-assessment"
+                  className={
+                    location.pathname === '/eligibility-assessment' ? 'nav-link active' : 'nav-link'
+                  }
+                  onClick={closeMenu}
+                >
+                  Eligibility
+                </Link>
+                <Link
                   to="/results"
                   className={location.pathname === '/results' ? 'nav-link active' : 'nav-link'}
                   onClick={closeMenu}

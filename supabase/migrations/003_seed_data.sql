@@ -53,11 +53,14 @@ INSERT INTO professions (name, description) VALUES
   ('Clinical Psychologist', 'Psychological assessment/intervention')
 ON CONFLICT (name) DO NOTHING;
 
--- Insert sample health authorities
+-- Insert sample health authorities (short code + jurisdiction in name)
 INSERT INTO health_authorities (name, country) VALUES
-  ('Dubai Health Authority', 'UAE'),
-  ('Abu Dhabi Department of Health', 'UAE'),
-  ('Saudi Commission for Health Specialties', 'Saudi Arabia'),
-  ('Qatar Council for Healthcare Practitioners', 'Qatar'),
-  ('Kuwait Ministry of Health', 'Kuwait')
+  ('SCFHS (Saudi Arabia)', 'Saudi Arabia'),
+  ('DHA (Dubai)', 'United Arab Emirates'),
+  ('MoHAP (UAE)', 'United Arab Emirates'),
+  ('DOH (Abu Dhabi)', 'United Arab Emirates'),
+  ('QCHP (Qatar)', 'Qatar'),
+  ('OMSB (Oman)', 'Oman'),
+  ('NHRA (Bahrain)', 'Bahrain'),
+  ('MOH (Kuwait)', 'Kuwait')
 ON CONFLICT (name) DO NOTHING;

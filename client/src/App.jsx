@@ -10,6 +10,8 @@ import ExamList from './pages/user/ExamList';
 import TakeExam from './pages/user/TakeExam';
 import ExamResults from './pages/user/ExamResults';
 import Packages from './pages/user/Packages';
+import EligibilityAssessment from './pages/user/EligibilityAssessment';
+import PublicEligibilityChecker from './pages/PublicEligibilityChecker';
 import UserManagement from './pages/admin/UserManagement';
 import ExamManagement from './pages/admin/ExamManagement';
 import AccessManagement from './pages/admin/AccessManagement';
@@ -42,6 +44,7 @@ function App() {
         />
 
         <Route path="/packages" element={<Packages />} />
+        <Route path="/eligibility-check" element={<PublicEligibilityChecker />} />
 
         <Route path="/policies" element={<PolicyLayout />}>
           <Route index element={<PoliciesIndex />} />
@@ -70,6 +73,7 @@ function App() {
             <Route path="/exams/:id/results" element={<ExamResults />} />
             <Route path="/results/attempt/:attemptId" element={<ExamResults />} />
             <Route path="/results" element={<ExamResults />} />
+            <Route path="/eligibility-assessment" element={<EligibilityAssessment />} />
           </>
         )}
 
