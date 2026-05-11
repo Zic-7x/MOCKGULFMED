@@ -2,14 +2,14 @@ import { useLocation, useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getUserAttempts } from '../../utils/supabaseQueries';
+import { getAttemptReview, getUserAttempts } from '../../utils/supabaseQueries';
 import Layout from '../../components/Layout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import './ExamResults.css';
 
 const ExamResults = () => {
   const location = useLocation();
-  const { id } = useParams();
+  const { id, attemptId } = useParams();
   const { user } = useAuth();
   if (!user) {
     return <Navigate to="/login" />;
@@ -22,10 +22,19 @@ const ExamResults = () => {
       if (!user?.id) return [];
       return await getUserAttempts(user.id, id || null);
     },
-    enabled: !!user?.id && !resultsFromState,
+    enabled: !!user?.id && !resultsFromState && !attemptId,
   });
 
-  if (isLoading && !resultsFromState) {
+  const { data: attemptReview, isLoading: isReviewLoading } = useQuery({
+    queryKey: ['attemptReview', user?.id, attemptId],
+    queryFn: async () => {
+      if (!user?.id || !attemptId) return null;
+      return await getAttemptReview(user.id, attemptId);
+    },
+    enabled: !!user?.id && !!attemptId && !resultsFromState,
+  });
+
+  if ((isLoading || isReviewLoading) && !resultsFromState) {
     return (
       <Layout>
         <LoadingSpinner />
@@ -179,6 +188,170 @@ const ExamResults = () => {
     );
   }
 
+  // Show detailed review for a past attempt
+  if (attemptId) {
+    const attempt = attemptReview?.attempt;
+    const results = attemptReview?.results || [];
+
+    if (!attempt) {
+      return (
+        <Layout>
+          <div className="exam-results">
+            <div className="results-header">
+              <h1>Attempt Review</h1>
+              <Link to="/results" className="back-link">Back to Results</Link>
+            </div>
+            <div className="no-results">
+              <p>Attempt not found.</p>
+              <Link to="/results" className="btn-primary">View Results</Link>
+            </div>
+          </div>
+        </Layout>
+      );
+    }
+
+    return (
+      <Layout>
+        <div className="exam-results">
+          <div className="results-header">
+            <h1>Attempt Review</h1>
+            <Link to="/results" className="back-link">Back to Results</Link>
+          </div>
+
+          <div className="score-summary">
+            <div className="score-card">
+              <h2>Your Score</h2>
+              <div className={`score-value ${attempt.score >= 70 ? 'good' : attempt.score >= 50 ? 'average' : 'poor'}`}>
+                {Number(attempt.score).toFixed(1)}%
+              </div>
+              <p className="score-details">
+                {attempt.mainScore !== null && attempt.dailyLimit
+                  ? `${attempt.correct_answers} out of ${attempt.dailyLimit} daily limit correct`
+                  : `${attempt.correct_answers} out of ${attempt.totalQuestionsAnswered} questions answered correct`
+                }
+              </p>
+            </div>
+            <div className="exam-info-card">
+              <h3>{attempt.exam?.title}</h3>
+              <p>Type: {attempt.exam?.exam_type}</p>
+              <p>Completed: {attempt.completed_at ? new Date(attempt.completed_at).toLocaleString() : '-'}</p>
+              <p>Time Spent: {Math.floor((attempt.time_spent || 0) / 60)} minutes</p>
+            </div>
+          </div>
+
+          <div className="percentage-breakdown">
+            {attempt.mainScore !== null && (
+              <div className="percentage-card main-score">
+                <h3>Main Score</h3>
+                <div className={`percentage-value ${attempt.mainScore >= 70 ? 'good' : attempt.mainScore >= 50 ? 'average' : 'poor'}`}>
+                  {attempt.mainScore.toFixed(1)}%
+                </div>
+                <p className="percentage-details">
+                  {attempt.correct_answers} out of {attempt.dailyLimit} daily limit
+                </p>
+                <p className="percentage-label">Primary performance metric</p>
+              </div>
+            )}
+
+            <div className="percentage-card attempt-overview">
+              <h3>Attempt Overview</h3>
+              <div className={`percentage-value ${attempt.attemptOverview >= 70 ? 'good' : attempt.attemptOverview >= 50 ? 'average' : 'poor'}`}>
+                {attempt.attemptOverview.toFixed(1)}%
+              </div>
+              <p className="percentage-details">
+                {(attempt.cumulativeCorrectAnswers ?? attempt.correct_answers)} out of {(attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered)} questions answered (all attempts)
+              </p>
+              <p className="percentage-label">Cumulative performance across all attempts</p>
+            </div>
+
+            <div className="percentage-card overall-result">
+              <h3>Overall Result</h3>
+              <div className={`percentage-value ${attempt.overallResult >= 70 ? 'good' : attempt.overallResult >= 50 ? 'average' : 'poor'}`}>
+                {attempt.overallResult.toFixed(1)}%
+              </div>
+              <p className="percentage-details">
+                {(attempt.cumulativeCorrectAnswers ?? attempt.correct_answers)} out of {attempt.totalExamQuestions} total MCQs in exam
+              </p>
+              <p className="percentage-label">Progress against entire exam pool</p>
+            </div>
+          </div>
+
+          <div className="results-details">
+            <h2>Question Review</h2>
+            {results.length === 0 ? (
+              <div className="no-results">
+                <p>No answers were saved for this attempt.</p>
+              </div>
+            ) : (
+              results.map((result, index) => (
+                <div
+                  key={result.questionId || index}
+                  className={`result-item ${result.isCorrect ? 'correct' : 'incorrect'}`}
+                >
+                  <div className="result-header">
+                    <span className="result-number">Question {index + 1}</span>
+                    <span className={`result-status ${result.isCorrect ? 'correct' : 'incorrect'}`}>
+                      {result.isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                    </span>
+                  </div>
+                  <p className="result-question">{result.question}</p>
+                  <div className="result-options">
+                    {[
+                      ['A', result.option_a],
+                      ['B', result.option_b],
+                      ['C', result.option_c],
+                      ['D', result.option_d],
+                    ]
+                      .filter(([, text]) => text !== null && text !== undefined && String(text).trim() !== '')
+                      .map(([label, text]) => {
+                        const isUser = (result.userAnswer || '').toString().trim().toUpperCase() === label;
+                        const isCorrect = (result.correctAnswer || '').toString().trim().toUpperCase() === label;
+                        const className = [
+                          'option-item',
+                          isCorrect ? 'correct-option' : '',
+                          isUser && !isCorrect ? 'user-option-wrong' : '',
+                          isUser && isCorrect ? 'user-option-correct' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ');
+                        return (
+                          <div key={label} className={className}>
+                            <span className="option-label">{label}.</span>
+                            <span className="option-text">{text}</span>
+                            {isCorrect && <span className="option-badge">Correct</span>}
+                            {isUser && <span className="option-badge">Your choice</span>}
+                          </div>
+                        );
+                      })}
+                  </div>
+                  <div className="result-answers">
+                    <div className="answer-item">
+                      <span className="answer-label">Your Answer:</span>
+                      <span className={`answer-value ${!result.isCorrect ? 'wrong' : ''}`}>
+                        {result.userAnswer || 'Not answered'}
+                      </span>
+                    </div>
+                    {!result.isCorrect && (
+                      <div className="answer-item">
+                        <span className="answer-label">Correct Answer:</span>
+                        <span className="answer-value correct-answer">{result.correctAnswer}</span>
+                      </div>
+                    )}
+                  </div>
+                  {result.explanation && (
+                    <div className="explanation">
+                      <strong>Explanation:</strong> {result.explanation}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   // Show list of all attempts
   if (!attempts || attempts.length === 0) {
     return (
@@ -206,42 +379,50 @@ const ExamResults = () => {
         </div>
         <div className="attempts-list">
           {attempts.map((attempt) => (
-            <div key={attempt.id} className="attempt-card">
+            <Link
+              key={attempt.id}
+              to={`/results/attempt/${attempt.id}`}
+              className="attempt-card"
+              style={{ textDecoration: 'none', color: 'inherit' }}
+            >
               <div className="attempt-header">
                 <h3>{attempt.exam?.title}</h3>
-                  <span
-                    className={`score-badge ${attempt.score >= 70 ? 'good' : attempt.score >= 50 ? 'average' : 'poor'}`}
-                  >
-                    {attempt.score.toFixed(1)}%
-                  </span>
+                <span
+                  className={`score-badge ${attempt.score >= 70 ? 'good' : attempt.score >= 50 ? 'average' : 'poor'}`}
+                >
+                  {attempt.score.toFixed(1)}%
+                </span>
               </div>
               <div className="attempt-details">
-                  <div className="detail-row">
-                    <span>Type: {attempt.exam?.exam_type}</span>
+                <div className="detail-row">
+                  <span>Type: {attempt.exam?.exam_type}</span>
+                </div>
+                {/* Main Score: Correct / Daily Limit */}
+                {attempt.mainScore !== null && attempt.dailyLimit && (
+                  <div className="detail-row main-metric">
+                    <strong>Main Score:</strong> {attempt.mainScore.toFixed(1)}%
+                    ({attempt.correct_answers} out of {attempt.dailyLimit} daily limit)
                   </div>
-                  {/* Main Score: Correct / Daily Limit */}
-                  {attempt.mainScore !== null && attempt.dailyLimit && (
-                    <div className="detail-row main-metric">
-                      <strong>Main Score:</strong> {attempt.mainScore.toFixed(1)}% 
-                      ({attempt.correct_answers} out of {attempt.dailyLimit} daily limit)
-                    </div>
-                  )}
-                  {/* Attempt Overview: Cumulative Correct / Cumulative Questions Answered */}
-                  <div className="detail-row">
-                    <strong>Attempt Overview:</strong> {attempt.attemptOverview.toFixed(1)}% 
-                    ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered} questions answered in all attempts)
-                  </div>
-                  {/* Overall Result: Cumulative Correct / Total MCQs in Database */}
-                  <div className="detail-row">
-                    <strong>Overall Result:</strong> {attempt.overallResult.toFixed(1)}% 
-                    ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs in exam)
-                  </div>
+                )}
+                {/* Attempt Overview: Cumulative Correct / Cumulative Questions Answered */}
+                <div className="detail-row">
+                  <strong>Attempt Overview:</strong> {attempt.attemptOverview.toFixed(1)}%
+                  ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered} questions answered in all attempts)
+                </div>
+                {/* Overall Result: Cumulative Correct / Total MCQs in Database */}
+                <div className="detail-row">
+                  <strong>Overall Result:</strong> {attempt.overallResult.toFixed(1)}%
+                  ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs in exam)
+                </div>
                 <div className="detail-row">
                   <span>Completed: {new Date(attempt.completed_at).toLocaleString()}</span>
                   <span>Time: {Math.floor(attempt.time_spent / 60)} min</span>
                 </div>
+                <div className="detail-row">
+                  <strong>Review:</strong> View answered MCQs
+                </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

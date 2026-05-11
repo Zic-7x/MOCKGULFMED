@@ -202,6 +202,60 @@
   line-height: 1.6;
 }
 
+.result-options {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.option-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  background: #fff;
+}
+
+.option-label {
+  font-weight: 700;
+  color: #333;
+  min-width: 22px;
+}
+
+.option-text {
+  color: #333;
+  line-height: 1.5;
+}
+
+.option-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f3f5;
+  color: #495057;
+  border: 1px solid #e9ecef;
+  white-space: nowrap;
+}
+
+.correct-option {
+  border-color: #c3e6cb;
+  background: #f1fbf3;
+}
+
+.user-option-wrong {
+  border-color: #f5c6cb;
+  background: #fff5f5;
+}
+
+.user-option-correct {
+  border-color: #c3e6cb;
+  background: #f1fbf3;
+}
+
 .result-answers {
   display: flex;
   flex-direction: column;
