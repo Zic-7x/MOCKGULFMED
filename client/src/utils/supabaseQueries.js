@@ -2317,15 +2317,25 @@ export const getAttemptReview = async (userId, attemptId) => {
 
 // Dashboard
 export const getUserDashboard = async (userId) => {
-  const { data: profile, error: profileError } = await supabase
-    .from('user_profiles')
-    .select(`
+  const [
+    { data: profile, error: profileError },
+    { data: extExamRow },
+  ] = await Promise.all([
+    supabase
+      .from('user_profiles')
+      .select(`
       *,
       profession:professions(*),
       health_authority:health_authorities(*)
     `)
-    .eq('id', userId)
-    .single();
+      .eq('id', userId)
+      .single(),
+    supabase
+      .from('user_external_exam_details')
+      .select('section_enabled')
+      .eq('user_id', userId)
+      .maybeSingle(),
+  ]);
 
   if (profileError) throw profileError;
   const effectiveDailyLimit = await resolveEffectiveDailyLimit({
@@ -2429,6 +2439,7 @@ export const getUserDashboard = async (userId) => {
           ? effectiveDailyLimit - (usage?.mcq_count || 0)
           : null,
     },
+    officialExamProfileEnabled: extExamRow?.section_enabled === true,
   };
 };
 
@@ -2712,6 +2723,10 @@ export const getAdminStats = async () => {
 /** Supabase Storage bucket for eligibility assessment uploads (see migration 020). */
 export const ELIGIBILITY_STORAGE_BUCKET = 'eligibility-documents';
 
+/** Official Prometric/Pearson exam pass files (see migration 023). */
+export const EXTERNAL_EXAM_PASS_BUCKET = 'external-exam-passes';
+export const EXTERNAL_EXAM_PASS_MAX_BYTES = 12 * 1024 * 1024;
+
 const ELIGIBILITY_MAX_FILE_BYTES = 15 * 1024 * 1024;
 
 function assertEligibilityFileSize(file) {
@@ -2841,4 +2856,136 @@ export async function updateMyProfessionAndHealthAuthority(professionId, healthA
     p_health_authority_id: healthAuthorityId,
   });
   if (error) throw error;
+}
+
+function trimOrNull(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s === '' ? null : s;
+}
+
+/** Row for Prometric/Pearson booking managed by admins (RLS: read own or admin; write admin). */
+export async function fetchUserExternalExamDetails(userId) {
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from('user_external_exam_details')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * @param {string} userId
+ * @param {object} payload — camelCase fields from admin UI
+ */
+export async function adminUpsertUserExternalExamDetails(userId, payload) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const row = {
+    user_id: userId,
+    section_enabled: !!payload.sectionEnabled,
+    applicant_name: trimOrNull(payload.applicantName),
+    applicant_address: trimOrNull(payload.applicantAddress),
+    exam_health_authority: trimOrNull(payload.examHealthAuthority),
+    examination_authority: trimOrNull(payload.examinationAuthority),
+    exam_date: trimOrNull(payload.examDate) || null,
+    exam_time: trimOrNull(payload.examTime),
+    exam_status: trimOrNull(payload.examStatus),
+    registration_id: trimOrNull(payload.registrationId),
+    candidate_eligibility_id: trimOrNull(payload.candidateEligibilityId),
+    announcement: trimOrNull(payload.announcement),
+    /* DB column name is historical; controls “Print exam details” on Profile. */
+    exam_pass_print_enabled:
+      payload.examDetailsPrintEnabled === undefined ? undefined : !!payload.examDetailsPrintEnabled,
+    exam_pass_storage_path:
+      payload.examPassStoragePath === undefined
+        ? undefined
+        : payload.examPassStoragePath === null
+          ? null
+          : trimOrNull(payload.examPassStoragePath),
+    updated_by: user?.id ?? null,
+  };
+  if (row.exam_pass_storage_path === undefined) {
+    delete row.exam_pass_storage_path;
+  }
+  if (row.exam_pass_print_enabled === undefined) {
+    delete row.exam_pass_print_enabled;
+  }
+  const { data, error } = await supabase
+    .from('user_external_exam_details')
+    .upsert(row, { onConflict: 'user_id' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function adminUploadExternalExamPass(userId, file, previousStoragePath) {
+  if (!file) return null;
+  if (file.size > EXTERNAL_EXAM_PASS_MAX_BYTES) {
+    throw new Error('Exam pass file must be 12 MB or smaller.');
+  }
+  const dot = file.name.lastIndexOf('.');
+  const ext = dot >= 0 ? file.name.slice(dot) : '';
+  const path = `${userId}/exam-pass-${Date.now()}${ext}`;
+  const { error } = await supabase.storage.from(EXTERNAL_EXAM_PASS_BUCKET).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) throw error;
+  if (previousStoragePath && previousStoragePath !== path) {
+    await supabase.storage.from(EXTERNAL_EXAM_PASS_BUCKET).remove([previousStoragePath]).catch(() => {});
+  }
+  return path;
+}
+
+export async function adminDeleteExternalExamPassFile(storagePath) {
+  if (!storagePath) return;
+  const { error } = await supabase.storage.from(EXTERNAL_EXAM_PASS_BUCKET).remove([storagePath]);
+  if (error) throw error;
+}
+
+export async function getExternalExamPassSignedUrl(storagePath) {
+  if (!storagePath) return null;
+  const { data, error } = await supabase.storage
+    .from(EXTERNAL_EXAM_PASS_BUCKET)
+    .createSignedUrl(storagePath, 3600);
+  if (error) throw error;
+  return data?.signedUrl ?? null;
+}
+
+/**
+ * Applicant self-booking for official exam date + address.
+ * Server enforces minimum date: first day of current month + 2 months.
+ */
+export async function bookMyExternalExam({ examDate, applicantAddress }) {
+  const { data, error } = await supabase.rpc('book_external_exam', {
+    p_exam_date: examDate,
+    p_applicant_address: applicantAddress,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function bookMyExternalExamPaid({
+  examDate,
+  applicantAddress,
+  applicantNationalId,
+  healthAuthorityCountry,
+  healthAuthorityId,
+  externalRef,
+}) {
+  const { data, error } = await supabase.rpc('book_external_exam_paid', {
+    p_exam_date: examDate,
+    p_applicant_address: applicantAddress,
+    p_applicant_national_id: applicantNationalId,
+    p_health_authority_country: healthAuthorityCountry,
+    p_health_authority_id: healthAuthorityId,
+    p_external_ref: externalRef || null,
+  });
+  if (error) throw error;
+  return data;
 }

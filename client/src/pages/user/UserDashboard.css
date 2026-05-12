@@ -117,6 +117,15 @@
   font-size: 14px;
 }
 
+.action-card-accent {
+  border: 2px solid #16a085;
+  box-shadow: 0 2px 8px rgba(22, 160, 133, 0.15);
+}
+
+.action-card-accent h3 {
+  color: #138d75;
+}
+
 .recent-attempts {
   margin-top: 30px;
 }

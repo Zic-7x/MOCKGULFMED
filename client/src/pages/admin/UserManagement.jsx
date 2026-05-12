@@ -1,10 +1,65 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUserProfiles, createUserProfile, updateUserProfile, deleteUserProfile, getProfessions, getHealthAuthorities } from '../../utils/supabaseQueries';
+import {
+  getUserProfiles,
+  createUserProfile,
+  updateUserProfile,
+  deleteUserProfile,
+  getProfessions,
+  getHealthAuthorities,
+  fetchUserExternalExamDetails,
+  adminUpsertUserExternalExamDetails,
+  adminUploadExternalExamPass,
+  adminDeleteExternalExamPassFile,
+} from '../../utils/supabaseQueries';
 import Layout from '../../components/Layout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import toast from 'react-hot-toast';
+import {
+  EXTERNAL_EXAM_STATUS_OPTIONS,
+  externalExamHasPublishableContent,
+  normalizeExternalExamStatusCode,
+} from '../../constants/externalExamStatus';
 import './UserManagement.css';
+
+const emptyOfficialExamForm = () => ({
+  sectionEnabled: true,
+  applicantName: '',
+  applicantAddress: '',
+  examHealthAuthority: '',
+  examinationAuthority: '',
+  examDate: '',
+  examTime: '',
+  examStatus: '',
+  registrationId: '',
+  candidateEligibilityId: '',
+  announcement: '',
+  examPassStoragePath: null,
+  examDetailsPrintEnabled: true,
+});
+
+const mapExternalExamRowToForm = (row) => {
+  if (!row) return emptyOfficialExamForm();
+  return {
+    sectionEnabled: !!row.section_enabled,
+    applicantName: row.applicant_name || '',
+    applicantAddress: row.applicant_address || '',
+    examHealthAuthority: row.exam_health_authority || '',
+    examinationAuthority: row.examination_authority || '',
+    examDate: row.exam_date || '',
+    examTime: row.exam_time || '',
+    examStatus: normalizeExternalExamStatusCode(row.exam_status) || '',
+    registrationId: row.registration_id || '',
+    candidateEligibilityId: row.candidate_eligibility_id || '',
+    announcement: row.announcement || '',
+    examPassStoragePath: row.exam_pass_storage_path || null,
+    examDetailsPrintEnabled: (() => {
+      if (row.exam_pass_print_enabled != null) return !!row.exam_pass_print_enabled;
+      if (row.exam_details_print_enabled != null) return !!row.exam_details_print_enabled;
+      return true;
+    })(),
+  };
+};
 
 const UserManagement = () => {
   const [showModal, setShowModal] = useState(false);
@@ -20,6 +75,13 @@ const UserManagement = () => {
     /** When true, access_mode is MANUAL — exams allowed without a paid package (admin grant). */
     complimentaryAccess: false,
   });
+
+  const [showExamModal, setShowExamModal] = useState(false);
+  const [examUser, setExamUser] = useState(null);
+  const [examForm, setExamForm] = useState(emptyOfficialExamForm);
+  const [examFile, setExamFile] = useState(null);
+  const [clearExamPass, setClearExamPass] = useState(false);
+  const [examModalLoading, setExamModalLoading] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -72,6 +134,53 @@ const UserManagement = () => {
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to delete user');
+    },
+  });
+
+  const saveOfficialExamMutation = useMutation({
+    mutationFn: async () => {
+      let nextPath = examForm.examPassStoragePath;
+      if (clearExamPass) {
+        if (nextPath) {
+          try {
+            await adminDeleteExternalExamPassFile(nextPath);
+          } catch {
+            /* file may already be removed */
+          }
+        }
+        nextPath = null;
+      } else if (examFile) {
+        nextPath = await adminUploadExternalExamPass(examUser.id, examFile, nextPath || null);
+      }
+      return adminUpsertUserExternalExamDetails(examUser.id, {
+        sectionEnabled: examForm.sectionEnabled,
+        applicantName: examForm.applicantName,
+        applicantAddress: examForm.applicantAddress,
+        examHealthAuthority: examForm.examHealthAuthority,
+        examinationAuthority: examForm.examinationAuthority,
+        examDate: examForm.examDate || null,
+        examTime: examForm.examTime,
+        examStatus: examForm.examStatus,
+        registrationId: examForm.registrationId,
+        candidateEligibilityId: examForm.candidateEligibilityId,
+        announcement: examForm.announcement,
+        examPassStoragePath: nextPath,
+        examDetailsPrintEnabled: examForm.examDetailsPrintEnabled,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['userExternalExamDetails', examUser.id] });
+      queryClient.invalidateQueries({ queryKey: ['userDashboard', examUser.id] });
+      toast.success('Official exam (Prometric/Pearson) details saved');
+      setShowExamModal(false);
+      setExamUser(null);
+      setExamForm(emptyOfficialExamForm());
+      setExamFile(null);
+      setClearExamPass(false);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to save official exam details');
     },
   });
 
@@ -128,6 +237,38 @@ const UserManagement = () => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       deleteUserMutation.mutate(id);
     }
+  };
+
+  const openOfficialExamModal = async (userRow) => {
+    setExamUser(userRow);
+    setShowExamModal(true);
+    setExamModalLoading(true);
+    setExamFile(null);
+    setClearExamPass(false);
+    setExamForm(emptyOfficialExamForm());
+    try {
+      const row = await fetchUserExternalExamDetails(userRow.id);
+      setExamForm(mapExternalExamRowToForm(row));
+    } catch (err) {
+      toast.error(err.message || 'Failed to load exam details');
+      setExamForm(emptyOfficialExamForm());
+    } finally {
+      setExamModalLoading(false);
+    }
+  };
+
+  const closeOfficialExamModal = () => {
+    setShowExamModal(false);
+    setExamUser(null);
+    setExamForm(emptyOfficialExamForm());
+    setExamFile(null);
+    setClearExamPass(false);
+  };
+
+  const handleOfficialExamSubmit = (e) => {
+    e.preventDefault();
+    if (!examUser?.id) return;
+    saveOfficialExamMutation.mutate();
   };
 
   if (isLoading) {
@@ -202,14 +343,205 @@ const UserManagement = () => {
                     </span>
                   </td>
                   <td>
-                    <button onClick={() => handleEdit(user)} className="btn-edit">Edit</button>
-                    <button onClick={() => handleDelete(user.id)} className="btn-delete">Delete</button>
+                    <button type="button" onClick={() => handleEdit(user)} className="btn-edit">Edit</button>
+                    <button
+                      type="button"
+                      onClick={() => openOfficialExamModal(user)}
+                      className="btn-booking"
+                    >
+                      Official exam
+                    </button>
+                    <button type="button" onClick={() => handleDelete(user.id)} className="btn-delete">Delete</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {showExamModal && examUser && (
+          <div className="modal-overlay" onClick={closeOfficialExamModal}>
+            <div className="modal-content modal-content-wide" onClick={(e) => e.stopPropagation()}>
+              <h2>Official exam booking (Prometric / Pearson)</h2>
+              <p className="exam-modal-intro">
+                For <strong>{examUser.full_name}</strong> ({examUser.email}). This is separate from mock exams on the
+                platform.
+              </p>
+              {examModalLoading ? (
+                <LoadingSpinner />
+              ) : (
+                <form onSubmit={handleOfficialExamSubmit}>
+                  <div className="form-group">
+                    <label className="checkbox-label-block">
+                      <input
+                        type="checkbox"
+                        checked={examForm.sectionEnabled}
+                        onChange={(e) => setExamForm({ ...examForm, sectionEnabled: e.target.checked })}
+                      />
+                      <span>Show official exam section on user&apos;s profile</span>
+                    </label>
+                    <p className="form-hint">
+                      When enabled, the applicant sees booking details on <strong>Profile</strong>. Turn this off only if
+                      you intentionally want to hide published details (for example while correcting an error).
+                    </p>
+                    {!examForm.sectionEnabled && externalExamHasPublishableContent(examForm) && (
+                      <p className="exam-modal-warning" role="alert">
+                        You have entered booking details, but the profile section is <strong>off</strong> — the
+                        applicant will still see the empty &quot;not active&quot; message until you enable this.
+                      </p>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label>Applicant name</label>
+                    <input
+                      type="text"
+                      value={examForm.applicantName}
+                      onChange={(e) => setExamForm({ ...examForm, applicantName: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Applicant address</label>
+                    <textarea
+                      rows={3}
+                      value={examForm.applicantAddress}
+                      onChange={(e) => setExamForm({ ...examForm, applicantAddress: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Health authority (exam)</label>
+                    <input
+                      type="text"
+                      value={examForm.examHealthAuthority}
+                      onChange={(e) => setExamForm({ ...examForm, examHealthAuthority: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Examination authority (e.g. Prometric, Pearson VUE)</label>
+                    <input
+                      type="text"
+                      value={examForm.examinationAuthority}
+                      onChange={(e) => setExamForm({ ...examForm, examinationAuthority: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-row-two">
+                    <div className="form-group">
+                      <label>Exam date</label>
+                      <input
+                        type="date"
+                        value={examForm.examDate}
+                        onChange={(e) => setExamForm({ ...examForm, examDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Exam time</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 9:00 AM (local test center time)"
+                        value={examForm.examTime}
+                        onChange={(e) => setExamForm({ ...examForm, examTime: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Exam status</label>
+                    <select
+                      value={examForm.examStatus}
+                      onChange={(e) => setExamForm({ ...examForm, examStatus: e.target.value })}
+                    >
+                      {EXTERNAL_EXAM_STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value || 'none'} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="form-hint">Shown to the applicant as a color-coded label on their profile.</p>
+                  </div>
+                  <div className="form-group">
+                    <label>Exam confirmation / registration ID</label>
+                    <input
+                      type="text"
+                      value={examForm.registrationId}
+                      onChange={(e) => setExamForm({ ...examForm, registrationId: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Exam candidate / eligibility ID</label>
+                    <input
+                      type="text"
+                      value={examForm.candidateEligibilityId}
+                      onChange={(e) => setExamForm({ ...examForm, candidateEligibilityId: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Announcement for this user (exam date changes, extra fees, etc.)</label>
+                    <textarea
+                      rows={4}
+                      value={examForm.announcement}
+                      onChange={(e) => setExamForm({ ...examForm, announcement: e.target.value })}
+                      placeholder="Shown prominently in the user’s official exam section on their profile."
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Exam pass file (PDF or image, max 12 MB)</label>
+                    <input
+                      type="file"
+                      accept=".pdf,image/*,application/pdf"
+                      disabled={clearExamPass}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        setExamFile(f || null);
+                        if (f) setClearExamPass(false);
+                      }}
+                    />
+                    {examForm.examPassStoragePath && !examFile && (
+                      <p className="form-hint">A file is already stored. Upload a new file to replace it.</p>
+                    )}
+                    {examForm.examPassStoragePath && (
+                      <label className="checkbox-label-block" style={{ marginTop: '10px' }}>
+                        <input
+                          type="checkbox"
+                          checked={clearExamPass}
+                          onChange={(e) => {
+                            const c = e.target.checked;
+                            setClearExamPass(c);
+                            if (c) setExamFile(null);
+                          }}
+                        />
+                        <span>Remove stored exam pass</span>
+                      </label>
+                    )}
+                    <label className="checkbox-label-block" style={{ marginTop: '14px' }}>
+                      <input
+                        type="checkbox"
+                        checked={examForm.examDetailsPrintEnabled}
+                        onChange={(e) =>
+                          setExamForm({ ...examForm, examDetailsPrintEnabled: e.target.checked })
+                        }
+                      />
+                      <span>Allow applicant to print exam details</span>
+                    </label>
+                    <p className="form-hint">
+                      When unchecked, the Print exam details button is disabled on the user&apos;s profile for this
+                      booking section.
+                    </p>
+                  </div>
+                  <div className="modal-actions">
+                    <button type="button" onClick={closeOfficialExamModal} className="btn-secondary">
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      disabled={saveOfficialExamMutation.isPending}
+                    >
+                      {saveOfficialExamMutation.isPending ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
 
         {showModal && (
           <div className="modal-overlay" onClick={() => { setShowModal(false); setEditingUser(null); resetForm(); }}>

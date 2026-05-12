@@ -106,6 +106,22 @@
   background: #c0392b;
 }
 
+.btn-booking {
+  padding: 6px 12px;
+  background: #16a085;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.btn-booking:hover {
+  background: #138d75;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -129,6 +145,40 @@
   overflow-y: auto;
 }
 
+.modal-content-wide {
+  max-width: 720px;
+}
+
+.exam-modal-intro {
+  color: #555;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: -8px 0 20px;
+}
+
+.exam-modal-warning {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fff8e6;
+  border: 1px solid #f0c14b;
+  border-radius: 6px;
+  color: #5c4a00;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.form-row-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .form-row-two {
+    grid-template-columns: 1fr;
+  }
+}
+
 .modal-content h2 {
   margin-bottom: 20px;
   color: #333;
@@ -146,12 +196,14 @@
 }
 
 .modal-content input,
-.modal-content select {
+.modal-content select,
+.modal-content textarea {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 14px;
+  box-sizing: border-box;
 }
 
 .modal-content input[type="checkbox"] {
@@ -178,4 +230,26 @@
 
 .btn-secondary:hover {
   background: #5a6268;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #666;
+  margin-top: 6px;
+  margin-bottom: 0;
+  line-height: 1.4;
+}
+
+.checkbox-label-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.checkbox-label-block input {
+  width: auto;
+  margin-top: 3px;
+  flex-shrink: 0;
 }

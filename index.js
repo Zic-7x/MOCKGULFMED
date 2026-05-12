@@ -24,6 +24,11 @@ app.use(
   })
 );
 
+// NOTE: Freemius webhook signature validation requires the raw request body.
+// We mount raw parsing for the webhook routes before express.json().
+app.post('/api/freemius/webhook', express.raw({ type: '*/*' }), asyncRoute(freemiusWebhookHandler));
+app.post('/api/freemius-webhook', express.raw({ type: '*/*' }), asyncRoute(freemiusWebhookHandler));
+
 app.use(express.json());
 
 // Wire the existing handler to the REST route
@@ -35,6 +40,7 @@ app.all('/api/public-catalog', asyncRoute(publicCatalogHandler));
 
 app.all('/api/register', asyncRoute(registerHandler));
 
+// POST already handled above with raw body; keep non-POST methods consistent.
 app.all('/api/freemius/webhook', asyncRoute(freemiusWebhookHandler));
 app.all('/api/freemius-webhook', asyncRoute(freemiusWebhookHandler));
 

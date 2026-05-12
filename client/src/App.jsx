@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserDashboard from './pages/user/UserDashboard';
+import UserProfile from './pages/user/UserProfile';
 import ExamList from './pages/user/ExamList';
 import TakeExam from './pages/user/TakeExam';
 import ExamResults from './pages/user/ExamResults';
@@ -68,6 +69,7 @@ function App() {
         {user && user.role !== 'ADMIN' && (
           <>
             <Route path="/dashboard" element={<UserDashboard />} />
+            <Route path="/profile" element={<UserProfile />} />
             <Route path="/exams" element={<ExamList />} />
             <Route path="/exams/:id" element={<TakeExam />} />
             <Route path="/exams/:id/results" element={<ExamResults />} />

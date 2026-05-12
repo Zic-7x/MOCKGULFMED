@@ -91,6 +91,13 @@ const Layout = ({ children }) => {
                   Dashboard
                 </Link>
                 <Link
+                  to="/profile"
+                  className={location.pathname === '/profile' ? 'nav-link active' : 'nav-link'}
+                  onClick={closeMenu}
+                >
+                  Profile
+                </Link>
+                <Link
                   to="/exams"
                   className={location.pathname.startsWith('/exams') ? 'nav-link active' : 'nav-link'}
                   onClick={closeMenu}

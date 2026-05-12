@@ -94,6 +94,12 @@ const UserDashboard = () => {
         </div>
 
         <div className="quick-actions">
+          {data?.officialExamProfileEnabled && (
+            <Link to="/profile" className="action-card action-card-accent">
+              <h3>Official exam (Prometric / Pearson)</h3>
+              <p>View booking details, IDs, and your exam pass on your profile</p>
+            </Link>
+          )}
           <Link to="/exams" className="action-card">
             <h3>Take Exam</h3>
             <p>Start a new mock exam</p>

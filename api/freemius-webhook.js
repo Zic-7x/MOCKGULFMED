@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 import {
   endsAtForPackageName,
   endsAtForAddon,
@@ -21,11 +22,39 @@ if (!supabaseUrl || !serviceRoleKey || !anonKey) {
 const anonClient = createClient(supabaseUrl, anonKey);
 const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
+const freemiusProductSecretKey =
+  process.env.FREEMIUS_PRODUCT_SECRET_KEY ||
+  process.env.FREEMIUS_SECRET_KEY ||
+  process.env.FREEMIUS_WEBHOOK_SECRET ||
+  '';
+
 const getBearerToken = (req) => {
   const raw = req.headers?.authorization || req.headers?.Authorization || '';
   if (typeof raw !== 'string' || !raw.startsWith('Bearer ')) return null;
   return raw.slice('Bearer '.length).trim() || null;
 };
+
+function getRawBodyString(req) {
+  const b = req.body;
+  if (Buffer.isBuffer(b)) return b.toString('utf8');
+  if (typeof b === 'string') return b;
+  if (b && typeof b === 'object') return JSON.stringify(b);
+  return '';
+}
+
+function verifyFreemiusSignature(req) {
+  const signature = req.headers?.['x-signature'] || req.headers?.['X-Signature'] || '';
+  if (!freemiusProductSecretKey) return { ok: false, error: 'missing_secret' };
+  if (!signature || typeof signature !== 'string') return { ok: false, error: 'missing_signature' };
+  const raw = getRawBodyString(req);
+  const hash = crypto.createHmac('sha256', freemiusProductSecretKey).update(raw).digest('hex');
+  try {
+    const ok = crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(signature.trim(), 'hex'));
+    return { ok };
+  } catch {
+    return { ok: false, error: 'compare_failed' };
+  }
+}
 
 async function assertCallerIsUser(req, userId) {
   const token = getBearerToken(req);
@@ -114,7 +143,49 @@ export default async function handler(req, res) {
   }
 
   try {
+    // If request contains a Freemius signature, treat it as a real webhook callout and verify.
+    const signatureHeader = req.headers?.['x-signature'] || req.headers?.['X-Signature'] || null;
+    const isFreemiusWebhook = typeof signatureHeader === 'string' && signatureHeader.trim() !== '';
+    if (isFreemiusWebhook) {
+      const sig = verifyFreemiusSignature(req);
+      if (!sig.ok) {
+        // Freemius guidance: respond 200 to avoid leaking details for invalid signature.
+        return send(res, 200, { ok: true });
+      }
+    }
+
     const body = await readJsonBody(req);
+
+    // If this is a signed Freemius event payload, attempt to verify an exam-booking payment.
+    // We mark a booking verified when booking_payment_external_ref matches the Freemius ref.
+    if (isFreemiusWebhook) {
+      const eventData = body?.event?.data || body?.data || body || {};
+      const ref =
+        eventData?.subscription?.id ||
+        eventData?.license?.id ||
+        eventData?.license?.key ||
+        eventData?.order?.id ||
+        eventData?.payment?.id ||
+        null;
+
+      if (ref) {
+        const { data: updated, error: upErr } = await serviceClient
+          .from('user_external_exam_details')
+          .update({
+            booking_payment_verified: true,
+            booking_payment_verified_at: new Date().toISOString(),
+            booking_payment_status: 'PAID',
+          })
+          .eq('booking_payment_external_ref', String(ref))
+          .select('user_id')
+          .maybeSingle();
+
+        // If a booking row matched, we are done. Otherwise continue to handle the legacy internal sync payload.
+        if (!upErr && updated?.user_id) {
+          return send(res, 200, { ok: true, verified: true });
+        }
+      }
+    }
 
     // For now, accept a minimal internal payload for testing:
     // package scope: { userId, packageId, status, externalRef? }
