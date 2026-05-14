@@ -4,10 +4,14 @@ import crypto from 'crypto';
 import {
   endsAtForPackageName,
   endsAtForAddon,
+  endsAtForReelsAddon,
   extendPackageEndsAt,
   extendAddonEndsAt,
+  extendReelsAddonEndsAt,
   toIso,
 } from '../lib/entitlementEndsAt.js';
+
+const SUPPORTED_ADDON_CODES = new Set(['REELS']);
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
@@ -190,10 +194,15 @@ export default async function handler(req, res) {
     // For now, accept a minimal internal payload for testing:
     // package scope: { userId, packageId, status, externalRef? }
     // exam scope: { userId, examId, scope: 'EXAM', status, externalRef? }
+    // addon scope: { userId, scope: 'ADDON', addonCode: 'REELS', status, externalRef? }
+    // service payment: { userId, scope: 'SERVICE_PAYMENT', licensingDataflowRequestId, externalRef? }
     const userId = body?.userId || null;
     const packageId = body?.packageId || null;
     const examId = body?.examId || null;
-    const scope = String(body?.scope || (examId ? 'EXAM' : 'PACKAGE')).toUpperCase();
+    const addonCodeRaw = body?.addonCode || body?.addon_code || null;
+    const scope = String(
+      body?.scope || (addonCodeRaw ? 'ADDON' : examId ? 'EXAM' : 'PACKAGE')
+    ).toUpperCase();
     const status = body?.status || 'ACTIVE';
     const externalRef = body?.externalRef || null;
 
@@ -205,7 +214,48 @@ export default async function handler(req, res) {
     if (!authGate.ok) {
       return send(res, authGate.status, { error: authGate.error });
     }
-    if (!['PACKAGE', 'EXAM'].includes(scope)) {
+
+    if (scope === 'SERVICE_PAYMENT') {
+      const licensingDataflowRequestId =
+        body?.licensingDataflowRequestId || body?.licensing_dataflow_request_id || null;
+      if (!licensingDataflowRequestId) {
+        return send(res, 400, { error: 'licensingDataflowRequestId is required for SERVICE_PAYMENT' });
+      }
+      const { data: reqRow, error: reqErr } = await serviceClient
+        .from('licensing_dataflow_requests')
+        .select('id, user_id, payment_status')
+        .eq('id', licensingDataflowRequestId)
+        .maybeSingle();
+      if (reqErr || !reqRow) {
+        return send(res, 404, { error: 'Request not found' });
+      }
+      if (String(reqRow.user_id) !== String(userId)) {
+        return send(res, 403, { error: 'Request does not belong to signed-in user' });
+      }
+      if (reqRow.payment_status === 'PAID') {
+        return send(res, 200, { data: { licensingDataflowRequest: reqRow, alreadyPaid: true } });
+      }
+      if (reqRow.payment_status !== 'PENDING') {
+        return send(res, 400, { error: 'Request is not awaiting payment' });
+      }
+      const { data: updated, error: upPayErr } = await serviceClient
+        .from('licensing_dataflow_requests')
+        .update({
+          payment_status: 'PAID',
+          freemius_external_ref: externalRef ? String(externalRef) : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', licensingDataflowRequestId)
+        .eq('payment_status', 'PENDING')
+        .select('id, payment_status, service_kind')
+        .maybeSingle();
+      if (upPayErr) {
+        return send(res, 400, { error: upPayErr.message || 'Failed to record payment' });
+      }
+      return send(res, 200, { data: { licensingDataflowRequest: updated } });
+    }
+
+    if (!['PACKAGE', 'EXAM', 'ADDON'].includes(scope)) {
       return send(res, 400, { error: 'Invalid scope' });
     }
     if (scope === 'PACKAGE' && !packageId) {
@@ -214,6 +264,14 @@ export default async function handler(req, res) {
     if (scope === 'EXAM' && !examId) {
       return send(res, 400, { error: 'examId is required for exam scope' });
     }
+    const addonCode =
+      scope === 'ADDON' ? String(addonCodeRaw || '').trim().toUpperCase() || null : null;
+    if (scope === 'ADDON' && !addonCode) {
+      return send(res, 400, { error: 'addonCode is required for ADDON scope' });
+    }
+    if (scope === 'ADDON' && !SUPPORTED_ADDON_CODES.has(addonCode)) {
+      return send(res, 400, { error: `Unsupported addonCode: ${addonCode}` });
+    }
 
     const normalizedStatus = String(status).toUpperCase();
     if (!['ACTIVE', 'CANCELED', 'EXPIRED'].includes(normalizedStatus)) {
@@ -221,6 +279,107 @@ export default async function handler(req, res) {
     }
 
     let entitlement;
+    if (scope === 'ADDON') {
+      const { data: existingAddonEnt, error: findAddonErr } = await serviceClient
+        .from('user_entitlements')
+        .select('id, ends_at, external_ref, starts_at')
+        .eq('user_id', userId)
+        .eq('scope', 'ADDON')
+        .eq('addon_code', addonCode)
+        .eq('status', 'ACTIVE')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (findAddonErr) {
+        return send(res, 400, { error: findAddonErr.message || 'Failed to look up addon entitlement' });
+      }
+
+      const existingAddonRow = existingAddonEnt?.[0];
+      const existingAddonId = existingAddonRow?.id;
+      const nowIso = new Date().toISOString();
+
+      const buildAddonPayload = () => {
+        if (normalizedStatus !== 'ACTIVE') {
+          return {
+            status: normalizedStatus,
+            source: 'FREEMIUS',
+            external_ref: externalRef,
+          };
+        }
+        const refChanged =
+          String(externalRef || '') !== String(existingAddonRow?.external_ref || '');
+        const endsAtFn =
+          addonCode === 'REELS' ? endsAtForReelsAddon : endsAtForAddon;
+        const extendFn =
+          addonCode === 'REELS' ? extendReelsAddonEndsAt : extendAddonEndsAt;
+        const endsAt =
+          existingAddonId && refChanged
+            ? toIso(extendFn(existingAddonRow?.ends_at))
+            : existingAddonId
+              ? existingAddonRow?.ends_at
+              : toIso(endsAtFn());
+        return {
+          status: normalizedStatus,
+          source: 'FREEMIUS',
+          external_ref: externalRef,
+          starts_at: existingAddonRow?.starts_at || nowIso,
+          ends_at: endsAt,
+        };
+      };
+
+      if (existingAddonId) {
+        const { data: updated, error: upErr } = await serviceClient
+          .from('user_entitlements')
+          .update(buildAddonPayload())
+          .eq('id', existingAddonId)
+          .select('*')
+          .single();
+        if (upErr) {
+          return send(res, 400, { error: upErr.message || 'Failed to update addon entitlement' });
+        }
+        entitlement = updated;
+      } else {
+        const insertEndsAt =
+          addonCode === 'REELS' ? toIso(endsAtForReelsAddon()) : toIso(endsAtForAddon());
+        const addonPayload =
+          normalizedStatus === 'ACTIVE'
+            ? {
+                user_id: userId,
+                scope: 'ADDON',
+                package_id: null,
+                exam_id: null,
+                addon_code: addonCode,
+                status: normalizedStatus,
+                source: 'FREEMIUS',
+                external_ref: externalRef,
+                starts_at: nowIso,
+                ends_at: insertEndsAt,
+              }
+            : {
+                user_id: userId,
+                scope: 'ADDON',
+                package_id: null,
+                exam_id: null,
+                addon_code: addonCode,
+                status: normalizedStatus,
+                source: 'FREEMIUS',
+                external_ref: externalRef,
+              };
+
+        const { data: inserted, error: insErr } = await serviceClient
+          .from('user_entitlements')
+          .insert(addonPayload)
+          .select('*')
+          .single();
+        if (insErr) {
+          return send(res, 400, { error: insErr.message || 'Failed to create addon entitlement' });
+        }
+        entitlement = inserted;
+      }
+
+      return send(res, 200, { data: { entitlement } });
+    }
+
     if (scope === 'EXAM') {
       const { data: existingExamEnt, error: findExamErr } = await serviceClient
         .from('user_entitlements')

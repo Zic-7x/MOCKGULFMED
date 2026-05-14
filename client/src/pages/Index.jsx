@@ -551,6 +551,9 @@ const Index = () => {
                 </span>
               )}
             </button>
+            <Link className="index-btn index-btn--ghost" to="/features">
+              Features
+            </Link>
             <Link className="index-btn index-btn--ghost" to="/packages">
               Packages
             </Link>
@@ -1278,6 +1281,10 @@ const Index = () => {
 
       <footer className="index-footer">
         <div className="index-footer-inner">
+          <Link to="/features">Features</Link>
+          <span className="index-footer-sep" aria-hidden="true">
+            •
+          </span>
           <span>MockGulfMed</span>
           <span className="index-footer-sep" aria-hidden="true">
             •

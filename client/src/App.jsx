@@ -12,6 +12,15 @@ import TakeExam from './pages/user/TakeExam';
 import ExamResults from './pages/user/ExamResults';
 import Packages from './pages/user/Packages';
 import EligibilityAssessment from './pages/user/EligibilityAssessment';
+import ApplicantReels from './pages/user/ApplicantReels';
+import LicensingDataflowService from './pages/user/LicensingDataflowService';
+import JobsList from './pages/jobs/JobsList';
+import JobDetail from './pages/jobs/JobDetail';
+import MyApplications from './pages/jobs/MyApplications';
+import EmployerJobs from './pages/employer/EmployerJobs';
+import EmployerJobForm from './pages/employer/EmployerJobForm';
+import EmployerJobApplications from './pages/employer/EmployerJobApplications';
+import RequireAnnualForJobPortal from './components/RequireAnnualForJobPortal';
 import PublicEligibilityChecker from './pages/PublicEligibilityChecker';
 import UserManagement from './pages/admin/UserManagement';
 import ExamManagement from './pages/admin/ExamManagement';
@@ -23,6 +32,8 @@ import PolicyLayout from './pages/policies/PolicyLayout';
 import PoliciesIndex from './pages/policies/PoliciesIndex';
 import RefundPolicy from './pages/policies/RefundPolicy';
 import TermsAndConditions from './pages/policies/TermsAndConditions';
+import FeaturesHub from './pages/features/FeaturesHub';
+import PublicFeaturePage from './pages/features/PublicFeaturePage';
 
 function App() {
   const { user, loading } = useAuth();
@@ -45,7 +56,21 @@ function App() {
         />
 
         <Route path="/packages" element={<Packages />} />
+        <Route path="/features" element={<FeaturesHub />} />
+        <Route path="/features/:slug" element={<PublicFeaturePage />} />
         <Route path="/eligibility-check" element={<PublicEligibilityChecker />} />
+        <Route
+          path="/services/licensing-dataflow"
+          element={
+            !user ? (
+              <Navigate to="/login" replace state={{ from: '/services/licensing-dataflow' }} />
+            ) : user.role === 'ADMIN' ? (
+              <Navigate to="/admin" replace />
+            ) : (
+              <LicensingDataflowService />
+            )
+          }
+        />
 
         <Route path="/policies" element={<PolicyLayout />}>
           <Route index element={<PoliciesIndex />} />
@@ -76,6 +101,70 @@ function App() {
             <Route path="/results/attempt/:attemptId" element={<ExamResults />} />
             <Route path="/results" element={<ExamResults />} />
             <Route path="/eligibility-assessment" element={<EligibilityAssessment />} />
+            <Route
+              path="/reels"
+              element={
+                <RequireAnnualForJobPortal>
+                  <ApplicantReels />
+                </RequireAnnualForJobPortal>
+              }
+            />
+            <Route
+              path="/jobs"
+              element={
+                <RequireAnnualForJobPortal>
+                  <JobsList />
+                </RequireAnnualForJobPortal>
+              }
+            />
+            <Route
+              path="/jobs/:id"
+              element={
+                <RequireAnnualForJobPortal>
+                  <JobDetail />
+                </RequireAnnualForJobPortal>
+              }
+            />
+            <Route
+              path="/applications"
+              element={
+                <RequireAnnualForJobPortal>
+                  <MyApplications />
+                </RequireAnnualForJobPortal>
+              }
+            />
+            <Route
+              path="/employer/jobs"
+              element={
+                <RequireAnnualForJobPortal>
+                  <EmployerJobs />
+                </RequireAnnualForJobPortal>
+              }
+            />
+            <Route
+              path="/employer/jobs/new"
+              element={
+                <RequireAnnualForJobPortal>
+                  <EmployerJobForm />
+                </RequireAnnualForJobPortal>
+              }
+            />
+            <Route
+              path="/employer/jobs/:id/edit"
+              element={
+                <RequireAnnualForJobPortal>
+                  <EmployerJobForm />
+                </RequireAnnualForJobPortal>
+              }
+            />
+            <Route
+              path="/employer/jobs/:id/applications"
+              element={
+                <RequireAnnualForJobPortal>
+                  <EmployerJobApplications />
+                </RequireAnnualForJobPortal>
+              }
+            />
           </>
         )}
 

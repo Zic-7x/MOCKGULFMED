@@ -203,6 +203,43 @@ export function inferPackageDurationMonths(pkg) {
   return null;
 }
 
+/** Freemius-backed applicant intro reels add-on (see migration 033). */
+export const REELS_ADDON_CODE = 'REELS';
+
+export const APPLICANT_REELS_STORAGE_BUCKET = 'applicant-reels';
+
+/** Active ADDON entitlement for intro reels; respects ends_at like package rows. */
+export async function getActiveReelsEntitlement(userId) {
+  const { data: rows, error } = await supabase
+    .from('user_entitlements')
+    .select('id, ends_at, status, created_at, external_ref')
+    .eq('user_id', userId)
+    .eq('scope', 'ADDON')
+    .eq('addon_code', REELS_ADDON_CODE)
+    .eq('status', 'ACTIVE')
+    .order('created_at', { ascending: false })
+    .limit(8);
+
+  if (error) throw error;
+  const now = new Date();
+  const valid = (rows || []).find((r) => {
+    if (r.ends_at == null || r.ends_at === '') return true;
+    return new Date(r.ends_at) > now;
+  });
+  return valid || null;
+}
+
+/**
+ * Intro reels checkout is limited to users on an active annual-tier package
+ * (same inference as eligibility minimum logic).
+ */
+export async function hasAnnualPackageForReels(userId) {
+  const ctx = await getAutoPackageAccessContext(userId);
+  if (ctx.kind !== 'active') return false;
+  const pkg = ctx.entitlement?.package;
+  return inferPackageDurationMonths(pkg) === 12;
+}
+
 export function packageMeetsEligibilityMinimum(pkg, minMonths = ELIGIBILITY_ASSESSMENT_MIN_PACKAGE_MONTHS) {
   const months = inferPackageDurationMonths(pkg);
   if (months == null) return false;
@@ -2750,6 +2787,22 @@ async function uploadEligibilityDocument(userId, submissionId, partName, file, i
   return path;
 }
 
+/** Same bucket and limits as eligibility; path prefix `ldf-{submissionId}` (migration 040). */
+async function uploadLicensingDataflowDocument(userId, submissionId, partName, file, index) {
+  if (!file) return null;
+  assertEligibilityFileSize(file);
+  const dot = file.name.lastIndexOf('.');
+  const ext = dot >= 0 ? file.name.slice(dot) : '';
+  const suffix = index != null ? `-${index}` : '';
+  const path = `${userId}/ldf-${submissionId}/${partName}${suffix}${ext}`;
+  const { error } = await supabase.storage.from(ELIGIBILITY_STORAGE_BUCKET).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) throw error;
+  return path;
+}
+
 /**
  * Uploads optional documents and inserts one eligibility_assessments row.
  * @param {string} userId
@@ -2847,6 +2900,118 @@ export async function submitEligibilityAssessment(userId, data) {
 
   if (error) throw error;
   return { id: row.id, submissionId };
+}
+
+export const LICENSING_DATAFLOW_SERVICE_KIND = {
+  LICENSING_AND_DATAFLOW: 'LICENSING_AND_DATAFLOW',
+  DATAFLOW_ONLY: 'DATAFLOW_ONLY',
+};
+
+/**
+ * Licensing / Dataflow paid intake: uploads to eligibility-documents under `{userId}/ldf-{id}/`.
+ * No package gate (separate Freemius service fee).
+ */
+export async function submitLicensingDataflowServiceRequest(userId, data) {
+  if (!userId) throw new Error('Not logged in');
+
+  const submissionId = crypto.randomUUID();
+  const serviceKind = data.serviceKind;
+  const expectedFreemiusPlanId = data.expectedFreemiusPlanId != null ? String(data.expectedFreemiusPlanId) : null;
+  if (
+    serviceKind !== LICENSING_DATAFLOW_SERVICE_KIND.LICENSING_AND_DATAFLOW &&
+    serviceKind !== LICENSING_DATAFLOW_SERVICE_KIND.DATAFLOW_ONLY
+  ) {
+    throw new Error('Invalid service selection.');
+  }
+
+  const graduationYearDoc = await uploadLicensingDataflowDocument(
+    userId,
+    submissionId,
+    'graduation-year',
+    data.graduationYearDoc,
+    null
+  );
+  const degreeIssuedYearDoc = await uploadLicensingDataflowDocument(
+    userId,
+    submissionId,
+    'degree-issued-year',
+    data.degreeIssuedYearDoc,
+    null
+  );
+  const cf = data.credentialFiles || {};
+  const credentialUploads = [
+    ['diploma-certificate', cf.diplomaCertificate],
+    ['diploma-transcript', cf.diplomaTranscript],
+    ['bs-degree', cf.bsDegree],
+    ['bs-transcript', cf.bsTranscript],
+    ['masters-degree', cf.mastersDegree],
+    ['masters-transcript', cf.mastersTranscript],
+    ['phd-degree', cf.phdDegree],
+    ['phd-transcript', cf.phdTranscript],
+  ];
+  const credentials = {};
+  for (const [partName, file] of credentialUploads) {
+    credentials[partName.replace(/-/g, '_')] = await uploadLicensingDataflowDocument(
+      userId,
+      submissionId,
+      partName,
+      file,
+      null
+    );
+  }
+
+  const healthLicense = await uploadLicensingDataflowDocument(
+    userId,
+    submissionId,
+    'health-license',
+    data.healthLicenseFile,
+    null
+  );
+
+  const experienceLetterPaths = [];
+  const letters = Array.isArray(data.experienceLetterFiles) ? data.experienceLetterFiles : [];
+  for (let i = 0; i < letters.length; i += 1) {
+    const p = await uploadLicensingDataflowDocument(userId, submissionId, 'experience-letter', letters[i], i);
+    if (p) experienceLetterPaths.push(p);
+  }
+
+  const payload = {
+    graduation_year: data.graduationYear,
+    degree_issued_year: data.degreeIssuedYear,
+    document_attestation: data.documentAttestation || null,
+    has_health_license: data.hasHealthLicense === 'yes',
+    experience: {
+      start: data.experienceStart || null,
+      end: data.stillWorking ? null : data.experienceEnd || null,
+      still_working: !!data.stillWorking,
+    },
+    multiple_experience_letters: data.multipleExperienceLetters === 'yes',
+    file_paths: {
+      graduation_year_doc: graduationYearDoc,
+      degree_issued_year_doc: degreeIssuedYearDoc,
+      credentials,
+      health_license: healthLicense,
+      experience_letters: experienceLetterPaths,
+    },
+  };
+
+  const { data: row, error } = await supabase
+    .from('licensing_dataflow_requests')
+    .insert({
+      id: submissionId,
+      user_id: userId,
+      service_kind: serviceKind,
+      expected_freemius_plan_id: expectedFreemiusPlanId,
+      qualification_level: data.qualificationLevel,
+      profession_id: data.professionId ?? null,
+      health_authority_id: data.healthAuthorityId ?? null,
+      payload,
+    })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return { id: row.id, submissionId: row.id };
 }
 
 /** Updates the signed-in user's profession and health authority (RPC; see migration 021). */

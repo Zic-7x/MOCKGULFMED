@@ -1,0 +1,233 @@
+/* Feature hub & detail — uses CSS variables from .index-page (Index.css) */
+
+.index-feature-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+}
+
+.index-feature-hero {
+  position: relative;
+  padding: 8px 0 28px;
+}
+
+.index-feature-hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--idx-border);
+  background: var(--idx-glass-bg);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--idx-accent);
+  margin-bottom: 14px;
+}
+
+.index-feature-hero h1 {
+  font-size: clamp(1.65rem, 4.2vw, 2.45rem);
+  letter-spacing: -0.03em;
+  margin: 0 0 12px;
+}
+
+.index-feature-hero-lede {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--idx-muted);
+  font-size: 1.05rem;
+}
+
+.index-feature-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.index-feature-grid-2 {
+  display: grid;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+@media (min-width: 768px) {
+  .index-feature-grid-2 {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: start;
+  }
+}
+
+.index-feature-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.index-feature-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--idx-border);
+  background: var(--idx-glass-bg);
+  box-shadow: var(--idx-shadow);
+}
+
+.index-feature-list-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--idx-accent);
+  margin-top: 2px;
+}
+
+.index-feature-list-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.index-feature-related {
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 1px solid var(--idx-border);
+}
+
+.index-feature-related h2 {
+  font-size: 1.25rem;
+  margin: 0 0 14px;
+}
+
+.index-feature-related-grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .index-feature-related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 960px) {
+  .index-feature-related-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.index-feature-related-card {
+  text-decoration: none;
+  color: inherit;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--idx-border);
+  background: var(--idx-glass-bg);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: block;
+}
+
+.index-feature-related-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--idx-glow);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.index-feature-related-kicker {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--idx-accent);
+  margin-bottom: 6px;
+}
+
+.index-feature-related-title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Hub */
+.index-feature-hub-intro h1 {
+  font-size: clamp(1.6rem, 4vw, 2.35rem);
+  letter-spacing: -0.03em;
+  margin: 0 0 10px;
+}
+
+.index-feature-hub-intro p {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--idx-muted);
+}
+
+.index-feature-hub-grid {
+  display: grid;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+@media (min-width: 640px) {
+  .index-feature-hub-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .index-feature-hub-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.index-feature-hub-card {
+  text-decoration: none;
+  color: inherit;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid var(--idx-border);
+  background: var(--idx-glass-bg);
+  box-shadow: var(--idx-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 120px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.index-feature-hub-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--idx-glow);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.index-feature-hub-card-kicker {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--idx-accent);
+}
+
+.index-feature-hub-card-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.index-feature-hub-card-arrow {
+  margin-top: auto;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--idx-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

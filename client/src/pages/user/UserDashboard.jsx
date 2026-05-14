@@ -2,15 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { canUserAccessEligibilityAssessment, getUserDashboard } from '../../utils/supabaseQueries';
+import { getAnnualJobPortalQueryOptions } from '../../utils/annualJobPortalQuery';
 import Layout from '../../components/Layout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import './UserDashboard.css';
 
 const UserDashboard = () => {
   const { user } = useAuth();
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
+
   const { data, isLoading } = useQuery({
     queryKey: ['userDashboard', user?.id],
     queryFn: async () => {
@@ -25,6 +24,15 @@ const UserDashboard = () => {
     queryFn: () => canUserAccessEligibilityAssessment(user.id),
     enabled: !!user?.id,
   });
+
+  const { data: jobPortalAnnual } = useQuery({
+    ...getAnnualJobPortalQueryOptions(user?.id),
+    enabled: !!user?.id,
+  });
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
 
   if (isLoading) {
     return (
@@ -108,6 +116,13 @@ const UserDashboard = () => {
             <h3>View Results</h3>
             <p>Check your exam history</p>
           </Link>
+          <Link to="/services/licensing-dataflow" className="action-card">
+            <h3>Licensing &amp; Dataflow services</h3>
+            <p>
+              Upload the same credential documents used for eligibility review, then pay the service fee for
+              licensing support, Dataflow only, or both—via Freemius checkout.
+            </p>
+          </Link>
           <Link
             to={eligibilityAccess?.allowed === false ? '/packages' : '/eligibility-assessment'}
             className="action-card"
@@ -121,6 +136,26 @@ const UserDashboard = () => {
                   : 'Open the full workflow to submit qualifications and documents for review.'}
             </p>
           </Link>
+          {jobPortalAnnual ? (
+            <>
+              <Link to="/jobs" className="action-card">
+                <h3>Job portal</h3>
+                <p>Browse roles, track applications, post jobs, and manage intro reels.</p>
+              </Link>
+              <Link to="/employer/jobs" className="action-card">
+                <h3>Hiring</h3>
+                <p>Post listings and review candidates</p>
+              </Link>
+            </>
+          ) : (
+            <Link to="/packages" className="action-card">
+              <h3>Job portal</h3>
+              <p>
+                Included with an active <strong>annual (12‑month)</strong> plan — upgrade on Packages to unlock jobs,
+                applications, hiring tools, and intro reels.
+              </p>
+            </Link>
+          )}
         </div>
 
         {data?.recentAttempts && data.recentAttempts.length > 0 && (

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import Layout from '../../components/Layout';
 import logoUrl from '../../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
@@ -7,6 +8,7 @@ import { fetchPublicCatalog } from '../../utils/publicApi';
 import { packageFeaturesForDisplay } from '../../utils/packageFeaturesDisplay';
 import { packageMeetsEligibilityMinimum } from '../../utils/supabaseQueries';
 import { syncFreemiusEntitlement } from '../../utils/freemiusEntitlementSync';
+import { annualJobPortalQueryKey } from '../../utils/annualJobPortalQuery';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import './Packages.css';
@@ -310,6 +312,7 @@ function readStoredTheme() {
 
 const Packages = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [theme, setTheme] = useState(readStoredTheme);
   const [loading, setLoading] = useState(true);
@@ -438,6 +441,7 @@ const Packages = () => {
               .then(() => {
                 toast.success('Purchase recorded. Your package exams are unlocking now.');
                 setEntitlementRefreshKey((k) => k + 1);
+                queryClient.invalidateQueries({ queryKey: annualJobPortalQueryKey(user.id) });
               })
               .catch((syncErr) => {
                 toast.error(syncErr?.message || 'Purchase sync failed. Contact support with your receipt.');
