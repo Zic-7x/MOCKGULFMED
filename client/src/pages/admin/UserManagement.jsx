@@ -26,6 +26,9 @@ const emptyOfficialExamForm = () => ({
   sectionEnabled: true,
   applicantName: '',
   applicantAddress: '',
+  applicantNationalId: '',
+  bookingHealthAuthorityCountry: '',
+  bookingHealthAuthorityId: '',
   examHealthAuthority: '',
   examinationAuthority: '',
   examDate: '',
@@ -33,6 +36,11 @@ const emptyOfficialExamForm = () => ({
   examStatus: '',
   registrationId: '',
   candidateEligibilityId: '',
+  bookingPaymentStatus: '',
+  bookingPaymentExternalRef: '',
+  bookingPaidAt: '',
+  bookingPaymentVerified: false,
+  bookingPaymentVerifiedAt: '',
   announcement: '',
   examPassStoragePath: null,
   examDetailsPrintEnabled: true,
@@ -44,6 +52,9 @@ const mapExternalExamRowToForm = (row) => {
     sectionEnabled: !!row.section_enabled,
     applicantName: row.applicant_name || '',
     applicantAddress: row.applicant_address || '',
+    applicantNationalId: row.applicant_national_id || '',
+    bookingHealthAuthorityCountry: row.booking_health_authority_country || '',
+    bookingHealthAuthorityId: row.booking_health_authority_id || '',
     examHealthAuthority: row.exam_health_authority || '',
     examinationAuthority: row.examination_authority || '',
     examDate: row.exam_date || '',
@@ -51,6 +62,11 @@ const mapExternalExamRowToForm = (row) => {
     examStatus: normalizeExternalExamStatusCode(row.exam_status) || '',
     registrationId: row.registration_id || '',
     candidateEligibilityId: row.candidate_eligibility_id || '',
+    bookingPaymentStatus: row.booking_payment_status || '',
+    bookingPaymentExternalRef: row.booking_payment_external_ref || '',
+    bookingPaidAt: row.booking_paid_at || '',
+    bookingPaymentVerified: !!row.booking_payment_verified,
+    bookingPaymentVerifiedAt: row.booking_payment_verified_at || '',
     announcement: row.announcement || '',
     examPassStoragePath: row.exam_pass_storage_path || null,
     examDetailsPrintEnabled: (() => {
@@ -156,6 +172,9 @@ const UserManagement = () => {
         sectionEnabled: examForm.sectionEnabled,
         applicantName: examForm.applicantName,
         applicantAddress: examForm.applicantAddress,
+        applicantNationalId: examForm.applicantNationalId,
+        bookingHealthAuthorityCountry: examForm.bookingHealthAuthorityCountry,
+        bookingHealthAuthorityId: examForm.bookingHealthAuthorityId || null,
         examHealthAuthority: examForm.examHealthAuthority,
         examinationAuthority: examForm.examinationAuthority,
         examDate: examForm.examDate || null,
@@ -163,6 +182,11 @@ const UserManagement = () => {
         examStatus: examForm.examStatus,
         registrationId: examForm.registrationId,
         candidateEligibilityId: examForm.candidateEligibilityId,
+        bookingPaymentStatus: examForm.bookingPaymentStatus,
+        bookingPaymentExternalRef: examForm.bookingPaymentExternalRef,
+        bookingPaidAt: examForm.bookingPaidAt || null,
+        bookingPaymentVerified: examForm.bookingPaymentVerified,
+        bookingPaymentVerifiedAt: examForm.bookingPaymentVerifiedAt || null,
         announcement: examForm.announcement,
         examPassStoragePath: nextPath,
         examDetailsPrintEnabled: examForm.examDetailsPrintEnabled,
@@ -270,6 +294,13 @@ const UserManagement = () => {
     if (!examUser?.id) return;
     saveOfficialExamMutation.mutate();
   };
+
+  const authoritiesForExamCountry = (healthAuthorities || []).filter(
+    (ha) => String(ha?.country || '').trim() === String(examForm.bookingHealthAuthorityCountry || '').trim()
+  );
+  const countryOptions = Array.from(
+    new Set((healthAuthorities || []).map((ha) => String(ha?.country || '').trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
 
   if (isLoading) {
     return (
@@ -408,6 +439,67 @@ const UserManagement = () => {
                     />
                   </div>
                   <div className="form-group">
+                    <label>CNIC / National ID</label>
+                    <input
+                      type="text"
+                      value={examForm.applicantNationalId}
+                      onChange={(e) => setExamForm({ ...examForm, applicantNationalId: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-row-two">
+                    <div className="form-group">
+                      <label>Booking country</label>
+                      <select
+                        value={examForm.bookingHealthAuthorityCountry}
+                        onChange={(e) => {
+                          const c = e.target.value;
+                          const list = (healthAuthorities || []).filter(
+                            (ha) => String(ha?.country || '').trim() === String(c || '').trim()
+                          );
+                          setExamForm({
+                            ...examForm,
+                            bookingHealthAuthorityCountry: c,
+                            bookingHealthAuthorityId: list?.[0]?.id ? String(list[0].id) : '',
+                            examHealthAuthority: list?.[0]?.name || examForm.examHealthAuthority,
+                          });
+                        }}
+                      >
+                        <option value="">Select country</option>
+                        {countryOptions.map((country) => (
+                          <option key={country} value={country}>
+                            {country}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Booking health authority</label>
+                      <select
+                        value={examForm.bookingHealthAuthorityId}
+                        onChange={(e) => {
+                          const nextId = e.target.value;
+                          const selected = authoritiesForExamCountry.find((ha) => String(ha.id) === String(nextId));
+                          setExamForm({
+                            ...examForm,
+                            bookingHealthAuthorityId: nextId,
+                            examHealthAuthority: selected?.name || examForm.examHealthAuthority,
+                          });
+                        }}
+                      >
+                        <option value="">Select authority</option>
+                        {authoritiesForExamCountry.map((ha) => (
+                          <option key={ha.id} value={ha.id}>
+                            {ha.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="form-hint">
+                        Mirrors what applicant selected during self-booking. Selecting here can auto-fill exam health
+                        authority.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="form-group">
                     <label>Health authority (exam)</label>
                     <input
                       type="text"
@@ -471,6 +563,58 @@ const UserManagement = () => {
                       value={examForm.candidateEligibilityId}
                       onChange={(e) => setExamForm({ ...examForm, candidateEligibilityId: e.target.value })}
                     />
+                  </div>
+                  <div className="form-row-two">
+                    <div className="form-group">
+                      <label>Booking payment status</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. PAID, PENDING, FAILED"
+                        value={examForm.bookingPaymentStatus}
+                        onChange={(e) => setExamForm({ ...examForm, bookingPaymentStatus: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Payment external reference</label>
+                      <input
+                        type="text"
+                        value={examForm.bookingPaymentExternalRef}
+                        onChange={(e) => setExamForm({ ...examForm, bookingPaymentExternalRef: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row-two">
+                    <div className="form-group">
+                      <label>Booking paid at</label>
+                      <input
+                        type="datetime-local"
+                        value={examForm.bookingPaidAt ? String(examForm.bookingPaidAt).slice(0, 16) : ''}
+                        onChange={(e) => setExamForm({ ...examForm, bookingPaidAt: e.target.value || '' })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Payment verified at</label>
+                      <input
+                        type="datetime-local"
+                        value={examForm.bookingPaymentVerifiedAt ? String(examForm.bookingPaymentVerifiedAt).slice(0, 16) : ''}
+                        onChange={(e) =>
+                          setExamForm({ ...examForm, bookingPaymentVerifiedAt: e.target.value || '' })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="checkbox-label-block">
+                      <input
+                        type="checkbox"
+                        checked={examForm.bookingPaymentVerified}
+                        onChange={(e) => setExamForm({ ...examForm, bookingPaymentVerified: e.target.checked })}
+                      />
+                      <span>Payment verified (admin override)</span>
+                    </label>
+                    <p className="form-hint">
+                      Usually this is set by Freemius signed webhook. Admin can override if gateway callback was missed.
+                    </p>
                   </div>
                   <div className="form-group">
                     <label>Announcement for this user (exam date changes, extra fees, etc.)</label>

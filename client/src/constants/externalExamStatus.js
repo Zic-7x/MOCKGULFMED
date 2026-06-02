@@ -54,6 +54,9 @@ export function externalExamHasPublishableContent(f) {
   return (
     t(f.applicantName) ||
     t(f.applicantAddress) ||
+    t(f.applicantNationalId) ||
+    t(f.bookingHealthAuthorityCountry) ||
+    t(f.bookingHealthAuthorityId) ||
     t(f.examHealthAuthority) ||
     t(f.examinationAuthority) ||
     t(f.examDate) ||
@@ -61,6 +64,11 @@ export function externalExamHasPublishableContent(f) {
     t(f.examStatus) ||
     t(f.registrationId) ||
     t(f.candidateEligibilityId) ||
+    t(f.bookingPaymentStatus) ||
+    t(f.bookingPaymentExternalRef) ||
+    t(f.bookingPaidAt) ||
+    !!f.bookingPaymentVerified ||
+    t(f.bookingPaymentVerifiedAt) ||
     t(f.announcement) ||
     !!f.examPassStoragePath
   );

@@ -3054,6 +3054,9 @@ export async function adminUpsertUserExternalExamDetails(userId, payload) {
     section_enabled: !!payload.sectionEnabled,
     applicant_name: trimOrNull(payload.applicantName),
     applicant_address: trimOrNull(payload.applicantAddress),
+    applicant_national_id: trimOrNull(payload.applicantNationalId),
+    booking_health_authority_country: trimOrNull(payload.bookingHealthAuthorityCountry),
+    booking_health_authority_id: trimOrNull(payload.bookingHealthAuthorityId),
     exam_health_authority: trimOrNull(payload.examHealthAuthority),
     examination_authority: trimOrNull(payload.examinationAuthority),
     exam_date: trimOrNull(payload.examDate) || null,
@@ -3062,6 +3065,12 @@ export async function adminUpsertUserExternalExamDetails(userId, payload) {
     registration_id: trimOrNull(payload.registrationId),
     candidate_eligibility_id: trimOrNull(payload.candidateEligibilityId),
     announcement: trimOrNull(payload.announcement),
+    booking_payment_status: trimOrNull(payload.bookingPaymentStatus),
+    booking_payment_external_ref: trimOrNull(payload.bookingPaymentExternalRef),
+    booking_paid_at: trimOrNull(payload.bookingPaidAt) || null,
+    booking_payment_verified:
+      payload.bookingPaymentVerified === undefined ? undefined : !!payload.bookingPaymentVerified,
+    booking_payment_verified_at: trimOrNull(payload.bookingPaymentVerifiedAt) || null,
     /* DB column name is historical; controls “Print exam details” on Profile. */
     exam_pass_print_enabled:
       payload.examDetailsPrintEnabled === undefined ? undefined : !!payload.examDetailsPrintEnabled,
@@ -3075,6 +3084,9 @@ export async function adminUpsertUserExternalExamDetails(userId, payload) {
   };
   if (row.exam_pass_storage_path === undefined) {
     delete row.exam_pass_storage_path;
+  }
+  if (row.booking_payment_verified === undefined) {
+    delete row.booking_payment_verified;
   }
   if (row.exam_pass_print_enabled === undefined) {
     delete row.exam_pass_print_enabled;
