@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { getAnnualJobPortalQueryOptions } from '../utils/annualJobPortalQuery';
 import logoUrl from '../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
+import AnnouncementModal from './AnnouncementModal';
 import './Layout.css';
 
 const Layout = ({ children }) => {
@@ -272,15 +273,8 @@ const Layout = ({ children }) => {
             </div>
           </div>
         </div>
-        <div className="announcement-banner" role="status" aria-live="polite">
-          <div className="announcement-banner-inner">
-            <span className="announcement-badge">Announcement</span>
-            <span className="announcement-text">
-              <strong>Mega Update</strong> coming soon on the portal.
-            </span>
-          </div>
-        </div>
       </nav>
+      <AnnouncementModal />
       <main className="main-content">{children}</main>
     </div>
   );

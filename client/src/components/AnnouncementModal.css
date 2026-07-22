@@ -1,0 +1,133 @@
+.announcement-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.announcement-modal {
+  width: min(720px, 100%);
+  max-height: min(90vh, 860px);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.announcement-modal-header {
+  padding: 24px 28px 0;
+}
+
+.announcement-modal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--brand-primary), #2563eb);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.announcement-modal-title {
+  margin: 12px 0 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.announcement-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 28px;
+  color: #334155;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.announcement-modal-section + .announcement-modal-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.announcement-modal-section h3 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.announcement-modal-section p {
+  margin: 0 0 12px;
+}
+
+.announcement-modal-section p:last-child {
+  margin-bottom: 0;
+}
+
+.announcement-modal-section ul {
+  margin: 0 0 12px;
+  padding-left: 1.25rem;
+}
+
+.announcement-modal-section li + li {
+  margin-top: 8px;
+}
+
+.announcement-modal-section strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.announcement-modal-footer {
+  padding: 16px 28px 24px;
+  border-top: 1px solid #eef2f6;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.announcement-modal-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.announcement-modal-btn:hover {
+  background: var(--brand-primary-hover);
+}
+
+@media (max-width: 600px) {
+  .announcement-modal-overlay {
+    padding: 12px;
+  }
+
+  .announcement-modal-header,
+  .announcement-modal-body,
+  .announcement-modal-footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .announcement-modal-title {
+    font-size: 1.25rem;
+  }
+}
