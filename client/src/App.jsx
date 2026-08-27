@@ -34,6 +34,8 @@ import RefundPolicy from './pages/policies/RefundPolicy';
 import TermsAndConditions from './pages/policies/TermsAndConditions';
 import FeaturesHub from './pages/features/FeaturesHub';
 import PublicFeaturePage from './pages/features/PublicFeaturePage';
+import DownloadApp from './pages/DownloadApp';
+import AndroidInstallBanner from './components/AndroidInstallBanner';
 
 function App() {
   const { user, loading } = useAuth();
@@ -45,6 +47,7 @@ function App() {
   return (
     <>
       <Toaster position="top-right" />
+      <AndroidInstallBanner />
       <Routes>
         <Route
           path="/login"
@@ -55,6 +58,8 @@ function App() {
           element={user ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} /> : <Register />}
         />
 
+        <Route path="/download-app" element={<DownloadApp />} />
+        <Route path="/android" element={<Navigate to="/download-app" replace />} />
         <Route path="/packages" element={<Packages />} />
         <Route path="/features" element={<FeaturesHub />} />
         <Route path="/features/:slug" element={<PublicFeaturePage />} />
@@ -90,16 +95,22 @@ function App() {
           </>
         )}
 
-        {/* User Routes - Only for non-admin users */}
-        {user && user.role !== 'ADMIN' && (
+        {/* Authenticated Exam & Results Routes */}
+        {user && (
           <>
-            <Route path="/dashboard" element={<UserDashboard />} />
-            <Route path="/profile" element={<UserProfile />} />
             <Route path="/exams" element={<ExamList />} />
             <Route path="/exams/:id" element={<TakeExam />} />
             <Route path="/exams/:id/results" element={<ExamResults />} />
             <Route path="/results/attempt/:attemptId" element={<ExamResults />} />
             <Route path="/results" element={<ExamResults />} />
+          </>
+        )}
+
+        {/* User Routes - Only for non-admin users */}
+        {user && user.role !== 'ADMIN' && (
+          <>
+            <Route path="/dashboard" element={<UserDashboard />} />
+            <Route path="/profile" element={<UserProfile />} />
             <Route path="/eligibility-assessment" element={<EligibilityAssessment />} />
             <Route
               path="/reels"

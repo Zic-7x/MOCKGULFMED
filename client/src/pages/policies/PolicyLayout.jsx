@@ -1,5 +1,5 @@
 import { Link, Outlet } from 'react-router-dom';
-import logoUrl from '../../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
+const logoUrl = '/logo.png';
 import './PolicyLayout.css';
 
 const PolicyLayout = () => {

@@ -1,4 +1,9 @@
 import { fetchCatalogFromSupabase } from './catalogFromSupabase';
+import {
+  deduplicateHealthAuthorities,
+  deduplicateProfessions,
+  deduplicatePackages,
+} from './healthAuthorities';
 
 const publicCatalogUrl =
   import.meta.env.VITE_PUBLIC_CATALOG_API_URL || '/api/public-catalog';
@@ -29,9 +34,9 @@ function mergeCatalogPreferNonEmpty(apiData, fallbackData) {
   const a = apiData || {};
   const b = fallbackData || {};
   return {
-    professions: a.professions?.length ? a.professions : b.professions || [],
-    healthAuthorities: a.healthAuthorities?.length ? a.healthAuthorities : b.healthAuthorities || [],
-    packages: a.packages?.length ? a.packages : b.packages || [],
+    professions: deduplicateProfessions(a.professions?.length ? a.professions : b.professions || []),
+    healthAuthorities: deduplicateHealthAuthorities(a.healthAuthorities?.length ? a.healthAuthorities : b.healthAuthorities || []),
+    packages: deduplicatePackages(a.packages?.length ? a.packages : b.packages || []),
   };
 }
 

@@ -1,5 +1,9 @@
 import { supabase } from '../lib/supabase';
 import { fetchPackageExamIdsForPackage } from './publicApi';
+import {
+  deduplicateHealthAuthorities,
+  deduplicateProfessions,
+} from './healthAuthorities';
 
 const adminUsersApiUrl = import.meta.env.VITE_ADMIN_USERS_API_URL || '/api/admin-users';
 const adminExamGrantsApiUrl =
@@ -642,7 +646,7 @@ export const getProfessions = async () => {
     .order('name');
 
   if (error) throw error;
-  return data;
+  return deduplicateProfessions(data || []);
 };
 
 export const createProfession = async (professionData) => {
@@ -681,7 +685,7 @@ export const getHealthAuthorities = async () => {
     .order('name');
 
   if (error) throw error;
-  return data;
+  return deduplicateHealthAuthorities(data || []);
 };
 
 export const createHealthAuthority = async (haData) => {

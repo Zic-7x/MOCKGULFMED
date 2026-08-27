@@ -1,16 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import logoUrl from '../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
+const logoUrl = '/logo.png';
 import { fetchPublicCatalog, registerUser } from '../utils/publicApi';
 import { packageFeaturesForDisplay } from '../utils/packageFeaturesDisplay';
+import {
+  deduplicateHealthAuthorities,
+  deduplicateProfessions,
+  deduplicatePackages,
+  formatHealthAuthorityLabel,
+  getHealthAuthorityCanonicalKey,
+} from '../utils/healthAuthorities';
 import './Register.css';
+
+const PHONE_REGEX = /^[0-9+\-()\s]{7,32}$/;
+
+const isPhoneValid = (phone) => {
+  const trimmed = (phone || '').trim();
+  const digits = trimmed.replace(/\D/g, '');
+  return PHONE_REGEX.test(trimmed) && digits.length >= 7;
+};
 
 const Register = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [catalog, setCatalog] = useState({
     professions: [],
@@ -35,21 +51,44 @@ const Register = () => {
       .then((data) => {
         if (!mounted) return;
         const incomingPackageId = searchParams.get('packageId');
-        const packageList = data?.packages || [];
-        const hasIncomingPackage =
-          incomingPackageId && packageList.some((pkg) => String(pkg.id) === String(incomingPackageId));
+        const incomingProfessionId = searchParams.get('professionId') || searchParams.get('profession');
+        const incomingAuthorityId =
+          searchParams.get('healthAuthorityId') ||
+          searchParams.get('healthAuthority') ||
+          searchParams.get('authorityId');
+
+        const packageList = deduplicatePackages(data?.packages || []);
+        const professionsList = deduplicateProfessions(data?.professions || []);
+        const authoritiesList = deduplicateHealthAuthorities(data?.healthAuthorities || []);
+
+        const matchingPkg =
+          incomingPackageId && packageList.find((pkg) => String(pkg.id) === String(incomingPackageId));
+        const matchingProf =
+          incomingProfessionId &&
+          professionsList.find((p) => String(p.id) === String(incomingProfessionId));
+        const matchingAuth =
+          incomingAuthorityId &&
+          authoritiesList.find(
+            (ha) =>
+              String(ha.id) === String(incomingAuthorityId) ||
+              ha._alternateIds?.some((altId) => String(altId) === String(incomingAuthorityId)) ||
+              getHealthAuthorityCanonicalKey(ha) === String(incomingAuthorityId).trim().toLowerCase()
+          );
+
         setCatalog({
-          professions: data?.professions || [],
-          healthAuthorities: data?.healthAuthorities || [],
+          professions: professionsList,
+          healthAuthorities: authoritiesList,
           packages: packageList,
         });
-        if (hasIncomingPackage) {
-          setForm((prev) => ({ ...prev, packageId: incomingPackageId }));
-        }
-        if (
-          !(data?.professions?.length || data?.healthAuthorities?.length) &&
-          !(data?.packages?.length)
-        ) {
+
+        setForm((prev) => ({
+          ...prev,
+          ...(matchingPkg ? { packageId: String(matchingPkg.id) } : {}),
+          ...(matchingProf ? { professionId: String(matchingProf.id) } : {}),
+          ...(matchingAuth ? { healthAuthorityId: String(matchingAuth.id) } : {}),
+        }));
+
+        if (!professionsList.length && !authoritiesList.length && !packageList.length) {
           toast.error('Could not load registration options. Please refresh the page or try again later.');
         }
       })
@@ -66,18 +105,35 @@ const Register = () => {
     };
   }, [searchParams]);
 
-  const canSubmit = useMemo(() => {
-    return (
-      form.fullName.trim().length > 1 &&
-      form.email.includes('@') &&
-      form.phone.trim().length >= 7 &&
-      form.password.length >= 8 &&
-      form.professionId &&
-      form.healthAuthorityId &&
-      form.packageId &&
-      !submitting
-    );
-  }, [form, submitting]);
+  const validationState = useMemo(() => {
+    const isNameValid = form.fullName.trim().length >= 2;
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
+    const isPhoneOk = isPhoneValid(form.phone);
+    const isPasswordValid = form.password.length >= 8;
+    const isProfessionSelected = Boolean(form.professionId);
+    const isAuthoritySelected = Boolean(form.healthAuthorityId);
+    const isPackageSelected = Boolean(form.packageId);
+
+    const isValid =
+      isNameValid &&
+      isEmailValid &&
+      isPhoneOk &&
+      isPasswordValid &&
+      isProfessionSelected &&
+      isAuthoritySelected &&
+      isPackageSelected;
+
+    return {
+      isValid,
+      isNameValid,
+      isEmailValid,
+      isPhoneOk,
+      isPasswordValid,
+      isProfessionSelected,
+      isAuthoritySelected,
+      isPackageSelected,
+    };
+  }, [form]);
 
   const handleChange = (key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
@@ -85,23 +141,59 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (submitting) return;
+
+    if (!form.fullName.trim()) {
+      toast.error('Please enter your full name');
+      document.getElementById('fullName')?.focus();
+      return;
+    }
+    if (!validationState.isEmailValid) {
+      toast.error('Please enter a valid email address');
+      document.getElementById('email')?.focus();
+      return;
+    }
+    if (!validationState.isPhoneOk) {
+      toast.error('Please enter a valid phone number with country code (e.g. +966 5X XXX XXXX)');
+      document.getElementById('phone')?.focus();
+      return;
+    }
+    if (form.password.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      document.getElementById('password')?.focus();
+      return;
+    }
+    if (!form.professionId) {
+      toast.error('Please select your medical profession');
+      document.getElementById('profession')?.focus();
+      return;
+    }
+    if (!form.healthAuthorityId) {
+      toast.error('Please select your target health authority');
+      document.getElementById('healthAuthority')?.focus();
+      return;
+    }
+    if (!form.packageId) {
+      toast.error('Please select a subscription package to proceed');
+      document.querySelector('.register-packages-grid')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
 
     setSubmitting(true);
     try {
       const data = await registerUser({
-        fullName: form.fullName,
-        email: form.email,
-        phone: form.phone,
+        fullName: form.fullName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
         password: form.password,
         professionId: form.professionId,
         healthAuthorityId: form.healthAuthorityId,
         packageId: form.packageId,
       });
 
-      toast.success('Account created. Complete payment to unlock exams.');
+      toast.success('Account created successfully! Please sign in to proceed.');
 
-      navigate('/login', { replace: true, state: { registeredEmail: form.email } });
+      navigate('/login', { replace: true, state: { registeredEmail: form.email.trim() } });
 
       return data;
     } catch (err) {
@@ -150,7 +242,7 @@ const Register = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="register-form">
+          <form onSubmit={handleSubmit} className="register-form" noValidate>
             <div className="register-grid">
               <div className="register-field">
                 <label htmlFor="fullName">Full name</label>
@@ -171,7 +263,7 @@ const Register = () => {
                   type="email"
                   value={form.email}
                   onChange={handleChange('email')}
-                  placeholder="Enter your email"
+                  placeholder="Enter your email address"
                   autoComplete="email"
                   required
                 />
@@ -189,19 +281,32 @@ const Register = () => {
                   autoComplete="tel"
                   required
                 />
+                <span className="register-field-hint">Include country code (e.g. +971, +966, +974)</span>
               </div>
 
               <div className="register-field">
                 <label htmlFor="password">Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  value={form.password}
-                  onChange={handleChange('password')}
-                  placeholder="Minimum 8 characters"
-                  autoComplete="new-password"
-                  required
-                />
+                <div className="register-password-wrapper">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={handleChange('password')}
+                    placeholder="Minimum 8 characters"
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="register-password-toggle"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={0}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <span className="register-field-hint">Must be at least 8 characters</span>
               </div>
 
               <div className="register-field">
@@ -234,7 +339,7 @@ const Register = () => {
                   <option value="">{loadingCatalog ? 'Loading…' : 'Select health authority'}</option>
                   {catalog.healthAuthorities.map((ha) => (
                     <option key={ha.id} value={ha.id}>
-                      {ha.name} ({ha.country})
+                      {formatHealthAuthorityLabel(ha)}
                     </option>
                   ))}
                 </select>
@@ -242,7 +347,7 @@ const Register = () => {
             </div>
 
             <fieldset className="register-packages-fieldset">
-              <legend className="register-packages-legend">Choose a package</legend>
+              <legend className="register-packages-legend">Choose a subscription package</legend>
               {loadingCatalog && <p className="register-packages-hint">Loading packages…</p>}
               {!loadingCatalog && catalog.packages.length === 0 && (
                 <p className="register-packages-empty">
@@ -252,7 +357,7 @@ const Register = () => {
               )}
               <div className="register-packages-grid">
                 {catalog.packages.map((pkg) => {
-                  const selected = form.packageId === pkg.id;
+                  const selected = Boolean(form.packageId && String(form.packageId) === String(pkg.id));
                   const feats = packageFeatures(pkg);
                   return (
                     <label
@@ -266,7 +371,7 @@ const Register = () => {
                           name="packageId"
                           value={pkg.id}
                           checked={selected}
-                          onChange={() => setForm((prev) => ({ ...prev, packageId: pkg.id }))}
+                          onChange={() => setForm((prev) => ({ ...prev, packageId: String(pkg.id) }))}
                         />
                         <div className="register-package-card-title">
                           <span className="register-package-name">{pkg.name}</span>
@@ -292,7 +397,11 @@ const Register = () => {
               </div>
             </fieldset>
 
-            <button className="register-submit" type="submit" disabled={!canSubmit}>
+            <button
+              className="register-submit"
+              type="submit"
+              disabled={submitting}
+            >
               {submitting ? 'Creating account…' : 'Create account'}
             </button>
 

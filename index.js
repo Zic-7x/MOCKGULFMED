@@ -1,12 +1,17 @@
 import './env-bootstrap.js';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import adminUsersHandler from './api/admin-users.js';
 import adminExamGrantsHandler from './api/admin-exam-grants.js';
 import publicCatalogHandler from './api/public-catalog.js';
 import registerHandler from './api/register.js';
 import freemiusWebhookHandler from './api/freemius-webhook.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -15,11 +20,10 @@ const asyncRoute = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res)).catch(next);
 };
 
-// Basic CORS (align with your Vite dev server origin)
-const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+// Basic CORS
 app.use(
   cors({
-    origin: clientOrigin,
+    origin: true,
     credentials: true,
   })
 );
@@ -31,18 +35,52 @@ app.post('/api/freemius-webhook', express.raw({ type: '*/*' }), asyncRoute(freem
 
 app.use(express.json());
 
-// Wire the existing handler to the REST route
+// Dedicated Android APK Download endpoint
+const sendApkFile = (req, res) => {
+  const publicApkPath = path.join(__dirname, 'client', 'public', 'MockGulfMed.apk');
+  const distApkPath = path.join(__dirname, 'client', 'dist', 'MockGulfMed.apk');
+  const apkPath = path.join(__dirname, 'client', 'public', 'MockGulfMed.apk');
+
+  res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+  res.setHeader('Content-Disposition', 'attachment; filename="MockGulfMed.apk"');
+  res.sendFile(apkPath, (err) => {
+    if (err) {
+      console.error('[apk-download] Error serving APK:', err);
+      res.status(404).send('APK package not found. Please try again shortly.');
+    }
+  });
+};
+
+app.get('/api/download-apk', sendApkFile);
+app.get('/MockGulfMed.apk', sendApkFile);
+app.get('/downloads/MockGulfMed.apk', sendApkFile);
+app.get('/download/MockGulfMed.apk', sendApkFile);
+
+// Wire the existing handlers to the REST routes
 app.all('/api/admin-users', asyncRoute(adminUsersHandler));
-
 app.all('/api/admin-exam-grants', asyncRoute(adminExamGrantsHandler));
-
 app.all('/api/public-catalog', asyncRoute(publicCatalogHandler));
-
 app.all('/api/register', asyncRoute(registerHandler));
-
-// POST already handled above with raw body; keep non-POST methods consistent.
 app.all('/api/freemius/webhook', asyncRoute(freemiusWebhookHandler));
 app.all('/api/freemius-webhook', asyncRoute(freemiusWebhookHandler));
+
+const clientDir = path.join(__dirname, 'client');
+const distDir = path.join(clientDir, 'dist');
+
+if (process.env.NODE_ENV !== 'production') {
+  const { createServer: createViteServer } = await import('vite');
+  const vite = await createViteServer({
+    server: { middlewareMode: true, host: '0.0.0.0' },
+    appType: 'spa',
+    root: clientDir,
+  });
+  app.use(vite.middlewares);
+} else {
+  app.use(express.static(distDir));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distDir, 'index.html'));
+  });
+}
 
 app.use((err, req, res, next) => {
   if (res.headersSent) {
@@ -53,9 +91,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err?.message || 'Internal server error' });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`API server listening on http://localhost:${PORT}`);
+const PORT = 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`API server listening on http://0.0.0.0:${PORT}`);
 });
+
 
 

@@ -1,0 +1,6 @@
+{
+  "name": "Mock Gulf Med",
+  "description": "Mock Exam Portal for Medical Professionals - Prometric and Pearson Exams",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,18 +1,12 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-  throw new Error(
-    'Missing Supabase environment variables (need URL, anon key, and SUPABASE_SERVICE_ROLE_KEY)'
-  );
-}
-
-createClient(supabaseUrl, anonKey); // validates config; not used for privileged writes
-const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+const getServiceClient = () => {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) return null;
+  return createClient(supabaseUrl, serviceRoleKey);
+};
 
 const send = (res, status, payload) => {
   res.status(status).json(payload);
@@ -93,6 +87,13 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST, OPTIONS');
     return send(res, 405, { error: 'Method not allowed' });
+  }
+
+  const serviceClient = getServiceClient();
+  if (!serviceClient) {
+    return send(res, 503, {
+      error: 'Supabase service is not configured on the server (missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY).',
+    });
   }
 
   try {

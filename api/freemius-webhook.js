@@ -13,18 +13,13 @@ import {
 
 const SUPPORTED_ADDON_CODES = new Set(['REELS']);
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-  throw new Error(
-    'Missing Supabase environment variables (need URL, anon key, and SUPABASE_SERVICE_ROLE_KEY)'
-  );
-}
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
+const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || 'placeholder-anon-key';
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-key';
 
 const anonClient = createClient(supabaseUrl, anonKey);
 const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
 
 const freemiusProductSecretKey =
   process.env.FREEMIUS_PRODUCT_SECRET_KEY ||

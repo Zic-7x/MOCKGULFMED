@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import logoUrl from '../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
+const logoUrl = '/logo.png';
 import './Index.css';
 
 const STATUS_ROTATIONS = [
@@ -557,6 +557,9 @@ const Index = () => {
             <Link className="index-btn index-btn--ghost" to="/packages">
               Packages
             </Link>
+            <Link className="index-btn index-btn--ghost index-btn--app" to="/download-app" title="Download Android App APK">
+              📱 App
+            </Link>
             <Link className="index-btn index-btn--primary" to="/login">
               Get started
             </Link>
@@ -570,7 +573,7 @@ const Index = () => {
             className="index-hero-bg-img"
             src="/assets/hero-dubai-healthcare-team.png"
             alt=""
-            fetchPriority="high"
+            fetchpriority="high"
             decoding="async"
           />
           <div className="index-hero-bg-dark" />
@@ -1238,6 +1241,47 @@ const Index = () => {
           </div>
         </section>
 
+        <section className="index-section index-app-download-feature index-reveal" aria-label="Android App">
+          <div className="index-app-showcase-box index-glass">
+            <div className="index-app-showcase-left">
+              <span className="index-hero-badge">Official Android Release</span>
+              <h2 className="index-app-showcase-title">Practice on Android with MockGulfMed App</h2>
+              <p className="index-app-showcase-desc">
+                Study for DHA, MOH, HAAD, OMSB, and SMLE exams on your phone with full-screen simulator mode, instant offline review, and zero Play Store fees.
+              </p>
+              <div className="index-app-showcase-btns">
+                <Link to="/download-app" className="index-hero-cta-primary">
+                  <span className="index-hero-metal-body">
+                    <span className="index-hero-metal-label">
+                      📱 Download Android APK (~1MB)
+                    </span>
+                  </span>
+                </Link>
+                <Link to="/download-app" className="index-btn index-btn--ghost">
+                  Installation Steps &rarr;
+                </Link>
+              </div>
+            </div>
+            <div className="index-app-showcase-right">
+              <div className="index-app-phone-mockup">
+                <div className="phone-screen-preview">
+                  <div className="phone-header-bar">
+                    <span>MockGulfMed Mobile</span>
+                    <span>100%</span>
+                  </div>
+                  <div className="phone-body-content">
+                    <div className="phone-exam-pill">DHA General Practitioner Mock</div>
+                    <div className="phone-score-row">
+                      <span className="phone-score-circle">88%</span>
+                      <span className="phone-score-text">Passed • Ready for Licensing</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="index-section index-bottom-cta index-reveal" aria-label="Get started">
           <div className="index-bottom-cta-inner index-glass">
             <div>
@@ -1282,6 +1326,10 @@ const Index = () => {
       <footer className="index-footer">
         <div className="index-footer-inner">
           <Link to="/features">Features</Link>
+          <span className="index-footer-sep" aria-hidden="true">
+            •
+          </span>
+          <Link to="/download-app">Android App</Link>
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>

@@ -1,4 +1,9 @@
 import { supabase } from '../lib/supabase';
+import {
+  deduplicateHealthAuthorities,
+  deduplicateProfessions,
+  deduplicatePackages,
+} from './healthAuthorities';
 
 function normalizeFeatures(features) {
   if (Array.isArray(features)) return features.map(String);
@@ -123,8 +128,8 @@ export async function fetchCatalogFromSupabase() {
   }));
 
   return {
-    professions: professions || [],
-    healthAuthorities: healthAuthorities || [],
-    packages: enriched,
+    professions: deduplicateProfessions(professions || []),
+    healthAuthorities: deduplicateHealthAuthorities(healthAuthorities || []),
+    packages: deduplicatePackages(enriched),
   };
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import logoUrl from '../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
+const logoUrl = '/logo.png';
 import '../pages/Index.css';
 import '../pages/FeaturePages.css';
 
@@ -114,6 +114,9 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
             <Link className="index-btn index-btn--ghost" to="/packages">
               Packages
             </Link>
+            <Link className="index-btn index-btn--ghost index-btn--app" to="/download-app" title="Download Android App APK">
+              📱 App
+            </Link>
             <Link className="index-btn index-btn--primary" to="/login">
               Get started
             </Link>
@@ -132,6 +135,10 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
             •
           </span>
           <Link to="/features">Features</Link>
+          <span className="index-footer-sep" aria-hidden="true">
+            •
+          </span>
+          <Link to="/download-app">Android App</Link>
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>

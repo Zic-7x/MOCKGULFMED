@@ -4,7 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import Layout from '../../components/Layout';
 import { useAuth } from '../../contexts/AuthContext';
-import logoUrl from '../../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
+const logoUrl = '/logo.png';
 import {
   MAX_EXPERIENCE_LETTER_SLOTS,
   QUALIFICATIONS,

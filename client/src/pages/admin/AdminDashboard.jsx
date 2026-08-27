@@ -5,6 +5,93 @@ import Layout from '../../components/Layout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import './AdminDashboard.css';
 
+// Crisp inline SVG Icons for Admin
+const AdminIcons = {
+  Users: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  FileText: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  ),
+  Lock: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  ),
+  Briefcase: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+    </svg>
+  ),
+  Building2: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+      <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+      <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+      <path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" />
+    </svg>
+  ),
+  BarChart2: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
+    </svg>
+  ),
+  CheckCircle: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  ),
+  Target: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
+  ),
+  Flame: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5z" />
+    </svg>
+  ),
+  CreditCard: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="20" height="14" x="2" y="5" rx="2" />
+      <line x1="2" x2="22" y1="10" y2="10" />
+    </svg>
+  ),
+  Clock: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
+  ArrowRight: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
+    </svg>
+  ),
+  RefreshCw: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M8 16H3v5" />
+    </svg>
+  ),
+};
+
 const AdminDashboard = () => {
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['adminStats'],
@@ -26,10 +113,12 @@ const AdminDashboard = () => {
     return (
       <Layout>
         <div className="admin-dashboard">
-          <h1>Admin Dashboard</h1>
-          <div style={{ padding: '20px', background: '#fee', color: '#c33', borderRadius: '8px' }}>
-            <p><strong>Error loading dashboard data:</strong></p>
-            <p>{error.message || 'Failed to load statistics. Please try refreshing the page.'}</p>
+          <div className="admin-header-card">
+            <h1>Admin Dashboard</h1>
+            <div className="admin-error-banner">
+              <p><strong>Error loading dashboard data:</strong></p>
+              <p>{error.message || 'Failed to load statistics. Please try refreshing the page.'}</p>
+            </div>
           </div>
         </div>
       </Layout>
@@ -39,278 +128,385 @@ const AdminDashboard = () => {
   // Calculate max count for chart scaling
   const maxActivity = Math.max(...(stats?.dailyActivity?.map(d => d.count) || [0]), 1);
 
-  const formatTime = (seconds) => {
-    if (!seconds) return 'N/A';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
-  };
-
   return (
     <Layout>
-      <div className="admin-dashboard">
-        <div className="dashboard-header">
-          <h1>Admin Dashboard</h1>
-          <p className="dashboard-subtitle">Overview of system activity and performance</p>
+      <div className="admin-dashboard-shell">
+        {/* Admin Header */}
+        <div className="admin-header-card">
+          <div className="admin-header-main">
+            <div className="admin-badge-row">
+              <span className="admin-role-badge">System Administrator</span>
+              <span className="admin-live-pill">
+                <AdminIcons.RefreshCw />
+                <span>Live sync active (30s)</span>
+              </span>
+            </div>
+            <h1 className="admin-title">Admin Dashboard</h1>
+            <p className="admin-subtitle">
+              Comprehensive metrics, candidate attempts, subscription intents, and curriculum management.
+            </p>
+          </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="quick-actions">
-          <Link to="/admin/users" className="action-card">
-            <span className="action-icon">👥</span>
-            <span>Manage Users</span>
+        {/* Quick Actions Bar */}
+        <div className="admin-actions-grid">
+          <Link to="/admin/users" className="admin-action-btn">
+            <div className="action-btn-icon">
+              <AdminIcons.Users />
+            </div>
+            <div className="action-btn-text">
+              <span className="action-btn-title">Manage Users</span>
+              <span className="action-btn-sub">Profiles &amp; Quotas</span>
+            </div>
           </Link>
-          <Link to="/admin/exams" className="action-card">
-            <span className="action-icon">📝</span>
-            <span>Manage Exams</span>
+          <Link to="/admin/exams" className="admin-action-btn">
+            <div className="action-btn-icon">
+              <AdminIcons.FileText />
+            </div>
+            <div className="action-btn-text">
+              <span className="action-btn-title">Manage Exams</span>
+              <span className="action-btn-sub">Banks &amp; Questions</span>
+            </div>
           </Link>
-          <Link to="/admin/access" className="action-card">
-            <span className="action-icon">🔐</span>
-            <span>Access Control</span>
+          <Link to="/admin/access" className="admin-action-btn">
+            <div className="action-btn-icon">
+              <AdminIcons.Lock />
+            </div>
+            <div className="action-btn-text">
+              <span className="action-btn-title">Access Control</span>
+              <span className="action-btn-sub">Grants &amp; Rules</span>
+            </div>
           </Link>
-          <Link to="/admin/professions" className="action-card">
-            <span className="action-icon">💼</span>
-            <span>Professions</span>
+          <Link to="/admin/professions" className="admin-action-btn">
+            <div className="action-btn-icon">
+              <AdminIcons.Briefcase />
+            </div>
+            <div className="action-btn-text">
+              <span className="action-btn-title">Professions</span>
+              <span className="action-btn-sub">Categories</span>
+            </div>
           </Link>
-          <Link to="/admin/health-authorities" className="action-card">
-            <span className="action-icon">🏥</span>
-            <span>Health Authorities</span>
+          <Link to="/admin/health-authorities" className="admin-action-btn">
+            <div className="action-btn-icon">
+              <AdminIcons.Building2 />
+            </div>
+            <div className="action-btn-text">
+              <span className="action-btn-title">Health Authorities</span>
+              <span className="action-btn-sub">DHA, MOH, SCFHS</span>
+            </div>
           </Link>
         </div>
 
         {/* Main Stats Grid */}
-        <div className="stats-grid">
-          <div className="stat-card primary">
-            <div className="stat-icon">👥</div>
-            <div className="stat-content">
-              <h3>Total Users</h3>
-              <p className="stat-number">{stats?.totalUsers || 0}</p>
-              <p className="stat-change">
-                <span className="positive">+{stats?.newUsersThisWeek || 0}</span> this week
-              </p>
+        <div className="admin-stats-grid">
+          <div className="stat-card stat-card--primary">
+            <div className="stat-icon-wrap">
+              <AdminIcons.Users />
+            </div>
+            <div className="stat-info">
+              <span className="stat-label">Total Users</span>
+              <span className="stat-value">{stats?.totalUsers || 0}</span>
+              <span className="stat-trend positive">
+                +{stats?.newUsersThisWeek || 0} this week
+              </span>
             </div>
           </div>
-          <div className="stat-card primary">
-            <div className="stat-icon">📝</div>
-            <div className="stat-content">
-              <h3>Total Exams</h3>
-              <p className="stat-number">{stats?.totalExams || 0}</p>
+
+          <div className="stat-card stat-card--primary">
+            <div className="stat-icon-wrap">
+              <AdminIcons.FileText />
+            </div>
+            <div className="stat-info">
+              <span className="stat-label">Total Exams</span>
+              <span className="stat-value">{stats?.totalExams || 0}</span>
+              <span className="stat-sub">Active question banks</span>
             </div>
           </div>
-          <div className="stat-card primary">
-            <div className="stat-icon">📊</div>
-            <div className="stat-content">
-              <h3>Total Attempts</h3>
-              <p className="stat-number">{stats?.totalAttempts || 0}</p>
-              <p className="stat-change">
-                <span className="positive">{stats?.attemptsToday || 0}</span> today
-              </p>
+
+          <div className="stat-card stat-card--primary">
+            <div className="stat-icon-wrap">
+              <AdminIcons.BarChart2 />
+            </div>
+            <div className="stat-info">
+              <span className="stat-label">Total Attempts</span>
+              <span className="stat-value">{stats?.totalAttempts || 0}</span>
+              <span className="stat-trend positive">
+                {stats?.attemptsToday || 0} today
+              </span>
             </div>
           </div>
-          <div className="stat-card success">
-            <div className="stat-icon">✅</div>
-            <div className="stat-content">
-              <h3>Average Score</h3>
-              <p className="stat-number">{stats?.averageScore?.toFixed(1) || '0.0'}%</p>
+
+          <div className="stat-card stat-card--success">
+            <div className="stat-icon-wrap icon-success">
+              <AdminIcons.CheckCircle />
+            </div>
+            <div className="stat-info">
+              <span className="stat-label">Average Score</span>
+              <span className="stat-value">{stats?.averageScore?.toFixed(1) || '0.0'}%</span>
+              <span className="stat-sub">Across all submissions</span>
             </div>
           </div>
-          <div className="stat-card success">
-            <div className="stat-icon">🎯</div>
-            <div className="stat-content">
-              <h3>Pass Rate</h3>
-              <p className="stat-number">{stats?.passRate?.toFixed(1) || '0.0'}%</p>
+
+          <div className="stat-card stat-card--success">
+            <div className="stat-icon-wrap icon-success">
+              <AdminIcons.Target />
+            </div>
+            <div className="stat-info">
+              <span className="stat-label">Pass Rate</span>
+              <span className="stat-value">{stats?.passRate?.toFixed(1) || '0.0'}%</span>
+              <span className="stat-sub">Score &ge; 70% threshold</span>
             </div>
           </div>
-          <div className="stat-card info">
-            <div className="stat-icon">🔥</div>
-            <div className="stat-content">
-              <h3>Active Users</h3>
-              <p className="stat-number">{stats?.activeUsers || 0}</p>
-              <p className="stat-change">Last 7 days</p>
+
+          <div className="stat-card stat-card--info">
+            <div className="stat-icon-wrap icon-info">
+              <AdminIcons.Flame />
+            </div>
+            <div className="stat-info">
+              <span className="stat-label">Active Users</span>
+              <span className="stat-value">{stats?.activeUsers || 0}</span>
+              <span className="stat-sub">Active in last 7 days</span>
             </div>
           </div>
+
+          <div className="stat-card stat-card--amber">
+            <div className="stat-icon-wrap icon-amber">
+              <AdminIcons.Clock />
+            </div>
+            <div className="stat-info">
+              <span className="stat-label">Pending Payments</span>
+              <span className="stat-value">{stats?.pendingPayments || 0}</span>
+              <span className="stat-sub">Intents awaiting checkout</span>
+            </div>
+          </div>
+
+          <div className="stat-card stat-card--success">
+            <div className="stat-icon-wrap icon-success">
+              <AdminIcons.CreditCard />
+            </div>
+            <div className="stat-info">
+              <span className="stat-label">Paid Users</span>
+              <span className="stat-value">{stats?.paidUsers || 0}</span>
+              <span className="stat-trend positive">
+                {stats?.readyIntents || 0} ready intents
+              </span>
+            </div>
+          </div>
+
           <div className="stat-card">
-            <div className="stat-icon">⏳</div>
-            <div className="stat-content">
-              <h3>Pending Payments</h3>
-              <p className="stat-number">{stats?.pendingPayments || 0}</p>
+            <div className="stat-icon-wrap">
+              <AdminIcons.Briefcase />
+            </div>
+            <div className="stat-info">
+              <span className="stat-label">Professions</span>
+              <span className="stat-value">{stats?.totalProfessions || 0}</span>
+              <span className="stat-sub">Medical categories</span>
             </div>
           </div>
-          <div className="stat-card success">
-            <div className="stat-icon">💳</div>
-            <div className="stat-content">
-              <h3>Paid Users</h3>
-              <p className="stat-number">{stats?.paidUsers || 0}</p>
-              <p className="stat-change">{stats?.readyIntents || 0} intents marked READY</p>
-            </div>
-          </div>
+
           <div className="stat-card">
-            <div className="stat-icon">💼</div>
-            <div className="stat-content">
-              <h3>Professions</h3>
-              <p className="stat-number">{stats?.totalProfessions || 0}</p>
+            <div className="stat-icon-wrap">
+              <AdminIcons.Building2 />
             </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon">🏥</div>
-            <div className="stat-content">
-              <h3>Health Authorities</h3>
-              <p className="stat-number">{stats?.totalHealthAuthorities || 0}</p>
+            <div className="stat-info">
+              <span className="stat-label">Health Authorities</span>
+              <span className="stat-value">{stats?.totalHealthAuthorities || 0}</span>
+              <span className="stat-sub">GCC boards</span>
             </div>
           </div>
         </div>
 
         {/* Charts and Analytics Section */}
-        <div className="dashboard-sections">
+        <div className="admin-panels-row">
           {/* Activity Chart */}
-          <div className="dashboard-section">
-            <div className="section-header">
-              <h2>Activity Overview (Last 7 Days)</h2>
+          <div className="admin-panel">
+            <div className="panel-header">
+              <div>
+                <span className="panel-eyebrow">Weekly Velocity</span>
+                <h2 className="panel-title">Activity Overview (Last 7 Days)</h2>
+              </div>
+              <div className="panel-pill-badge">
+                {stats?.attemptsThisWeek || 0} Attempts This Week
+              </div>
             </div>
-            <div className="activity-chart">
-              <div className="chart-bars">
-                {stats?.dailyActivity?.map((day, index) => (
-                  <div key={index} className="chart-bar-container">
-                    <div className="chart-bar-wrapper">
-                      <div
-                        className="chart-bar"
-                        style={{
-                          height: `${(day.count / maxActivity) * 100}%`,
-                        }}
-                        title={`${day.count} attempts on ${day.label}`}
-                      >
-                        <span className="chart-bar-value">{day.count}</span>
+
+            <div className="activity-chart-container">
+              <div className="chart-bars-track">
+                {stats?.dailyActivity?.map((day, index) => {
+                  const barPercent = Math.max(8, Math.round((day.count / maxActivity) * 100));
+                  return (
+                    <div key={index} className="chart-bar-column">
+                      <div className="chart-bar-slot">
+                        <div
+                          className="chart-bar-fill"
+                          style={{ height: `${barPercent}%` }}
+                          title={`${day.count} attempts on ${day.label}`}
+                        >
+                          <span className="chart-bar-tooltip">{day.count}</span>
+                        </div>
                       </div>
+                      <span className="chart-bar-day">{day.label.split(',')[0]}</span>
                     </div>
-                    <div className="chart-label">{day.label.split(',')[0]}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
-            <div className="chart-stats">
-              <div className="chart-stat-item">
-                <span className="chart-stat-label">This Week:</span>
-                <span className="chart-stat-value">{stats?.attemptsThisWeek || 0}</span>
+
+            <div className="chart-footer-metrics">
+              <div className="chart-footer-item">
+                <span className="footer-metric-label">This Week</span>
+                <span className="footer-metric-val">{stats?.attemptsThisWeek || 0}</span>
               </div>
-              <div className="chart-stat-item">
-                <span className="chart-stat-label">This Month:</span>
-                <span className="chart-stat-value">{stats?.attemptsThisMonth || 0}</span>
+              <div className="chart-footer-divider" />
+              <div className="chart-footer-item">
+                <span className="footer-metric-label">This Month</span>
+                <span className="footer-metric-val">{stats?.attemptsThisMonth || 0}</span>
               </div>
             </div>
           </div>
 
           {/* Top Exams */}
-          <div className="dashboard-section">
-            <div className="section-header">
-              <h2>Most Popular Exams</h2>
+          <div className="admin-panel">
+            <div className="panel-header">
+              <div>
+                <span className="panel-eyebrow">Curriculum Popularity</span>
+                <h2 className="panel-title">Most Popular Exams</h2>
+              </div>
             </div>
-            <div className="top-exams-list">
+
+            <div className="top-exams-feed">
               {stats?.topExams && stats.topExams.length > 0 ? (
                 stats.topExams.map((exam, index) => (
-                  <div key={exam.id} className="top-exam-item">
-                    <div className="top-exam-rank">#{index + 1}</div>
-                    <div className="top-exam-info">
-                      <h4>{exam.title}</h4>
-                      <p className="top-exam-type">{exam.exam_type}</p>
+                  <div key={exam.id} className="top-exam-row">
+                    <div className={`top-exam-rank-pill ${index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : ''}`}>
+                      #{index + 1}
                     </div>
-                    <div className="top-exam-count">
-                      <span className="count-number">{exam.attemptCount}</span>
-                      <span className="count-label">attempts</span>
+                    <div className="top-exam-meta">
+                      <h4 className="top-exam-name">{exam.title}</h4>
+                      <span className="top-exam-tag">{exam.exam_type}</span>
+                    </div>
+                    <div className="top-exam-stat">
+                      <span className="exam-attempt-number">{exam.attemptCount}</span>
+                      <span className="exam-attempt-label">attempts</span>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="empty-state">No exam attempts yet</p>
+                <div className="admin-empty-state">
+                  <p>No exam attempts recorded yet.</p>
+                </div>
               )}
             </div>
           </div>
         </div>
 
         {/* Recent Activity Section */}
-        <div className="dashboard-sections">
+        <div className="admin-panels-row">
           {/* Recent Exam Attempts */}
-          <div className="dashboard-section">
-            <div className="section-header">
-              <h2>Recent Exam Attempts</h2>
-              <Link to="/admin/exams" className="view-all-link">View All →</Link>
+          <div className="admin-panel">
+            <div className="panel-header">
+              <div>
+                <span className="panel-eyebrow">Real-Time Submissions</span>
+                <h2 className="panel-title">Recent Exam Attempts</h2>
+              </div>
+              <Link to="/admin/exams" className="panel-view-all">
+                <span>View All Exams</span>
+                <AdminIcons.ArrowRight />
+              </Link>
             </div>
-            <div className="recent-activity-list">
+
+            <div className="admin-activity-feed">
               {stats?.recentAttempts && stats.recentAttempts.length > 0 ? (
-                stats.recentAttempts.slice(0, 5).map((attempt) => (
-                  <div key={attempt.id} className="activity-item">
-                    <div className="activity-icon">📝</div>
-                    <div className="activity-content">
-                      <div className="activity-main">
-                        <strong>{attempt.user?.full_name || 'Unknown User'}</strong>
-                        {' completed '}
-                        <strong>{attempt.exam?.title || 'Exam'}</strong>
-                      </div>
-                      <div className="activity-details">
-                        <div className="activity-metrics">
-                          {/* Main Score: Correct / Daily Limit */}
-                          {attempt.mainScore !== null && attempt.dailyLimit && (
-                            <span className="activity-score main-metric">
-                              <strong>Main Score:</strong> {attempt.mainScore.toFixed(1)}% 
-                              ({attempt.correct_answers} out of {attempt.dailyLimit} daily limit)
-                            </span>
-                          )}
-                          {/* Attempt Overview: Cumulative Correct / Cumulative Questions Answered */}
-                          <span className="activity-score">
-                            <strong>Attempt Overview:</strong> {attempt.attemptOverview.toFixed(1)}% 
-                            ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered} answered in all attempts)
+                stats.recentAttempts.slice(0, 5).map((attempt) => {
+                  const scoreNum = attempt.score || 0;
+                  const scoreBadgeClass = scoreNum >= 70 ? 'badge-pass' : scoreNum >= 50 ? 'badge-avg' : 'badge-fail';
+
+                  return (
+                    <div key={attempt.id} className="admin-activity-card">
+                      <div className="activity-main-info">
+                        <div className="activity-user-header">
+                          <span className="activity-user-name">
+                            {attempt.user?.full_name || 'Candidate'}
                           </span>
-                          {/* Overall Result: Cumulative Correct / Total MCQs in Database */}
-                          <span className="activity-score">
-                            <strong>Overall Result:</strong> {attempt.overallResult.toFixed(1)}% 
-                            ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers} out of {attempt.totalExamQuestions} total MCQs)
+                          <span className="activity-action-label">completed</span>
+                          <span className="activity-exam-name">
+                            {attempt.exam?.title || 'Exam'}
                           </span>
                         </div>
-                        <span className="activity-time">
-                          {new Date(attempt.completed_at).toLocaleString()}
+
+                        <div className="activity-metrics-strip">
+                          {attempt.mainScore !== null && attempt.dailyLimit && (
+                            <span className="activity-metric-pill">
+                              <strong>Main Score:</strong> {attempt.mainScore.toFixed(1)}% ({attempt.correct_answers}/{attempt.dailyLimit})
+                            </span>
+                          )}
+                          <span className="activity-metric-pill">
+                            <strong>Accuracy:</strong> {attempt.attemptOverview.toFixed(1)}% ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers}/{attempt.cumulativeAnsweredQuestions ?? attempt.totalQuestionsAnswered})
+                          </span>
+                          <span className="activity-metric-pill">
+                            <strong>Bank Coverage:</strong> {attempt.overallResult.toFixed(1)}% ({attempt.cumulativeCorrectAnswers ?? attempt.correct_answers}/{attempt.totalExamQuestions})
+                          </span>
+                        </div>
+
+                        <span className="activity-timestamp">
+                          {new Date(attempt.completed_at).toLocaleString(undefined, {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })}
                         </span>
                       </div>
+
+                      <div className={`activity-score-badge ${scoreBadgeClass}`}>
+                        {scoreNum.toFixed(0)}%
+                      </div>
                     </div>
-                    <div
-                      className={`activity-badge ${
-                        attempt.score >= 70 ? 'success' : attempt.score >= 50 ? 'warning' : 'danger'
-                      }`}
-                    >
-                      {`${attempt.score.toFixed(0)}%`}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <p className="empty-state">No recent exam attempts</p>
+                <div className="admin-empty-state">
+                  <p>No recent exam attempts found.</p>
+                </div>
               )}
             </div>
           </div>
 
           {/* New Users */}
-          <div className="dashboard-section">
-            <div className="section-header">
-              <h2>New Users (This Week)</h2>
-              <Link to="/admin/users" className="view-all-link">View All →</Link>
+          <div className="admin-panel">
+            <div className="panel-header">
+              <div>
+                <span className="panel-eyebrow">User Registrations</span>
+                <h2 className="panel-title">New Users (This Week)</h2>
+              </div>
+              <Link to="/admin/users" className="panel-view-all">
+                <span>Manage Users</span>
+                <AdminIcons.ArrowRight />
+              </Link>
             </div>
-            <div className="recent-activity-list">
+
+            <div className="admin-activity-feed">
               {stats?.newUsers && stats.newUsers.length > 0 ? (
                 stats.newUsers.slice(0, 5).map((user) => (
-                  <div key={user.id} className="activity-item">
-                    <div className="activity-icon">👤</div>
-                    <div className="activity-content">
-                      <div className="activity-main">
-                        <strong>{user.full_name || 'Unknown'}</strong>
-                      </div>
-                      <div className="activity-details">
-                        <span className="activity-email">{user.email}</span>
-                        <span className="activity-time">
-                          {new Date(user.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
+                  <div key={user.id} className="admin-user-card">
+                    <div className="admin-user-avatar">
+                      {(user.full_name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="admin-user-meta">
+                      <strong className="admin-user-name">{user.full_name || 'Unnamed Candidate'}</strong>
+                      <span className="admin-user-email">{user.email}</span>
+                      <span className="admin-user-date">
+                        Joined {new Date(user.created_at).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="empty-state">No new users this week</p>
+                <div className="admin-empty-state">
+                  <p>No new users registered this week.</p>
+                </div>
               )}
             </div>
           </div>

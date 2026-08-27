@@ -131,6 +131,76 @@ function normalizeFeatures(features) {
   return [];
 }
 
+function getHealthAuthorityCanonicalKey(ha) {
+  if (!ha) return '';
+  const name = String(ha.name || '').trim().toLowerCase();
+  const country = String(ha.country || '').trim().toLowerCase();
+
+  if (name.includes('scfhs') || name.includes('saudi commission') || name.includes('saudi council')) return 'scfhs';
+  if (name.includes('dha') || name.includes('dubai health authority')) return 'dha';
+  if (name.includes('mohap') || name.includes('ministry of health and prevention') || (name.includes('ministry of health') && (country.includes('emirates') || country.includes('uae') || name.includes('uae')))) return 'mohap';
+  if (name.includes('haad') || name.includes('abu dhabi') || (name.startsWith('doh') && (country.includes('emirates') || country.includes('uae') || name.includes('abu dhabi')))) return 'doh';
+  if (name.includes('qchp') || name.includes('dhp') || name.includes('qatar council') || name.includes('healthcare practitioners') || name.includes('healthcare professions') || (name.includes('moph') && country.includes('qatar'))) return 'qchp';
+  if (name.includes('omsb') || name.includes('oman medical')) return 'omsb';
+  if (name.includes('nhra') || name.includes('national health regulatory') || (name.includes('bahrain') && name.includes('health'))) return 'nhra';
+  if (name.includes('kuwait') || (name.includes('moh') && (country.includes('kuwait') || name.includes('kuwait')))) return 'moh_kuwait';
+
+  const cleanName = name.replace(/[^a-z0-9]/g, '');
+  const cleanCountry = country.replace(/[^a-z0-9]/g, '');
+  return cleanName ? `${cleanName}_${cleanCountry}` : `id_${ha.id || ''}`;
+}
+
+function deduplicateHealthAuthorities(list) {
+  if (!Array.isArray(list) || list.length === 0) return [];
+  const map = new Map();
+  const seenIds = new Set();
+
+  for (const item of list) {
+    if (!item) continue;
+    const id = item.id != null ? String(item.id) : '';
+    if (id && seenIds.has(id)) continue;
+
+    const key = getHealthAuthorityCanonicalKey(item);
+    if (!key) {
+      if (id) seenIds.add(id);
+      map.set(id || `rand_${Math.random()}`, item);
+      continue;
+    }
+
+    if (!map.has(key)) {
+      if (id) seenIds.add(id);
+      map.set(key, item);
+    } else {
+      const existing = map.get(key);
+      const existingHasParen = /\([^)]+\)/.test(existing.name || '');
+      const itemHasParen = /\([^)]+\)/.test(item.name || '');
+      if (!existingHasParen && itemHasParen) {
+        if (id) seenIds.add(id);
+        map.set(key, item);
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
+function deduplicateProfessions(list) {
+  if (!Array.isArray(list) || list.length === 0) return [];
+  const map = new Map();
+  const seenIds = new Set();
+  for (const item of list) {
+    if (!item) continue;
+    const id = item.id != null ? String(item.id) : '';
+    if (id && seenIds.has(id)) continue;
+    const nameKey = String(item.name || '').trim().toLowerCase();
+    if (!nameKey) continue;
+    if (!map.has(nameKey)) {
+      if (id) seenIds.add(id);
+      map.set(nameKey, item);
+    }
+  }
+  return Array.from(map.values());
+}
+
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'OPTIONS, GET');
@@ -186,8 +256,8 @@ export default async function handler(req, res) {
 
     return send(res, 200, {
       data: {
-        professions: professions || [],
-        healthAuthorities: healthAuthorities || [],
+        professions: deduplicateProfessions(professions || []),
+        healthAuthorities: deduplicateHealthAuthorities(healthAuthorities || []),
         packages: packagesEnriched,
       },
       warnings: warnings.filter(Boolean),

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import Layout from '../../components/Layout';
-import logoUrl from '../../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
+const logoUrl = '/logo.png';
 import { fetchPublicCatalog } from '../../utils/publicApi';
 import { packageFeaturesForDisplay } from '../../utils/packageFeaturesDisplay';
 import { packageMeetsEligibilityMinimum } from '../../utils/supabaseQueries';

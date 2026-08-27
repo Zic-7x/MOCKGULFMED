@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-import logoUrl from '../image/Gemini_Generated_Image_wtgqj3wtgqj3wtgq-removebg-preview.png';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+const logoUrl = '/logo.png';
 import './Login.css';
 
 function readStoredTheme() {
@@ -16,12 +16,19 @@ function readStoredTheme() {
 }
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const [email, setEmail] = useState(() => location.state?.registeredEmail || '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState(readStoredTheme);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.state?.registeredEmail) {
+      setEmail(location.state.registeredEmail);
+    }
+  }, [location.state]);
 
   const toggleTheme = useCallback(() => {
     setTheme((t) => {
