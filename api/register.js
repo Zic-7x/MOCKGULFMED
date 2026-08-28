@@ -112,9 +112,9 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!professionId || !healthAuthorityId || !packageId) {
+    if (!professionId || !healthAuthorityId) {
       return send(res, 400, {
-        error: 'professionId, healthAuthorityId, and packageId are required',
+        error: 'professionId and healthAuthorityId are required',
       });
     }
 
@@ -131,13 +131,18 @@ export default async function handler(req, res) {
 
     const userId = authData.user.id;
 
-    const { data: pkgRow } = await serviceClient
-      .from('packages')
-      .select('name')
-      .eq('id', packageId)
-      .maybeSingle();
+    let initialDailyMcq = DEFAULT_DAILY_MCQ;
+    if (packageId) {
+      const { data: pkgRow } = await serviceClient
+        .from('packages')
+        .select('name')
+        .eq('id', packageId)
+        .maybeSingle();
 
-    const initialDailyMcq = pkgRow ? dailyMcqFromPackageName(pkgRow.name) : DEFAULT_DAILY_MCQ;
+      if (pkgRow) {
+        initialDailyMcq = dailyMcqFromPackageName(pkgRow.name);
+      }
+    }
 
     // Create user profile (role USER; automation enabled by default)
     const { data: profile, error: profileError } = await serviceClient
@@ -162,29 +167,33 @@ export default async function handler(req, res) {
       return send(res, 400, { error: profileError.message || 'Failed to create user profile' });
     }
 
-    // Record the user's selection as a registration intent (payment will later flip this to READY)
-    const { data: intent, error: intentError } = await serviceClient
-      .from('registration_intents')
-      .insert({
-        user_id: userId,
-        profession_id: professionId,
-        health_authority_id: healthAuthorityId,
-        package_id: packageId,
-        status: 'PENDING_PAYMENT',
-      })
-      .select('*')
-      .single();
+    let intent = null;
+    if (packageId) {
+      // Record the user's selection as a registration intent (payment will later flip this to READY)
+      const { data: intentRow, error: intentError } = await serviceClient
+        .from('registration_intents')
+        .insert({
+          user_id: userId,
+          profession_id: professionId,
+          health_authority_id: healthAuthorityId,
+          package_id: packageId,
+          status: 'PENDING_PAYMENT',
+        })
+        .select('*')
+        .single();
 
-    if (intentError) {
-      // Profile exists; keep user but report issue. Admin can still fix manually.
-      return send(res, 200, {
-        data: {
-          userId,
-          profile,
-          intent: null,
-          warning: 'Registered but could not create registration intent',
-        },
-      });
+      if (intentError) {
+        // Profile exists; keep user but report issue. Admin can still fix manually.
+        return send(res, 200, {
+          data: {
+            userId,
+            profile,
+            intent: null,
+            warning: 'Registered but could not create registration intent',
+          },
+        });
+      }
+      intent = intentRow;
     }
 
     return send(res, 200, {
