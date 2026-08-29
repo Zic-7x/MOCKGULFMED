@@ -1,0 +1,407 @@
+/* Admin Support Tickets Management Styles */
+
+.admin-support-page {
+  padding: 2rem 1.5rem 4rem;
+  max-width: 1350px;
+  margin: 0 auto;
+  min-height: calc(100vh - 120px);
+}
+
+.admin-support-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+  .admin-support-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.admin-support-title-group h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.4rem 0;
+  letter-spacing: -0.02em;
+}
+
+.admin-support-title-group p {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.admin-privacy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.825rem;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+/* KPI Overview Grid */
+.admin-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.admin-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.admin-kpi-card--highlight {
+  border-color: #86efac;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.admin-kpi-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.admin-kpi-icon-wrap--blue {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.admin-kpi-icon-wrap--amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.admin-kpi-icon-wrap--emerald {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.admin-kpi-icon-wrap--purple {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.admin-kpi-icon-wrap--rose {
+  background: #ffe4e6;
+  color: #e11d48;
+}
+
+.admin-kpi-data {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-kpi-num {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.admin-kpi-label {
+  font-size: 0.825rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-top: 3px;
+}
+
+/* Filter bar */
+.admin-support-filter-bar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.15rem 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .admin-support-filter-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.admin-filter-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-filter-select {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #334155;
+  background-color: #ffffff;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.admin-search-input {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #334155;
+  min-width: 200px;
+  min-height: 40px;
+  flex: 1;
+}
+
+/* Data Table */
+.admin-table-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.admin-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-tickets-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+  min-width: 780px;
+}
+
+.admin-tickets-table th {
+  background: #f8fafc;
+  padding: 0.85rem 1.15rem;
+  font-weight: 700;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.admin-tickets-table td {
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.admin-tickets-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.admin-tickets-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.admin-candidate-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.admin-candidate-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.admin-candidate-email {
+  font-size: 0.775rem;
+  color: #64748b;
+}
+
+.admin-candidate-meta {
+  font-size: 0.725rem;
+  color: #0284c7;
+  font-weight: 500;
+}
+
+.btn-admin-action {
+  background: #0284c7;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-admin-action:hover {
+  background: #0369a1;
+}
+
+/* Admin Workspace Modal */
+.admin-workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 820px) {
+  .admin-workspace-grid {
+    grid-template-columns: 280px 1fr;
+  }
+}
+
+.admin-applicant-info-sidebar {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-info-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.admin-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.admin-info-label {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.admin-info-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.admin-canned-templates {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.admin-template-chip {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.admin-template-chip:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.admin-privacy-alert {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.825rem;
+  color: #1e40af;
+}
+
+/* Mobile adjustments for Admin */
+@media (max-width: 640px) {
+  .admin-support-page {
+    padding: 1.25rem 0.85rem 3.5rem;
+  }
+
+  .admin-support-title-group h1 {
+    font-size: 1.45rem;
+  }
+
+  .admin-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+  }
+
+  .admin-kpi-card {
+    padding: 0.85rem 0.9rem;
+    gap: 0.75rem;
+  }
+
+  .admin-kpi-icon-wrap {
+    width: 40px;
+    height: 40px;
+    font-size: 1.15rem;
+  }
+
+  .admin-kpi-num {
+    font-size: 1.35rem;
+  }
+
+  .admin-kpi-label {
+    font-size: 0.725rem;
+  }
+
+  .admin-filter-controls-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .admin-filter-select,
+  .admin-search-input {
+    width: 100%;
+  }
+}
+

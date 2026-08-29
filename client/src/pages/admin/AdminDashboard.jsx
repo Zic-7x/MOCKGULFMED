@@ -195,6 +195,15 @@ const AdminDashboard = () => {
               <span className="action-btn-sub">DHA, MOH, SCFHS</span>
             </div>
           </Link>
+          <Link to="/admin/tickets" className="admin-action-btn">
+            <div className="action-btn-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+              <AdminIcons.CheckCircle />
+            </div>
+            <div className="action-btn-text">
+              <span className="action-btn-title">Support Queries</span>
+              <span className="action-btn-sub">Candidate SLAs</span>
+            </div>
+          </Link>
         </div>
 
         {/* Main Stats Grid */}

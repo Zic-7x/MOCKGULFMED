@@ -27,6 +27,8 @@ import ExamManagement from './pages/admin/ExamManagement';
 import AccessManagement from './pages/admin/AccessManagement';
 import ProfessionManagement from './pages/admin/ProfessionManagement';
 import HealthAuthorityManagement from './pages/admin/HealthAuthorityManagement';
+import SupportManagement from './pages/admin/SupportManagement';
+import SupportDesk from './pages/user/SupportDesk';
 import LoadingSpinner from './components/LoadingSpinner';
 import PolicyLayout from './pages/policies/PolicyLayout';
 import PoliciesIndex from './pages/policies/PoliciesIndex';
@@ -87,6 +89,7 @@ function App() {
         {user?.role === 'ADMIN' && (
           <>
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/tickets" element={<SupportManagement />} />
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/exams" element={<ExamManagement />} />
             <Route path="/admin/access" element={<AccessManagement />} />
@@ -110,6 +113,7 @@ function App() {
         {user && user.role !== 'ADMIN' && (
           <>
             <Route path="/dashboard" element={<UserDashboard />} />
+            <Route path="/support" element={<SupportDesk />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/eligibility-assessment" element={<EligibilityAssessment />} />
             <Route

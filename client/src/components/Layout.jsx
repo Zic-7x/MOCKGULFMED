@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { getAnnualJobPortalQueryOptions } from '../utils/annualJobPortalQuery';
 const logoUrl = '/logo.png';
-import AnnouncementModal from './AnnouncementModal';
 import './Layout.css';
 
 /* Micro SVG Icons for Nav & Menu Items */
@@ -108,6 +107,14 @@ function NavIcon({ type, className = 'nav-icon' }) {
           <path d="M16 14h.01" />
           <path d="M8 10h.01" />
           <path d="M8 14h.01" />
+        </svg>
+      );
+    case 'support':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
       );
     case 'jobs':
@@ -226,6 +233,8 @@ const Layout = ({ children }) => {
   const applicationsActive = location.pathname === '/applications';
   const reelsActive = location.pathname === '/reels';
   const hiringActive = location.pathname.startsWith('/employer');
+  const appActive = location.pathname === '/download-app';
+  const supportActive = location.pathname === '/support';
 
   return (
     <div className="layout">
@@ -305,6 +314,18 @@ const Layout = ({ children }) => {
                     <NavIcon type="authorities" />
                     <span>Health Authorities</span>
                   </Link>
+                  <Link
+                    to="/admin/tickets"
+                    className={
+                      location.pathname === '/admin/tickets' || location.pathname === '/admin/support'
+                        ? 'nav-link active'
+                        : 'nav-link'
+                    }
+                    onClick={closeMenu}
+                  >
+                    <NavIcon type="support" />
+                    <span>Support Desk</span>
+                  </Link>
                 </div>
               ) : (
                 <div className="nav-menu-rail">
@@ -358,15 +379,6 @@ const Layout = ({ children }) => {
                     >
                       <NavIcon type="results" />
                       <span>Results</span>
-                    </Link>
-                    <Link
-                      to="/download-app"
-                      className={location.pathname === '/download-app' ? 'nav-link active' : 'nav-link'}
-                      onClick={closeMenu}
-                      title="Download Android App"
-                    >
-                      <NavIcon type="app" />
-                      <span>📱 Android App</span>
                     </Link>
                   </div>
                 </div>
@@ -457,11 +469,22 @@ const Layout = ({ children }) => {
                           <Link
                             to="/download-app"
                             role="menuitem"
-                            className="nav-user-panel-link"
+                            className={`nav-user-panel-link${appActive ? ' nav-user-panel-link--active' : ''}`}
+                            aria-current={appActive ? 'page' : undefined}
                             onClick={closeMenu}
                           >
                             <NavIcon type="app" />
                             <span>📱 Android App (Free APK)</span>
+                          </Link>
+                          <Link
+                            to="/support"
+                            role="menuitem"
+                            className={`nav-user-panel-link${supportActive ? ' nav-user-panel-link--active' : ''}`}
+                            aria-current={supportActive ? 'page' : undefined}
+                            onClick={closeMenu}
+                          >
+                            <NavIcon type="support" />
+                            <span>Candidate Support & SLA</span>
                           </Link>
                         </div>
 
@@ -506,7 +529,6 @@ const Layout = ({ children }) => {
           </div>
         </div>
       </nav>
-      <AnnouncementModal />
       <main className="main-content">{children}</main>
     </div>
   );

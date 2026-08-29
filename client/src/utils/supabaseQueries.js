@@ -3170,3 +3170,518 @@ export async function bookMyExternalExamPaid({
   if (error) throw error;
   return data;
 }
+
+/* ==========================================================================
+   SUPPORT TICKETING & APPLICANT QUERY SYSTEM
+   - Divides into task categories (Exam prep, Dataflow, Licensing, Billing, Tech)
+   - Enforces SLA: 24h for Mastering the Exam, 48h for Basic / Acing
+   - Masks Admin identity as "Support Team"
+   ========================================================================== */
+
+export const SUPPORT_TICKET_CATEGORIES = [
+  {
+    id: 'GENERAL_QUERY',
+    label: 'General Query & Assistance',
+    shortLabel: 'General Query',
+    badgeClass: 'badge--general',
+    description: 'General questions, platform guidance, and inquiries for our expert team',
+  },
+  {
+    id: 'EXAM_PREPARATION',
+    label: 'Exam Prep & Question Bank',
+    shortLabel: 'Exam Prep',
+    badgeClass: 'badge--exam',
+    description: 'Prometric/Pearson exams, MCQ explanations, answer rationales, scoring',
+  },
+  {
+    id: 'DATAFLOW_VERIFICATION',
+    label: 'Dataflow & PSV Process',
+    shortLabel: 'Dataflow',
+    badgeClass: 'badge--dataflow',
+    description: 'Primary Source Verification, document attestation, PSV report tracking',
+  },
+  {
+    id: 'HEALTH_AUTHORITY_LICENSING',
+    label: 'Health Authority Licensing',
+    shortLabel: 'Licensing',
+    badgeClass: 'badge--licensing',
+    description: 'DHA, MOH, DOH/HAAD, SCFHS, OMSB, QCHP applications & guidelines',
+  },
+  {
+    id: 'COMPLAINT',
+    label: 'Complaint / Escalation',
+    shortLabel: 'Complaint',
+    badgeClass: 'badge--complaint',
+    description: 'Service issues, staff feedback, report discrepancies, or formal complaints',
+  },
+  {
+    id: 'REFUND_REQUEST',
+    label: 'Refund Request',
+    shortLabel: 'Refund',
+    badgeClass: 'badge--refund',
+    description: 'Refund review, duplicate transactions, billing disputes, policy queries',
+  },
+  {
+    id: 'EXAM_CANCELLATION_REQUEST',
+    label: 'Exam Cancellation / Reschedule Request',
+    shortLabel: 'Exam Cancellation',
+    badgeClass: 'badge--cancellation',
+    description: 'Scheduled exam cancellation, date change, Prometric slot adjustments',
+  },
+  {
+    id: 'BILLING_PACKAGES',
+    label: 'Billing, Packages & Plans',
+    shortLabel: 'Billing',
+    badgeClass: 'badge--billing',
+    description: 'Package upgrades, payment status, subscription duration, receipts',
+  },
+  {
+    id: 'ELIGIBILITY_ASSESSMENT',
+    label: 'Eligibility & Credentials',
+    shortLabel: 'Eligibility',
+    badgeClass: 'badge--eligibility',
+    description: 'Experience letter validation, diploma vs degree qualifications, rules',
+  },
+  {
+    id: 'TECHNICAL_ACCOUNT',
+    label: 'Account & Mobile App Support',
+    shortLabel: 'Technical',
+    badgeClass: 'badge--tech',
+    description: 'Login access, Android APK issues, profile details, device compatibility',
+  },
+];
+
+export const SUPPORT_TICKET_STATUSES = {
+  OPEN: { label: 'Open / New', color: 'blue' },
+  IN_PROGRESS: { label: 'In Progress', color: 'amber' },
+  WAITING_ON_APPLICANT: { label: 'Waiting on Candidate', color: 'purple' },
+  RESOLVED: { label: 'Resolved', color: 'emerald' },
+  CLOSED: { label: 'Closed', color: 'slate' },
+};
+
+export const SUPPORT_TICKET_PRIORITIES = {
+  LOW: { label: 'Low', color: 'slate' },
+  NORMAL: { label: 'Normal', color: 'blue' },
+  HIGH: { label: 'High Priority', color: 'amber' },
+  URGENT: { label: 'Urgent', color: 'rose' },
+};
+
+/**
+ * Get active user's SLA tier based on their active package entitlement
+ * Returns SLA response hours (24 for Mastering, 48 for Basic/Acing/other) and explanation copy
+ */
+export async function getUserSupportSlaTier(userId) {
+  if (!userId) {
+    return {
+      slaHours: 48,
+      planName: 'Candidate / Standard',
+      isMastering: false,
+      isAcingOrBasic: true,
+      badgeText: '48h Standard SLA',
+      noticeText: 'You will receive a response within 48 hours.',
+    };
+  }
+
+  try {
+    const pkgContext = await getAutoPackageAccessContext(userId);
+    if (pkgContext.kind === 'active' && pkgContext.entitlement?.package) {
+      const pkg = pkgContext.entitlement.package;
+      const months = inferPackageDurationMonths(pkg);
+      const pkgName = String(pkg.name || '').toLowerCase();
+      const isMastering = months === 12 || pkgName.includes('mastering') || pkgName.includes('annual');
+
+      if (isMastering) {
+        return {
+          slaHours: 24,
+          planName: pkg.name || 'Mastering the Exam Annual (12 Months)',
+          isMastering: true,
+          isAcingOrBasic: false,
+          badgeText: '⚡ 24h Priority SLA',
+          noticeText: '👑 Active Mastering Plan: Guaranteed priority response within 24 hours!',
+          shortNotice: '24 hours response guarantee (Mastering the Exam package)',
+        };
+      } else {
+        return {
+          slaHours: 48,
+          planName: pkg.name || 'Basic / Acing the Exam',
+          isMastering: false,
+          isAcingOrBasic: true,
+          badgeText: '🕒 48h Standard SLA',
+          noticeText: '📘 Active Package: You will receive a response within 48 hours.',
+          shortNotice: '48 hours response window (Basic / Acing the Exam package)',
+        };
+      }
+    }
+  } catch (err) {
+    console.error('[getUserSupportSlaTier] error:', err);
+  }
+
+  return {
+    slaHours: 48,
+    planName: 'Candidate Free / Standard',
+    isMastering: false,
+    isAcingOrBasic: true,
+    badgeText: '🕒 48h Standard SLA',
+    noticeText: 'You will receive a response within 48 hours.',
+    shortNotice: '48 hours response window',
+  };
+}
+
+/** Fetch support tickets via API endpoint with fallback to direct Supabase client */
+export async function getSupportTickets(filters = {}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  const currentUserId = session?.user?.id;
+
+  const params = new URLSearchParams();
+  if (filters.status) params.set('status', filters.status);
+  if (filters.category) params.set('category', filters.category);
+  if (filters.priority) params.set('priority', filters.priority);
+  if (filters.sla) params.set('sla', filters.sla);
+  if (filters.search) params.set('search', filters.search);
+
+  try {
+    const res = await fetch(`/api/support-tickets?${params.toString()}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.tickets)) {
+        return data.tickets;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('[getSupportTickets] API fetch failed, attempting direct Supabase query:', apiErr);
+  }
+
+  // Resilient direct Supabase client query fallback
+  try {
+    let query = supabase
+      .from('support_tickets')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    const isAdminUser =
+      filters.adminView ||
+      session?.user?.user_metadata?.role?.toUpperCase() === 'ADMIN' ||
+      session?.user?.email?.toLowerCase() === 'howzic0@gmail.com';
+
+    if (!isAdminUser && currentUserId) {
+      query = query.eq('user_id', currentUserId);
+    }
+
+    if (filters.status && filters.status !== 'ALL') {
+      if (filters.status === 'ACTIVE') {
+        query = query.in('status', ['OPEN', 'IN_PROGRESS', 'WAITING_ON_APPLICANT']);
+      } else {
+        query = query.eq('status', filters.status);
+      }
+    }
+
+    if (filters.category && filters.category !== 'ALL') {
+      query = query.eq('category', filters.category);
+    }
+
+    if (filters.priority && filters.priority !== 'ALL') {
+      query = query.eq('priority', filters.priority);
+    }
+
+    if (filters.sla && filters.sla !== 'ALL') {
+      query = query.eq('sla_response_hours', parseInt(filters.sla, 10));
+    }
+
+    const { data: directTickets, error: directErr } = await query;
+    if (!directErr && Array.isArray(directTickets)) {
+      let hydrated = directTickets;
+      if (isAdminUser && directTickets.length > 0) {
+        const userIds = [...new Set(directTickets.map((t) => t.user_id).filter(Boolean))];
+        if (userIds.length > 0) {
+          try {
+            const { data: profiles } = await supabase
+              .from('user_profiles')
+              .select('id, full_name, email, phone, profession_id, health_authority_id')
+              .in('id', userIds);
+            const pMap = new Map();
+            (profiles || []).forEach((p) => pMap.set(p.id, p));
+            hydrated = directTickets.map((t) => ({
+              ...t,
+              applicant: pMap.get(t.user_id) || {
+                id: t.user_id,
+                full_name: 'Applicant',
+                email: '',
+              },
+            }));
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      let results = hydrated;
+      if (filters.search && filters.search.trim()) {
+        const q = filters.search.toLowerCase().trim();
+        results = results.filter((t) => {
+          const ticketNo = String(t.ticket_number || '').toLowerCase();
+          const sub = String(t.subject || '').toLowerCase();
+          const applicantName = String(t.applicant?.full_name || '').toLowerCase();
+          const applicantEmail = String(t.applicant?.email || '').toLowerCase();
+          return (
+            ticketNo.includes(q) ||
+            sub.includes(q) ||
+            applicantName.includes(q) ||
+            applicantEmail.includes(q)
+          );
+        });
+      }
+      return results;
+    }
+  } catch (directQueryErr) {
+    console.warn('[getSupportTickets] Direct Supabase query error:', directQueryErr);
+  }
+
+  return [];
+}
+
+/** Fetch a single support ticket by ID with full conversation */
+export async function getSupportTicketById(ticketId) {
+  if (!ticketId) throw new Error('Ticket ID is required');
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  try {
+    const res = await fetch(`/api/support-tickets?ticketId=${encodeURIComponent(ticketId)}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.ticket) {
+        return data;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('[getSupportTicketById] API fetch failed, trying direct Supabase query:', apiErr);
+  }
+
+  // Resilient direct Supabase fetch
+  try {
+    const { data: ticket, error: ticketErr } = await supabase
+      .from('support_tickets')
+      .select('*')
+      .eq('id', ticketId)
+      .single();
+
+    if (!ticketErr && ticket) {
+      const { data: messages } = await supabase
+        .from('support_ticket_messages')
+        .select('*')
+        .eq('ticket_id', ticketId)
+        .order('created_at', { ascending: true });
+
+      let applicantProfile = null;
+      if (ticket.user_id) {
+        try {
+          const { data: prof } = await supabase
+            .from('user_profiles')
+            .select('id, full_name, email, phone, profession_id, health_authority_id')
+            .eq('id', ticket.user_id)
+            .single();
+          applicantProfile = prof;
+        } catch {
+          // ignore
+        }
+      }
+
+      return {
+        ticket: {
+          ...ticket,
+          applicant: applicantProfile || {
+            id: ticket.user_id,
+            full_name: 'Applicant',
+            email: '',
+          },
+        },
+        messages: (messages || []).map((m) =>
+          m.sender_role === 'ADMIN' ? { ...m, sender_name: 'Support Team' } : m
+        ),
+      };
+    }
+  } catch (directErr) {
+    console.warn('[getSupportTicketById] Direct Supabase fetch error:', directErr);
+  }
+
+  throw new Error('Unable to load support query details.');
+}
+
+/** Create a new support ticket / candidate query */
+export async function createSupportTicket({
+  subject,
+  category,
+  message,
+  priority = 'NORMAL',
+  attachment_url = null,
+  attachment_name = null,
+}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  const res = await fetch('/api/support-tickets?action=create', {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      subject,
+      category,
+      message,
+      priority,
+      attachment_url,
+      attachment_name,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to submit query (${res.status})`);
+  }
+
+  return await res.json();
+}
+
+/** Add a message / reply to an existing support ticket */
+export async function addSupportTicketMessage({
+  ticketId,
+  message,
+  attachment_url = null,
+  attachment_name = null,
+  statusUpdate = null,
+}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  const res = await fetch('/api/support-tickets?action=reply', {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      ticketId,
+      message,
+      attachment_url,
+      attachment_name,
+      statusUpdate,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to send reply (${res.status})`);
+  }
+
+  return await res.json();
+}
+
+/** Update support ticket status / priority */
+export async function updateSupportTicketStatus({ ticketId, status, priority }) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  const res = await fetch('/api/support-tickets?action=update_status', {
+    method: 'PATCH',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      ticketId,
+      status,
+      priority,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to update status (${res.status})`);
+  }
+
+  return await res.json();
+}
+
+/** Get support ticket overview metrics */
+export async function getSupportOverviewStats() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  try {
+    const res = await fetch('/api/support-tickets?action=stats', {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (apiErr) {
+    console.warn('[getSupportOverviewStats] API fetch failed, calculating from direct Supabase query:', apiErr);
+  }
+
+  // Fallback direct calculation
+  try {
+    const { data: list, error } = await supabase
+      .from('support_tickets')
+      .select('id, status, priority, sla_response_hours, created_at, last_responder_role');
+
+    if (!error && Array.isArray(list)) {
+      const total = list.length;
+      const open = list.filter((t) => t.status === 'OPEN').length;
+      const inProgress = list.filter((t) => t.status === 'IN_PROGRESS').length;
+      const waitingOnApplicant = list.filter((t) => t.status === 'WAITING_ON_APPLICANT').length;
+      const resolved = list.filter((t) => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
+      const priority24h = list.filter(
+        (t) => t.sla_response_hours === 24 && t.status !== 'RESOLVED' && t.status !== 'CLOSED'
+      ).length;
+      const urgentOrHigh = list.filter(
+        (t) => (t.priority === 'URGENT' || t.priority === 'HIGH') && t.status !== 'RESOLVED' && t.status !== 'CLOSED'
+      ).length;
+      const awaitingStaffReply = list.filter(
+        (t) => t.last_responder_role === 'APPLICANT' && t.status !== 'RESOLVED' && t.status !== 'CLOSED'
+      ).length;
+
+      return {
+        total,
+        open,
+        inProgress,
+        waitingOnApplicant,
+        resolved,
+        priority24h,
+        urgentOrHigh,
+        awaitingStaffReply,
+      };
+    }
+  } catch (directStatsErr) {
+    console.warn('[getSupportOverviewStats] Direct query error:', directStatsErr);
+  }
+
+  return {
+    total: 0,
+    open: 0,
+    inProgress: 0,
+    waitingOnApplicant: 0,
+    resolved: 0,
+    priority24h: 0,
+    urgentOrHigh: 0,
+    awaitingStaffReply: 0,
+  };
+}
+

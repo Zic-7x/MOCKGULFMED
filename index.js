@@ -9,6 +9,7 @@ import adminExamGrantsHandler from './api/admin-exam-grants.js';
 import publicCatalogHandler from './api/public-catalog.js';
 import registerHandler from './api/register.js';
 import freemiusWebhookHandler from './api/freemius-webhook.js';
+import supportTicketsHandler from './api/support-tickets.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,6 +62,8 @@ app.all('/api/admin-users', asyncRoute(adminUsersHandler));
 app.all('/api/admin-exam-grants', asyncRoute(adminExamGrantsHandler));
 app.all('/api/public-catalog', asyncRoute(publicCatalogHandler));
 app.all('/api/register', asyncRoute(registerHandler));
+app.all('/api/support-tickets', asyncRoute(supportTicketsHandler));
+app.all('/api/support-tickets/*', asyncRoute(supportTicketsHandler));
 app.all('/api/freemius/webhook', asyncRoute(freemiusWebhookHandler));
 app.all('/api/freemius-webhook', asyncRoute(freemiusWebhookHandler));
 

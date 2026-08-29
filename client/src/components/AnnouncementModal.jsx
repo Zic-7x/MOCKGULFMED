@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import './AnnouncementModal.css';
 
 const AnnouncementModal = () => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   const dismiss = () => setIsOpen(false);
 

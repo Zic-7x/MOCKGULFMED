@@ -1,0 +1,78 @@
+{
+  "name": "MockGulfMed - Medical Exam Portal",
+  "short_name": "MockGulfMed",
+  "description": "Mock Exam Portal for Medical Professionals - Prometric, Pearson, DHA, MOH, HAAD, OMSB, QCHP, SMLE Exam Prep",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "window-controls-overlay"],
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0b6ea8",
+  "categories": ["education", "medical", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Practice Exams",
+      "short_name": "Exams",
+      "description": "Access your mock exams and tests",
+      "url": "/exams",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Exam Packages",
+      "short_name": "Packages",
+      "description": "View premium medical licensing question packages",
+      "url": "/packages",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Eligibility Checker",
+      "short_name": "Eligibility",
+      "description": "Check GCC medical licensing eligibility",
+      "url": "/eligibility-check",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Healthcare Jobs",
+      "short_name": "Jobs",
+      "description": "Browse medical jobs in the Gulf region",
+      "url": "/jobs",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://ais-dev-oxnmuh2l3yt2kydvtvtgrl-37922861272.asia-southeast1.run.app/download-app",
+      "id": "com.mockgulfmed.app"
+    }
+  ],
+  "prefer_related_applications": false
+}
