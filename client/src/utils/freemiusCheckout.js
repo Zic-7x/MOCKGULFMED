@@ -107,9 +107,12 @@ export async function launchFreemiusPackageCheckout({
     const firstName = nameParts[0] || undefined;
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
 
+    const isTrial = pkg?.name === 'Basic Monthly' || pkg?.isTrial || false;
+
     handler.open({
       name: pkg?.name || 'Subscription Package',
       licenses: 1,
+      trial: isTrial ? 'paid' : undefined,
       user_email: userEmail,
       user_firstname: firstName,
       user_lastname: lastName,

@@ -87,8 +87,11 @@ function parsePriceAmount(pkg) {
   return amount;
 }
 
-function packageCallout(pkg) {
-  if (pkg?.name === 'Basic Monthly') return '3-day free trial. Card required.';
+function packageCallout(pkg, hasUsedTrial = false) {
+  if (pkg?.name === 'Basic Monthly') {
+    if (hasUsedTrial) return null;
+    return '3-day free trial. Card required.';
+  }
   return null;
 }
 
@@ -183,9 +186,9 @@ function SavingsPills({ packages }) {
   );
 }
 
-function PackageCard({ pkg, currentPackage, activeCheckoutPackageId, onBuy }) {
+function PackageCard({ pkg, currentPackage, hasUsedTrial, activeCheckoutPackageId, onBuy }) {
   const feats = packageFeaturesList(pkg);
-  const callout = packageCallout(pkg);
+  const callout = packageCallout(pkg, hasUsedTrial);
   const eligNote = eligibilityPlanNote(pkg);
   const hasCurrent = Boolean(currentPackage?.id);
   const isCurrent = hasCurrent && currentPackage.id === pkg.id;
@@ -197,6 +200,8 @@ function PackageCard({ pkg, currentPackage, activeCheckoutPackageId, onBuy }) {
   if (isCurrent) buttonLabel = 'Current Plan';
   else if (isUpgrade) buttonLabel = 'Upgrade';
   else if (isLockedLowerTier) buttonLabel = 'Covered by current plan';
+  else if (pkg?.name === 'Basic Monthly' && hasUsedTrial) buttonLabel = 'Subscribe Now';
+  else if (pkg?.name === 'Basic Monthly') buttonLabel = 'Start 3-Day Trial';
 
   return (
     <article
@@ -321,6 +326,7 @@ const Packages = () => {
   const [checkoutError, setCheckoutError] = useState(null);
   const [activeCheckoutPackageId, setActiveCheckoutPackageId] = useState(null);
   const [currentPackage, setCurrentPackage] = useState(null);
+  const [hasUsedTrial, setHasUsedTrial] = useState(false);
   const [entitlementRefreshKey, setEntitlementRefreshKey] = useState(0);
 
   const freemiusReady = useMemo(
@@ -374,7 +380,11 @@ const Packages = () => {
   useEffect(() => {
     let mounted = true;
     const loadActivePackage = async () => {
-      if (!user?.id) { setCurrentPackage(null); return; }
+      if (!user?.id) {
+        setCurrentPackage(null);
+        setHasUsedTrial(false);
+        return;
+      }
       const { data: entRows, error } = await supabase
         .from('user_entitlements')
         .select('package_id, created_at, ends_at')
@@ -383,7 +393,24 @@ const Packages = () => {
         .eq('status', 'ACTIVE')
         .order('created_at', { ascending: false })
         .limit(5);
+
+      // Check whether user has ever had the Basic Monthly plan (trial availed)
+      const { data: allEnts } = await supabase
+        .from('user_entitlements')
+        .select('package_id')
+        .eq('user_id', user.id)
+        .eq('scope', 'PACKAGE');
+
       if (!mounted) return;
+
+      const basicPkg = (packages || []).find((p) => p.name === 'Basic Monthly');
+      if (basicPkg && allEnts && allEnts.length > 0) {
+        const foundPriorTrial = allEnts.some((e) => e.package_id === basicPkg.id);
+        setHasUsedTrial(foundPriorTrial);
+      } else {
+        setHasUsedTrial(false);
+      }
+
       if (error) { setCurrentPackage(null); return; }
       const now = new Date();
       const row = (entRows || []).find((r) => {
@@ -412,7 +439,10 @@ const Packages = () => {
       navigate(`/register?packageId=${encodeURIComponent(pkg.id)}`);
       return;
     }
-    if (directCheckoutUrl) { window.location.assign(directCheckoutUrl); return; }
+    if (!freemiusReady && directCheckoutUrl) {
+      window.location.assign(directCheckoutUrl);
+      return;
+    }
     if (!freemiusReady) { setCheckoutError('Checkout is not configured yet. Please contact support.'); return; }
     if (!planId) { setCheckoutError(`Plan ID is missing for "${pkg?.name || 'this package'}".`); return; }
     if (currentPackage?.id && currentPackage.id === pkg.id) { setCheckoutError('You already have this package active.'); return; }
@@ -426,9 +456,20 @@ const Packages = () => {
         public_key: FREEMIUS_PUBLIC_KEY,
         image: FREEMIUS_IMAGE || undefined,
       });
+
+      const fullName = user?.fullName || user?.full_name || user?.user_metadata?.full_name || '';
+      const nameParts = fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || undefined;
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
+
       handler.open({
         name: pkg.name || 'Package',
         licenses: 1,
+        trial: (!hasUsedTrial && pkg?.name === 'Basic Monthly') ? 'paid' : undefined,
+        user_email: user?.email || undefined,
+        user_firstname: firstName,
+        user_lastname: lastName,
+        user: user?.email ? { email: user.email, name: fullName || undefined } : undefined,
         purchaseCompleted: (response) => {
           if (user?.id) {
             const externalRef =
@@ -549,6 +590,7 @@ const Packages = () => {
               key={pkg.id}
               pkg={pkg}
               currentPackage={currentPackage}
+              hasUsedTrial={hasUsedTrial}
               activeCheckoutPackageId={activeCheckoutPackageId}
               onBuy={handleBuy}
             />

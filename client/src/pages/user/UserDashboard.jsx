@@ -165,9 +165,15 @@ const UserDashboard = () => {
   // Compute usage metrics
   const usedCount = dailyUsage?.used || 0;
   const limitCount = dailyUsage?.limit;
-  const remainingCount = dailyUsage?.remaining;
-  const usagePercentage = limitCount ? Math.min(100, Math.round((usedCount / limitCount) * 100)) : 0;
-  const isLimitReached = limitCount && remainingCount !== null && remainingCount <= 0;
+  const hasNoPlan = limitCount === 0;
+  const hasPositiveLimit = typeof limitCount === 'number' && limitCount > 0;
+  const remainingCount = hasPositiveLimit
+    ? (dailyUsage?.remaining !== undefined && dailyUsage?.remaining !== null
+        ? dailyUsage.remaining
+        : Math.max(0, limitCount - usedCount))
+    : 0;
+  const usagePercentage = hasPositiveLimit ? Math.min(100, Math.round((usedCount / limitCount) * 100)) : 0;
+  const isLimitReached = hasPositiveLimit && remainingCount <= 0;
 
   // Calculate summary metrics from recent attempts if available
   const totalAttemptsCount = recentAttempts?.length || 0;
@@ -256,8 +262,22 @@ const UserDashboard = () => {
                 <span className="kpi-label">Today's MCQ Quota</span>
                 <h2 className="kpi-title">Daily Practice Limit</h2>
               </div>
-              <span className={`kpi-status-chip ${isLimitReached ? 'chip-danger' : 'chip-primary'}`}>
-                {limitCount ? (isLimitReached ? 'Limit Reached' : `${remainingCount} Remaining`) : 'Unlimited'}
+              <span
+                className={`kpi-status-chip ${
+                  hasNoPlan
+                    ? 'chip-warning'
+                    : isLimitReached
+                      ? 'chip-danger'
+                      : 'chip-primary'
+                }`}
+              >
+                {hasNoPlan
+                  ? 'No Active Plan'
+                  : hasPositiveLimit
+                    ? isLimitReached
+                      ? 'Limit Reached'
+                      : `${remainingCount} Remaining`
+                    : 'Unlimited'}
               </span>
             </div>
 
@@ -268,10 +288,10 @@ const UserDashboard = () => {
               </div>
               <div className="quota-divider" />
               <div className="quota-metric">
-                <span className="quota-num">{limitCount || '∞'}</span>
+                <span className="quota-num">{hasNoPlan ? '0' : hasPositiveLimit ? limitCount : '∞'}</span>
                 <span className="quota-sub">Daily Cap</span>
               </div>
-              {limitCount && (
+              {hasPositiveLimit && (
                 <>
                   <div className="quota-divider" />
                   <div className="quota-metric">
@@ -284,7 +304,20 @@ const UserDashboard = () => {
               )}
             </div>
 
-            {limitCount ? (
+            {hasNoPlan ? (
+              <div className="unlimited-quota-notice no-plan-notice flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Icons.BookOpen />
+                  <span className="text-sm">No active package. Unlock mock exams with a plan.</span>
+                </div>
+                <Link
+                  to="/packages"
+                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold whitespace-nowrap"
+                >
+                  View Packages →
+                </Link>
+              </div>
+            ) : hasPositiveLimit ? (
               <div className="quota-progress-container">
                 <div className="quota-progress-meta">
                   <span>Usage: {usagePercentage}%</span>
@@ -300,7 +333,7 @@ const UserDashboard = () => {
             ) : (
               <div className="unlimited-quota-notice">
                 <Icons.Sparkles />
-                <span>You have unlimited MCQ practice access enabled on your package.</span>
+                <span>You have unlimited MCQ practice access enabled on your account.</span>
               </div>
             )}
           </div>

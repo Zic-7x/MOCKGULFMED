@@ -138,6 +138,9 @@ export async function getAutoPackageAccessContext(userId) {
 
   if (error) throw error;
   const list = rows || [];
+  const hasUsedTrial = list.some(
+    (row) => row.package?.name === 'Basic Monthly' || Boolean(row.package_id)
+  );
 
   for (const row of list) {
     if (row.status === 'CANCELED') continue;
@@ -160,6 +163,7 @@ export async function getAutoPackageAccessContext(userId) {
         endsAt: row.ends_at,
         entitlement: row,
         renewalWarning,
+        hasUsedTrial: true,
       };
     }
   }
@@ -172,6 +176,7 @@ export async function getAutoPackageAccessContext(userId) {
         packageId: row.package_id,
         endsAt: row.ends_at,
         entitlement: row,
+        hasUsedTrial: true,
       };
     }
     if (row.status === 'ACTIVE' && !isPackageEntitlementTimeValid(row)) {
@@ -180,11 +185,12 @@ export async function getAutoPackageAccessContext(userId) {
         packageId: row.package_id,
         endsAt: row.ends_at,
         entitlement: row,
+        hasUsedTrial: true,
       };
     }
   }
 
-  return { kind: 'none' };
+  return { kind: 'none', hasUsedTrial };
 }
 
 /** Minimum subscription length (months) required for the signed-in eligibility assessment (not the public checker). */
@@ -527,6 +533,8 @@ export async function canUserTakeExams(userId) {
       allowed: true,
       renewalWarning: ctx.renewalWarning || undefined,
       packageEndsAt: ctx.endsAt || undefined,
+      packageName: ctx.entitlement?.package?.name,
+      hasUsedTrial: true,
     };
   }
   if (ctx.kind === 'expired') {
@@ -535,10 +543,16 @@ export async function canUserTakeExams(userId) {
       examAccessLocked: true,
       reason: 'package_expired',
       packageId: ctx.packageId,
+      packageName: ctx.entitlement?.package?.name,
       packageEndedAt: ctx.endsAt,
+      hasUsedTrial: true,
     };
   }
-  return { allowed: false, reason: 'subscription_required' };
+  return {
+    allowed: false,
+    reason: 'subscription_required',
+    hasUsedTrial: Boolean(ctx.hasUsedTrial),
+  };
 }
 
 // User Management (Admin only)

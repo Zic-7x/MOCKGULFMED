@@ -24,6 +24,7 @@ const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 const freemiusProductSecretKey =
   process.env.FREEMIUS_PRODUCT_SECRET_KEY ||
   process.env.FREEMIUS_SECRET_KEY ||
+  process.env.VITE_FREEMIUS_SECRET_KEY ||
   process.env.FREEMIUS_WEBHOOK_SECRET ||
   '';
 
@@ -42,15 +43,29 @@ function getRawBodyString(req) {
 }
 
 function verifyFreemiusSignature(req) {
-  const signature = req.headers?.['x-signature'] || req.headers?.['X-Signature'] || '';
-  if (!freemiusProductSecretKey) return { ok: false, error: 'missing_secret' };
-  if (!signature || typeof signature !== 'string') return { ok: false, error: 'missing_signature' };
+  const signature =
+    req.headers?.['x-signature'] ||
+    req.headers?.['X-Signature'] ||
+    req.headers?.['x-freemius-signature'] ||
+    req.headers?.['X-Freemius-Signature'] ||
+    '';
+  if (!freemiusProductSecretKey) {
+    console.warn('[freemius-webhook] No Freemius secret key configured in environment');
+    return { ok: false, error: 'missing_secret' };
+  }
+  if (!signature || typeof signature !== 'string') {
+    return { ok: false, error: 'missing_signature' };
+  }
   const raw = getRawBodyString(req);
   const hash = crypto.createHmac('sha256', freemiusProductSecretKey).update(raw).digest('hex');
   try {
     const ok = crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(signature.trim(), 'hex'));
+    if (!ok) {
+      console.warn('[freemius-webhook] Signature verification mismatch');
+    }
     return { ok };
-  } catch {
+  } catch (err) {
+    console.warn('[freemius-webhook] Signature compare failed:', err?.message);
     return { ok: false, error: 'compare_failed' };
   }
 }
@@ -121,15 +136,270 @@ const readJsonBody = async (req) => {
   });
 };
 
-/**
- * Freemius integration seam.
- *
- * Later you will:
- * - verify webhook signatures
- * - map Freemius customer/email to user_profiles.id
- * - create/activate user_entitlements (source='FREEMIUS')
- * - call a provisioning routine that writes exam_access user-specific rows
- */
+async function resolvePackageFromFreemius(planIdRaw, planNameRaw) {
+  const planIdStr = planIdRaw != null ? String(planIdRaw).trim() : '';
+  const planNameStr = planNameRaw != null ? String(planNameRaw).trim() : '';
+
+  // 1. Match by freemius_plan_id
+  if (planIdStr) {
+    const { data: byPlanId } = await serviceClient
+      .from('packages')
+      .select('*')
+      .eq('freemius_plan_id', planIdStr)
+      .maybeSingle();
+    if (byPlanId) return byPlanId;
+  }
+
+  // 2. Known mapping: 45534 / "Starter Pack" -> "Basic Monthly"
+  if (planIdStr === '45534' || planNameStr.toLowerCase().includes('starter')) {
+    const { data: basicPkg } = await serviceClient
+      .from('packages')
+      .select('*')
+      .ilike('name', '%Basic Monthly%')
+      .maybeSingle();
+    if (basicPkg) return basicPkg;
+  }
+
+  // 3. Known mapping: 45536 / "Acing"
+  if (planIdStr === '45536' || planNameStr.toLowerCase().includes('acing')) {
+    const { data: acingPkg } = await serviceClient
+      .from('packages')
+      .select('*')
+      .ilike('name', '%Acing%')
+      .maybeSingle();
+    if (acingPkg) return acingPkg;
+  }
+
+  // 4. Known mapping: 45537 / "Mastering"
+  if (planIdStr === '45537' || planNameStr.toLowerCase().includes('mastering')) {
+    const { data: masteringPkg } = await serviceClient
+      .from('packages')
+      .select('*')
+      .ilike('name', '%Mastering%')
+      .maybeSingle();
+    if (masteringPkg) return masteringPkg;
+  }
+
+  // 5. Match by package name if given
+  if (planNameStr) {
+    const { data: byName } = await serviceClient
+      .from('packages')
+      .select('*')
+      .ilike('name', `%${planNameStr}%`)
+      .maybeSingle();
+    if (byName) return byName;
+  }
+
+  return null;
+}
+
+function dailyMcqFromPackageName(name) {
+  if (!name || typeof name !== 'string') return 100;
+  if (name.includes('Mastering')) return 300;
+  if (name.includes('Acing')) return 150;
+  return 100;
+}
+
+async function provisionPackageAccessForUser({
+  userId,
+  packageId,
+  status = 'ACTIVE',
+  externalRef = null,
+  endsAtOverride = null,
+}) {
+  const normalizedStatus = String(status || 'ACTIVE').toUpperCase();
+
+  const { data: pkgMeta, error: pkgMetaErr } = await serviceClient
+    .from('packages')
+    .select('id, name')
+    .eq('id', packageId)
+    .maybeSingle();
+
+  if (pkgMetaErr || !pkgMeta) {
+    return { error: pkgMetaErr?.message || 'Package not found' };
+  }
+
+  const packageName = pkgMeta.name || '';
+
+  const { data: existingPkgRows, error: findPkgErr } = await serviceClient
+    .from('user_entitlements')
+    .select('id, ends_at, external_ref, starts_at')
+    .eq('user_id', userId)
+    .eq('scope', 'PACKAGE')
+    .eq('package_id', packageId)
+    .eq('status', 'ACTIVE')
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (findPkgErr) {
+    return { error: findPkgErr.message || 'Failed to check existing package entitlement' };
+  }
+
+  const existingPkgRow = existingPkgRows?.[0];
+  const existingPkgId = existingPkgRow?.id;
+  const nowIso = new Date().toISOString();
+
+  let entitlement = null;
+
+  const buildPackagePayload = () => {
+    if (normalizedStatus !== 'ACTIVE') {
+      return {
+        status: normalizedStatus,
+        source: 'FREEMIUS',
+        external_ref: externalRef,
+      };
+    }
+    const refChanged = String(externalRef || '') !== String(existingPkgRow?.external_ref || '');
+    let endsAt = null;
+    if (endsAtOverride) {
+      endsAt = endsAtOverride;
+    } else if (existingPkgId && refChanged) {
+      endsAt = toIso(extendPackageEndsAt(existingPkgRow?.ends_at, packageName));
+    } else if (existingPkgId) {
+      endsAt = existingPkgRow?.ends_at;
+    } else {
+      endsAt = toIso(endsAtForPackageName(packageName));
+    }
+
+    return {
+      status: normalizedStatus,
+      source: 'FREEMIUS',
+      external_ref: externalRef,
+      starts_at: existingPkgRow?.starts_at || nowIso,
+      ends_at: endsAt,
+    };
+  };
+
+  if (existingPkgId) {
+    const { data: updated, error: upPkgErr } = await serviceClient
+      .from('user_entitlements')
+      .update(buildPackagePayload())
+      .eq('id', existingPkgId)
+      .select('*')
+      .single();
+
+    if (upPkgErr) {
+      return { error: upPkgErr.message || 'Failed to update package entitlement' };
+    }
+    entitlement = updated;
+  } else {
+    const defaultEndsAt = endsAtOverride || toIso(endsAtForPackageName(packageName));
+    const insertPayload =
+      normalizedStatus === 'ACTIVE'
+        ? {
+            user_id: userId,
+            scope: 'PACKAGE',
+            package_id: packageId,
+            exam_id: null,
+            status: normalizedStatus,
+            source: 'FREEMIUS',
+            external_ref: externalRef,
+            starts_at: nowIso,
+            ends_at: defaultEndsAt,
+          }
+        : {
+            user_id: userId,
+            scope: 'PACKAGE',
+            package_id: packageId,
+            exam_id: null,
+            status: normalizedStatus,
+            source: 'FREEMIUS',
+            external_ref: externalRef,
+          };
+
+    const { data: inserted, error: insPkgErr } = await serviceClient
+      .from('user_entitlements')
+      .insert(insertPayload)
+      .select('*')
+      .single();
+
+    if (insPkgErr) {
+      return { error: insPkgErr.message || 'Failed to create package entitlement' };
+    }
+    entitlement = inserted;
+  }
+
+  // Mark pending registration intent as READY
+  await serviceClient
+    .from('registration_intents')
+    .update({ status: normalizedStatus === 'ACTIVE' ? 'READY' : 'CANCELLED' })
+    .eq('user_id', userId)
+    .eq('package_id', packageId)
+    .eq('status', 'PENDING_PAYMENT');
+
+  // Update daily_mcq_limit on user profile if needed
+  if (normalizedStatus === 'ACTIVE') {
+    const expectedQuota = dailyMcqFromPackageName(packageName);
+    await serviceClient
+      .from('user_profiles')
+      .update({ daily_mcq_limit: expectedQuota })
+      .eq('id', userId)
+      .or(`daily_mcq_limit.is.null,daily_mcq_limit.lt.${expectedQuota}`);
+  }
+
+  // Resolve profession for exam provisioning
+  const { data: profile, error: profileError } = await serviceClient
+    .from('user_profiles')
+    .select('profession_id')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile?.profession_id) {
+    return { entitlement, provisionedExamCount: 0, warning: 'User profession missing' };
+  }
+
+  const professionId = profile.profession_id;
+
+  const { data: packageExamRows, error: packageExamsError } = await serviceClient
+    .from('package_exams')
+    .select('exam_id')
+    .eq('package_id', packageId);
+
+  if (packageExamsError) {
+    return { entitlement, provisionedExamCount: 0, warning: packageExamsError.message };
+  }
+
+  const examIds = (packageExamRows || []).map((r) => r.exam_id).filter(Boolean);
+  let allowedExamIds = [];
+
+  if (examIds.length > 0) {
+    const { data: scopedRows } = await serviceClient
+      .from('exam_access')
+      .select('exam_id')
+      .eq('profession_id', professionId)
+      .in('exam_id', examIds);
+
+    allowedExamIds = [...new Set((scopedRows || []).map((r) => r.exam_id).filter(Boolean))];
+  }
+
+  if (normalizedStatus === 'ACTIVE') {
+    if (allowedExamIds.length > 0) {
+      const payload = allowedExamIds.map((examId) => ({
+        exam_id: examId,
+        user_id: userId,
+        profession_id: null,
+        health_authority_id: null,
+        source: 'FREEMIUS',
+      }));
+
+      await serviceClient
+        .from('exam_access')
+        .upsert(payload, { onConflict: 'exam_id,user_id' });
+    }
+  } else {
+    if (allowedExamIds.length > 0) {
+      await serviceClient
+        .from('exam_access')
+        .delete()
+        .eq('user_id', userId)
+        .eq('source', 'FREEMIUS')
+        .in('exam_id', allowedExamIds);
+    }
+  }
+
+  return { entitlement, provisionedExamCount: allowedExamIds.length };
+}
+
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'OPTIONS, POST');
@@ -142,21 +412,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    // If request contains a Freemius signature, treat it as a real webhook callout and verify.
-    const signatureHeader = req.headers?.['x-signature'] || req.headers?.['X-Signature'] || null;
+    // If request contains a Freemius signature, verify it.
+    const signatureHeader =
+      req.headers?.['x-signature'] ||
+      req.headers?.['X-Signature'] ||
+      req.headers?.['x-freemius-signature'] ||
+      req.headers?.['X-Freemius-Signature'] ||
+      null;
     const isFreemiusWebhook = typeof signatureHeader === 'string' && signatureHeader.trim() !== '';
     if (isFreemiusWebhook) {
       const sig = verifyFreemiusSignature(req);
       if (!sig.ok) {
+        console.warn('[freemius-webhook] Webhook signature invalid, returning 200 per Freemius spec');
         // Freemius guidance: respond 200 to avoid leaking details for invalid signature.
-        return send(res, 200, { ok: true });
+        return send(res, 200, { ok: true, ignored: 'invalid_signature' });
       }
     }
 
     const body = await readJsonBody(req);
 
-    // If this is a signed Freemius event payload, attempt to verify an exam-booking payment.
-    // We mark a booking verified when booking_payment_external_ref matches the Freemius ref.
+    // If this is a Freemius server-to-server webhook event
     if (isFreemiusWebhook) {
       const eventData = body?.event?.data || body?.data || body || {};
       const ref =
@@ -167,6 +442,7 @@ export default async function handler(req, res) {
         eventData?.payment?.id ||
         null;
 
+      // 1. Check for exam booking payment first
       if (ref) {
         const { data: updated, error: upErr } = await serviceClient
           .from('user_external_exam_details')
@@ -179,11 +455,103 @@ export default async function handler(req, res) {
           .select('user_id')
           .maybeSingle();
 
-        // If a booking row matched, we are done. Otherwise continue to handle the legacy internal sync payload.
         if (!upErr && updated?.user_id) {
-          return send(res, 200, { ok: true, verified: true });
+          return send(res, 200, { ok: true, verified: true, type: 'exam_booking' });
         }
       }
+
+      // 2. Check for customer package / trial / subscription / license event
+      const customerEmail =
+        eventData?.user?.email ||
+        eventData?.customer?.email ||
+        body?.user?.email ||
+        body?.customer?.email ||
+        null;
+
+      const planId =
+        eventData?.subscription?.plan_id ||
+        eventData?.license?.plan_id ||
+        eventData?.plan?.id ||
+        body?.plan_id ||
+        null;
+
+      const planName =
+        eventData?.plan?.name ||
+        eventData?.plan?.title ||
+        eventData?.subscription?.plan_name ||
+        null;
+
+      if (customerEmail && (planId || planName)) {
+        console.log(`[freemius-webhook] Processing webhook for email=${customerEmail}, planId=${planId}, planName=${planName}`);
+
+        const { data: profile, error: profileErr } = await serviceClient
+          .from('user_profiles')
+          .select('id, email, profession_id')
+          .ilike('email', customerEmail.trim())
+          .maybeSingle();
+
+        if (profile?.id) {
+          const pkg = await resolvePackageFromFreemius(planId, planName);
+          if (pkg) {
+            const eventType = String(body?.type || body?.event || '').toLowerCase();
+            const isCancellation =
+              eventType.includes('cancel') ||
+              eventType.includes('expire') ||
+              eventType.includes('delete');
+            const status = isCancellation ? 'CANCELLED' : 'ACTIVE';
+
+            // Check trial or subscription expiry date
+            const trialEnds =
+              eventData?.subscription?.trial_ends ||
+              eventData?.subscription?.trial_expires_at ||
+              null;
+            const expDate =
+              trialEnds ||
+              eventData?.subscription?.expiration ||
+              eventData?.license?.expiration ||
+              null;
+
+            let endsAtOverride = null;
+            if (expDate && !isNaN(new Date(expDate).getTime())) {
+              endsAtOverride = new Date(expDate).toISOString();
+            } else if (eventType.includes('trial') || String(planId) === '45534' || pkg.name === 'Basic Monthly') {
+              if (eventType.includes('trial')) {
+                endsAtOverride = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+              }
+            }
+
+            const provisionResult = await provisionPackageAccessForUser({
+              userId: profile.id,
+              packageId: pkg.id,
+              status,
+              externalRef: ref ? String(ref) : null,
+              endsAtOverride,
+            });
+
+            if (provisionResult.error) {
+              console.error('[freemius-webhook] Provisioning error:', provisionResult.error);
+              return send(res, 400, { error: provisionResult.error });
+            }
+
+            console.log(`[freemius-webhook] Auto-provisioned package ${pkg.name} for user ${profile.id} (${customerEmail})`);
+            return send(res, 200, {
+              ok: true,
+              provisioned: true,
+              userId: profile.id,
+              packageName: pkg.name,
+              status,
+              provisionedExamCount: provisionResult.provisionedExamCount,
+            });
+          } else {
+            console.warn('[freemius-webhook] Unrecognized package for planId:', planId, 'planName:', planName);
+          }
+        } else {
+          console.warn('[freemius-webhook] User profile not found for email:', customerEmail, profileErr?.message);
+        }
+      }
+
+      // If Freemius webhook event wasn't an exam booking or subscription, acknowledge safely
+      return send(res, 200, { ok: true, acknowledged: true });
     }
 
     // For now, accept a minimal internal payload for testing:
@@ -494,193 +862,23 @@ export default async function handler(req, res) {
       return send(res, 200, { data: { entitlement, provisionedExamCount: normalizedStatus === 'ACTIVE' ? 1 : 0 } });
     }
 
-    const { data: pkgMeta, error: pkgMetaErr } = await serviceClient
-      .from('packages')
-      .select('name')
-      .eq('id', packageId)
-      .maybeSingle();
+    const result = await provisionPackageAccessForUser({
+      userId,
+      packageId,
+      status: normalizedStatus,
+      externalRef,
+    });
 
-    if (pkgMetaErr) {
-      return send(res, 400, { error: pkgMetaErr.message || 'Failed to load package' });
+    if (result.error) {
+      return send(res, 400, { error: result.error });
     }
 
-    const packageName = pkgMeta?.name || '';
-
-    const { data: existingPkgRows, error: findPkgErr } = await serviceClient
-      .from('user_entitlements')
-      .select('id, ends_at, external_ref, starts_at')
-      .eq('user_id', userId)
-      .eq('scope', 'PACKAGE')
-      .eq('package_id', packageId)
-      .eq('status', 'ACTIVE')
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (findPkgErr) {
-      return send(res, 400, { error: findPkgErr.message || 'Failed to look up package entitlement' });
-    }
-
-    const existingPkgRow = existingPkgRows?.[0];
-    const existingPkgId = existingPkgRow?.id;
-    const nowIso = new Date().toISOString();
-
-    const buildPackagePayload = () => {
-      if (normalizedStatus !== 'ACTIVE') {
-        return {
-          status: normalizedStatus,
-          source: 'FREEMIUS',
-          external_ref: externalRef,
-        };
-      }
-      const refChanged =
-        String(externalRef || '') !== String(existingPkgRow?.external_ref || '');
-      const endsAt =
-        existingPkgId && refChanged
-          ? toIso(extendPackageEndsAt(existingPkgRow?.ends_at, packageName))
-          : existingPkgId
-            ? existingPkgRow?.ends_at
-            : toIso(endsAtForPackageName(packageName));
-      return {
-        status: normalizedStatus,
-        source: 'FREEMIUS',
-        external_ref: externalRef,
-        starts_at: existingPkgRow?.starts_at || nowIso,
-        ends_at: endsAt,
-      };
-    };
-
-    if (existingPkgId) {
-      const { data: updated, error: upPkgErr } = await serviceClient
-        .from('user_entitlements')
-        .update(buildPackagePayload())
-        .eq('id', existingPkgId)
-        .select('*')
-        .single();
-      if (upPkgErr) {
-        return send(res, 400, { error: upPkgErr.message || 'Failed to update package entitlement' });
-      }
-      entitlement = updated;
-    } else {
-      const insertPayload =
-        normalizedStatus === 'ACTIVE'
-          ? {
-              user_id: userId,
-              scope: 'PACKAGE',
-              package_id: packageId,
-              exam_id: null,
-              status: normalizedStatus,
-              source: 'FREEMIUS',
-              external_ref: externalRef,
-              starts_at: nowIso,
-              ends_at: toIso(endsAtForPackageName(packageName)),
-            }
-          : {
-              user_id: userId,
-              scope: 'PACKAGE',
-              package_id: packageId,
-              exam_id: null,
-              status: normalizedStatus,
-              source: 'FREEMIUS',
-              external_ref: externalRef,
-            };
-
-      const { data: inserted, error: insPkgErr } = await serviceClient
-        .from('user_entitlements')
-        .insert(insertPayload)
-        .select('*')
-        .single();
-      if (insPkgErr) {
-        return send(res, 400, { error: insPkgErr.message || 'Failed to create package entitlement' });
-      }
-      entitlement = inserted;
-    }
-
-    // Mark any pending registration intent as READY (best-effort)
-    await serviceClient
-      .from('registration_intents')
-      .update({ status: normalizedStatus === 'ACTIVE' ? 'READY' : 'CANCELLED' })
-      .eq('user_id', userId)
-      .eq('package_id', packageId)
-      .eq('status', 'PENDING_PAYMENT');
-
-    // Resolve profession for profession-scoped provisioning.
-    const { data: profile, error: profileError } = await serviceClient
-      .from('user_profiles')
-      .select('profession_id')
-      .eq('id', userId)
-      .single();
-
-    if (profileError) {
-      return send(res, 400, { error: profileError.message || 'Failed to load user profile' });
-    }
-
-    const professionId = profile?.profession_id || null;
-    if (!professionId) {
-      return send(res, 400, { error: 'User profession is required before access can be provisioned' });
-    }
-
-    // Provision/revoke exam access for this package (paid exams require user-specific grants)
-    const { data: packageExamRows, error: packageExamsError } = await serviceClient
-      .from('package_exams')
-      .select('exam_id')
-      .eq('package_id', packageId);
-
-    if (packageExamsError) {
-      return send(res, 400, { error: packageExamsError.message || 'Failed to load package exams' });
-    }
-
-    const examIds = (packageExamRows || []).map((r) => r.exam_id).filter(Boolean);
-    let allowedExamIds = [];
-
-    if (examIds.length > 0) {
-      // Only provision package exams already mapped to the user's profession.
-      const { data: scopedRows, error: scopedError } = await serviceClient
-        .from('exam_access')
-        .select('exam_id')
-        .eq('profession_id', professionId)
-        .in('exam_id', examIds);
-
-      if (scopedError) {
-        return send(res, 400, { error: scopedError.message || 'Failed to scope exams by profession' });
-      }
-
-      allowedExamIds = [...new Set((scopedRows || []).map((r) => r.exam_id).filter(Boolean))];
-    }
-
-    if (normalizedStatus === 'ACTIVE') {
-      if (allowedExamIds.length > 0) {
-        const payload = allowedExamIds.map((examId) => ({
-          exam_id: examId,
-          user_id: userId,
-          profession_id: null,
-          health_authority_id: null,
-          source: 'FREEMIUS',
-        }));
-
-        const { error: upsertError } = await serviceClient
-          .from('exam_access')
-          .upsert(payload, { onConflict: 'exam_id,user_id' });
-
-        if (upsertError) {
-          return send(res, 400, { error: upsertError.message || 'Failed to provision exam access' });
-        }
-      }
-    } else {
-      if (allowedExamIds.length > 0) {
-        const { error: deleteError } = await serviceClient
-          .from('exam_access')
-          .delete()
-          .eq('user_id', userId)
-          .eq('source', 'FREEMIUS')
-          .in('exam_id', allowedExamIds);
-
-        if (deleteError) {
-          return send(res, 400, { error: deleteError.message || 'Failed to revoke exam access' });
-        }
-      }
-    }
-
-    return send(res, 200, { data: { entitlement, provisionedExamCount: allowedExamIds.length } });
+    return send(res, 200, {
+      data: {
+        entitlement: result.entitlement,
+        provisionedExamCount: result.provisionedExamCount,
+      },
+    });
   } catch (error) {
     console.error('Freemius webhook error:', error.stack || error);
     return send(res, 500, { error: 'Internal server error' });

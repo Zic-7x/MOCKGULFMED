@@ -216,6 +216,8 @@ const ExamList = () => {
   }
 
   if (accessGate && !accessGate.allowed && accessGate.reason === 'subscription_required') {
+    const hasUsedTrial = Boolean(accessGate?.hasUsedTrial);
+
     return (
       <Layout>
         <div className="exam-list" id="exam-list-subscription-gate">
@@ -246,16 +248,29 @@ const ExamList = () => {
                 </Link>
               </div>
             </div>
-            <div className="subscription-gate-section subscription-gate-section--trial">
-              <div className="trial-badge">
-                <Zap size={14} /> Free 3-Day Trial Available
+            {hasUsedTrial ? (
+              <div className="subscription-gate-section subscription-gate-section--trial">
+                <div className="trial-badge">
+                  <ShieldCheck size={14} /> 3-Day Trial Used
+                </div>
+                <h4>Continue Your Preparation</h4>
+                <p>You have already availed your 3-day free trial. Choose a monthly, 3-month, or annual package to unlock full exam banks.</p>
+                <Link to="/packages" className="start-exam-button subscription-gate-button subscription-gate-button--trial">
+                  View Subscription Plans
+                </Link>
               </div>
-              <h4>Start Your 3-Day Risk-Free Trial</h4>
-              <p>Experience the Basic Monthly tier with full MCQ practice questions before committing.</p>
-              <Link to="/packages" className="start-exam-button subscription-gate-button subscription-gate-button--trial">
-                Get 3 Days Free Trial
-              </Link>
-            </div>
+            ) : (
+              <div className="subscription-gate-section subscription-gate-section--trial">
+                <div className="trial-badge">
+                  <Zap size={14} /> Free 3-Day Trial Available
+                </div>
+                <h4>Start Your 3-Day Risk-Free Trial</h4>
+                <p>Experience the Basic Monthly tier with full MCQ practice questions before committing.</p>
+                <Link to="/packages" className="start-exam-button subscription-gate-button subscription-gate-button--trial">
+                  Get 3 Days Free Trial
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </Layout>
@@ -385,10 +400,19 @@ const ExamList = () => {
             </div>
             <div className="banner-content-col">
               <div>
-                <strong>Package Access Expired:</strong> Your account, answered questions, and past results are securely preserved. Renew your package to resume exam practice immediately.
+                <strong>
+                  {accessGate?.packageName === 'Basic Monthly'
+                    ? '3-Day Free Trial Concluded:'
+                    : 'Package Access Expired:'}
+                </strong>{' '}
+                Your account, answered questions, and past results are securely preserved.{' '}
+                {accessGate?.packageName === 'Basic Monthly'
+                  ? 'Subscribe to a package to continue practicing and unlock your daily MCQ quotas.'
+                  : 'Renew your package to resume exam practice immediately.'}
               </div>
               <Link to="/packages" className="exam-list-banner-link">
-                Renew Package Now <ArrowRight size={14} />
+                {accessGate?.packageName === 'Basic Monthly' ? 'Subscribe to a Plan' : 'Renew Package Now'}{' '}
+                <ArrowRight size={14} />
               </Link>
             </div>
           </div>
@@ -581,7 +605,10 @@ const ExamList = () => {
                         className="start-exam-button start-exam-button--secondary"
                         id={`btn-renew-${exam.id}`}
                       >
-                        <Lock size={15} /> Renew Package to Unlock
+                        <Lock size={15} />{' '}
+                        {accessGate?.packageName === 'Basic Monthly'
+                          ? 'Subscribe to Unlock'
+                          : 'Renew Package to Unlock'}
                       </Link>
                     ) : exam.addon_enabled && !exam.addonPurchased && !unlockingExamIds.has(exam.id) ? (
                       <button
