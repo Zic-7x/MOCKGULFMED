@@ -38,12 +38,12 @@ app.use(express.json());
 
 // Dedicated Android APK Download endpoint
 const sendApkFile = (req, res) => {
-  const publicApkPath = path.join(__dirname, 'client', 'public', 'MockGulfMed.apk');
-  const distApkPath = path.join(__dirname, 'client', 'dist', 'MockGulfMed.apk');
-  const apkPath = path.join(__dirname, 'client', 'public', 'MockGulfMed.apk');
+  const ctgApkPath = path.join(__dirname, 'client', 'public', 'ClickToGulfExams.apk');
+  const fallbackApkPath = path.join(__dirname, 'client', 'public', 'MockGulfMed.apk');
+  const apkPath = fs.existsSync(ctgApkPath) ? ctgApkPath : fallbackApkPath;
 
   res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-  res.setHeader('Content-Disposition', 'attachment; filename="MockGulfMed.apk"');
+  res.setHeader('Content-Disposition', 'attachment; filename="ClickToGulfExams.apk"');
   res.sendFile(apkPath, (err) => {
     if (err) {
       console.error('[apk-download] Error serving APK:', err);
@@ -53,6 +53,9 @@ const sendApkFile = (req, res) => {
 };
 
 app.get('/api/download-apk', sendApkFile);
+app.get('/ClickToGulfExams.apk', sendApkFile);
+app.get('/downloads/ClickToGulfExams.apk', sendApkFile);
+app.get('/download/ClickToGulfExams.apk', sendApkFile);
 app.get('/MockGulfMed.apk', sendApkFile);
 app.get('/downloads/MockGulfMed.apk', sendApkFile);
 app.get('/download/MockGulfMed.apk', sendApkFile);

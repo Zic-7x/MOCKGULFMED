@@ -1,5 +1,5 @@
 import { Link, Outlet } from 'react-router-dom';
-const logoUrl = '/logo.png';
+const logoUrl = '/logo.svg';
 import './PolicyLayout.css';
 
 const PolicyLayout = () => {
@@ -8,8 +8,8 @@ const PolicyLayout = () => {
       <header className="policy-layout-top">
         <div className="policy-layout-top-inner">
           <Link to="/" className="policy-layout-brand">
-            <img className="policy-layout-logo" src={logoUrl} alt="MockGulfMed" />
-            <span className="sr-only">MockGulfMed</span>
+            <img className="policy-layout-logo" src={logoUrl} alt="ClickToGulf Exams" />
+            <span className="sr-only">ClickToGulf Exams</span>
           </Link>
           <Link className="policy-layout-home" to="/">
             Back to home
@@ -21,7 +21,7 @@ const PolicyLayout = () => {
       </main>
       <footer className="policy-layout-footer">
         <div className="policy-layout-footer-inner">
-          <span>MockGulfMed</span>
+          <span>ClickToGulf Exams</span>
           <span className="policy-layout-sep" aria-hidden="true">
             •
           </span>

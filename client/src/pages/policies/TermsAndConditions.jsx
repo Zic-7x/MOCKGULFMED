@@ -10,7 +10,7 @@ const TermsAndConditions = () => {
       <section>
         <h2>Agreement</h2>
         <p>
-          These Terms and Conditions (“Terms”) govern your access to and use of MockGulfMed (the “Service”), including
+          These Terms and Conditions (“Terms”) govern your access to and use of ClickToGulf Exams (the “Service”), including
           our website, exam portal, content, and related features. By creating an account, purchasing access, or using
           the Service, you agree to these Terms. If you do not agree, do not use the Service.
         </p>
@@ -19,7 +19,7 @@ const TermsAndConditions = () => {
       <section>
         <h2>The Service</h2>
         <p>
-          MockGulfMed provides online practice exams, materials, and tools intended to help medical and health
+          ClickToGulf Exams provides online practice exams, materials, and tools intended to help medical and health
           professionals prepare for assessments. We may update, add, or remove features, exams, or content at any time.
           The Service is offered on an “as available” basis.
         </p>
@@ -49,7 +49,7 @@ const TermsAndConditions = () => {
       <section>
         <h2>Intellectual property</h2>
         <p>
-          The Service, including questions, explanations, branding, software, and design, is owned by MockGulfMed or
+          The Service, including questions, explanations, branding, software, and design, is owned by ClickToGulf Exams or
           its licensors. We grant you a limited, non-exclusive, non-transferable right to use the Service for your
           personal preparation in line with these Terms. No other rights are granted.
         </p>
@@ -86,7 +86,7 @@ const TermsAndConditions = () => {
       <section>
         <h2>Limitation of liability</h2>
         <p>
-          To the fullest extent permitted by law, MockGulfMed and its operators shall not be liable for any indirect,
+          To the fullest extent permitted by law, ClickToGulf Exams and its operators shall not be liable for any indirect,
           incidental, special, consequential, or punitive damages, or for loss of profits, data, or goodwill, arising
           from your use of the Service. Our total liability for any claim relating to the Service shall not exceed the
           amount you paid us for the Service in the twelve (12) months before the claim, or one hundred dollars (USD

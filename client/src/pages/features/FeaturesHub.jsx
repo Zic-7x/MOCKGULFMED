@@ -172,7 +172,7 @@ export default function FeaturesHub() {
   }, [selectedCategory, searchQuery]);
 
   return (
-    <IndexMarketingLayout documentTitle="Platform Features & Capabilities · MockGulfMed">
+    <IndexMarketingLayout documentTitle="Platform Features & Capabilities · ClickToGulf Exams">
       <div className="index-feature-wrap">
         {/* Hub Header & Hero */}
         <header className="index-feature-hub-header index-reveal">
@@ -339,7 +339,7 @@ export default function FeaturesHub() {
         {/* Authority Support Matrix */}
         <section className="index-feature-authorities-box index-reveal">
           <h3>Supported GCC Health Regulatory Bodies</h3>
-          <p>MockGulfMed tools and exam simulations are built according to official guidelines published by:</p>
+          <p>ClickToGulf Exams tools and exam simulations are built according to official guidelines published by:</p>
           <div className="index-feature-auth-pills">
             <span className="index-feature-auth-pill">🇦🇪 DHA (Dubai Health Authority)</span>
             <span className="index-feature-auth-pill">🇦🇪 MOHAP (UAE Ministry of Health)</span>

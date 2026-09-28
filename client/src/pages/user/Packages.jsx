@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import Layout from '../../components/Layout';
-const logoUrl = '/logo.png';
+const logoUrl = '/logo.svg';
 import { fetchPublicCatalog } from '../../utils/publicApi';
 import { packageFeaturesForDisplay } from '../../utils/packageFeaturesDisplay';
 import { packageMeetsEligibilityMinimum } from '../../utils/supabaseQueries';
@@ -307,7 +307,10 @@ function PackageCard({ pkg, currentPackage, hasUsedTrial, activeCheckoutPackageI
 function readStoredTheme() {
   if (typeof window === 'undefined') return 'light';
   try {
-    const t = localStorage.getItem('mockgulfmed-index-theme');
+    const t =
+      localStorage.getItem('ctg-index-theme') ||
+      localStorage.getItem('clicktogulf-index-theme') ||
+      localStorage.getItem('mockgulfmed-index-theme');
     if (t === 'dark' || t === 'light') return t;
   } catch {
     /* ignore */
@@ -338,7 +341,8 @@ const Packages = () => {
     setTheme((t) => {
       const next = t === 'dark' ? 'light' : 'dark';
       try {
-        localStorage.setItem('mockgulfmed-index-theme', next);
+        localStorage.setItem('ctg-index-theme', next);
+        localStorage.setItem('clicktogulf-index-theme', next);
       } catch {
         /* ignore */
       }
@@ -348,7 +352,12 @@ const Packages = () => {
 
   useEffect(() => {
     const onStorage = (e) => {
-      if (e.key === 'mockgulfmed-index-theme' && (e.newValue === 'dark' || e.newValue === 'light')) {
+      if (
+        (e.key === 'ctg-index-theme' ||
+          e.key === 'clicktogulf-index-theme' ||
+          e.key === 'mockgulfmed-index-theme') &&
+        (e.newValue === 'dark' || e.newValue === 'light')
+      ) {
         setTheme(e.newValue);
       }
     };
@@ -601,7 +610,7 @@ const Packages = () => {
       {!user && !loading && (
         <aside className="packages-register-banner" aria-label="Create account prompt">
           <div className="packages-register-content">
-            <p className="packages-register-headline">New to MockGulfMed?</p>
+            <p className="packages-register-headline">New to ClickToGulf Exams?</p>
             <p className="packages-register-sub">
               Create a free account and complete checkout right after sign-up. Takes less than a minute.
             </p>
@@ -622,9 +631,9 @@ const Packages = () => {
     <div className={`packages-shell packages-shell--${theme}`}>
       <header className={`packages-header${theme === 'dark' ? ' packages-header--dark' : ''}`} role="banner">
         <div className="packages-header-inner">
-          <Link to="/" className="packages-brand" aria-label="MockGulfMed home">
-            <img className="packages-logo" src={logoUrl} alt="" width="40" height="40" />
-            <span className="packages-brand-text">MockGulfMed</span>
+          <Link to="/" className="packages-brand" aria-label="ClickToGulf Exams home">
+            <img className="packages-logo" src={logoUrl} alt="ClickToGulf Exams" width="40" height="40" />
+            <span className="packages-brand-text">ClickToGulf Exams</span>
           </Link>
           <nav className="packages-nav" aria-label="Main navigation">
             <button

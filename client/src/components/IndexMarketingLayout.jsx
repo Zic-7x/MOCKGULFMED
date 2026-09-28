@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-const logoUrl = '/logo.png';
+const logoUrl = '/logo.svg';
 import '../pages/Index.css';
 import '../pages/FeaturePages.css';
 
@@ -24,7 +24,10 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
   const [navSolid, setNavSolid] = useState(false);
   const [theme, setTheme] = useState(() => {
     try {
-      const stored = localStorage.getItem('mockgulfmed-index-theme');
+      const stored =
+        localStorage.getItem('ctg-index-theme') ||
+        localStorage.getItem('clicktogulf-index-theme') ||
+        localStorage.getItem('mockgulfmed-index-theme');
       if (stored === 'dark' || stored === 'light') return stored;
     } catch {
       /* ignore */
@@ -41,7 +44,8 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem('mockgulfmed-index-theme', theme);
+      localStorage.setItem('ctg-index-theme', theme);
+      localStorage.setItem('clicktogulf-index-theme', theme);
     } catch {
       /* ignore */
     }
@@ -49,7 +53,7 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
 
   useEffect(() => {
     if (!documentTitle) return;
-    const base = 'MockGulfMed';
+    const base = 'ClickToGulf Exams';
     document.title = documentTitle.includes(base) ? documentTitle : `${documentTitle} · ${base}`;
     return () => {
       document.title = base;
@@ -86,8 +90,8 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
       <header className={`index-nav ${navSolid ? 'index-nav--solid' : ''}`} role="banner">
         <div className="index-nav-inner">
           <Link className="index-nav-brand" to="/">
-            <img className="index-nav-logo" src={logoUrl} alt="" />
-            <span className="index-nav-title">MockGulfMed</span>
+            <img className="index-nav-logo" src={logoUrl} alt="ClickToGulf Exams" />
+            <span className="index-nav-title">ClickToGulf Exams</span>
           </Link>
 
           <nav className="index-nav-actions" aria-label="Primary">
@@ -142,7 +146,7 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>
-          <span>MockGulfMed</span>
+          <span>ClickToGulf Exams</span>
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>

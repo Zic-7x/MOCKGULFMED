@@ -6,7 +6,7 @@ const PoliciesIndex = () => {
     <article className="policies-index">
       <h1>Policies</h1>
       <p className="policies-index-lead">
-        Legal and commercial terms for using MockGulfMed. Select a document below.
+        Legal and commercial terms for using ClickToGulf Exams. Select a document below.
       </p>
       <ul className="policies-index-list">
         <li>

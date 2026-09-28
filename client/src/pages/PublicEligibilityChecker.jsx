@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-const logoUrl = '/logo.png';
+const logoUrl = '/logo.svg';
 import { fetchPublicCatalog } from '../utils/publicApi';
 import './PublicEligibilityChecker.css';
 
@@ -257,8 +257,8 @@ function PublicEligibilityChecker() {
       <header className="pec-header">
         <div className="pec-header-inner">
           <Link className="pec-brand" to="/">
-            <img className="pec-logo" src={logoUrl} alt="MockGulfMed home" />
-            <span className="sr-only">MockGulfMed</span>
+            <img className="pec-logo" src={logoUrl} alt="ClickToGulf Exams home" />
+            <span className="sr-only">ClickToGulf Exams</span>
           </Link>
           <nav className="pec-nav" aria-label="Public pages">
             <Link className="pec-nav-link pec-nav-link--ghost" to="/packages">
@@ -537,7 +537,7 @@ function PublicEligibilityChecker() {
                         ))}
                       </ul>
                       <p className="pec-disclaimer">
-                        MockGulfMed does not guarantee eligibility outcomes. Boards and regulators make final decisions.
+                        ClickToGulf Exams does not guarantee eligibility outcomes. Boards and regulators make final decisions.
                         This tool only helps you organise what you will need before you apply or register for preparation.
                       </p>
                       <div className="pec-summary-cta">

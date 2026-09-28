@@ -1,19 +1,19 @@
-/* MockGulfMed landing — trust-centric palette, glass surfaces, mobile-first */
+/* ClickToGulf Exams landing — trust-centric palette, glass surfaces, mobile-first */
 
 .index-page {
-  --idx-navy: #0f172a;
-  --idx-accent: #3b82f6;
+  --idx-navy: #0a2540;
+  --idx-accent: #0084a8;
   --idx-white: #ffffff;
-  --idx-muted: #475569;
-  --idx-border: #e2e8f0;
-  --idx-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  --idx-glow: 0 0 0 1px rgba(59, 130, 246, 0.22), 0 16px 40px rgba(59, 130, 246, 0.12);
-  --idx-bg: var(--idx-white);
-  --idx-bg-alt: #f8fafc;
+  --idx-muted: #2d4661;
+  --idx-border: #cfe1ed;
+  --idx-shadow: 0 10px 30px rgba(10, 37, 64, 0.08);
+  --idx-glow: 0 0 0 1px rgba(0, 132, 168, 0.22), 0 16px 40px rgba(0, 132, 168, 0.12);
+  --idx-bg: #f5f9fc;
+  --idx-bg-alt: #ffffff;
   --idx-text: var(--idx-navy);
-  --idx-glass-bg: rgba(255, 255, 255, 0.72);
-  --idx-nav-bg: rgba(255, 255, 255, 0.65);
-  --idx-nav-solid: rgba(255, 255, 255, 0.92);
+  --idx-glass-bg: rgba(255, 255, 255, 0.85);
+  --idx-nav-bg: rgba(245, 249, 252, 0.85);
+  --idx-nav-solid: rgba(255, 255, 255, 0.96);
   --idx-gold: #b45309;
   --idx-gold-soft: rgba(180, 83, 9, 0.1);
 
@@ -28,16 +28,16 @@
 }
 
 .index-page--dark {
-  --idx-bg: #0b1120;
-  --idx-bg-alt: #0f172a;
-  --idx-text: #f1f5f9;
-  --idx-muted: #94a3b8;
-  --idx-border: rgba(148, 163, 184, 0.35);
-  --idx-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
-  --idx-glow: 0 0 0 1px rgba(59, 130, 246, 0.35), 0 16px 48px rgba(0, 0, 0, 0.45);
-  --idx-glass-bg: rgba(15, 23, 42, 0.65);
-  --idx-nav-bg: rgba(11, 17, 32, 0.55);
-  --idx-nav-solid: rgba(15, 23, 42, 0.92);
+  --idx-bg: #06121f;
+  --idx-bg-alt: #0a1b2d;
+  --idx-text: #f0f7fc;
+  --idx-muted: #9db7ce;
+  --idx-border: #16385a;
+  --idx-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  --idx-glow: 0 0 0 1px rgba(0, 132, 168, 0.35), 0 16px 48px rgba(0, 0, 0, 0.55);
+  --idx-glass-bg: rgba(10, 27, 45, 0.75);
+  --idx-nav-bg: rgba(6, 18, 31, 0.85);
+  --idx-nav-solid: rgba(10, 27, 45, 0.95);
   --idx-gold: #fbbf24;
   --idx-gold-soft: rgba(251, 191, 36, 0.12);
 }

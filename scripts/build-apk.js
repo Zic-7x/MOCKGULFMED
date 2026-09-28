@@ -118,7 +118,7 @@ const apkFiles = [
     name: 'AndroidManifest.xml',
     content: `<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.mockgulfmed.app"
+    package="com.clicktogulfexams.app"
     android:versionCode="100"
     android:versionName="1.0.0">
     <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34" />
@@ -127,12 +127,12 @@ const apkFiles = [
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="MockGulfMed"
+        android:label="ClickToGulf Exams"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity
-            android:name="com.mockgulfmed.app.MainActivity"
+            android:name="com.clicktogulfexams.app.MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:launchMode="singleTask">
@@ -147,10 +147,10 @@ const apkFiles = [
   {
     name: 'assets/app-config.json',
     content: JSON.stringify({
-      appName: 'MockGulfMed',
-      packageId: 'com.mockgulfmed.app',
+      appName: 'ClickToGulf Exams',
+      packageId: 'com.clicktogulfexams.app',
       version: '1.0.0',
-      webUrl: 'https://ais-dev-oxnmuh2l3yt2kydvtvtgrl-37922861272.asia-southeast1.run.app',
+      webUrl: 'https://ais-dev-fz67dzaefw6f7qldugdr2e-176952263328.asia-southeast1.run.app',
       features: ['Exam Practice', 'Prometric Simulation', 'Eligibility Checker', 'Job Portal', 'Offline Review'],
       updatedAt: new Date().toISOString()
     }, null, 2)
@@ -169,7 +169,7 @@ const apkFiles = [
   },
   {
     name: 'META-INF/MANIFEST.MF',
-    content: 'Manifest-Version: 1.0\r\nCreated-By: 17.0.8 (MockGulfMed Builder)\r\nBuilt-By: MockGulfMed\r\n\r\n'
+    content: 'Manifest-Version: 1.0\r\nCreated-By: 17.0.8 (ClickToGulf Exams Builder)\r\nBuilt-By: ClickToGulf Exams\r\n\r\n'
   },
   {
     name: 'META-INF/CERT.SF',
@@ -187,16 +187,20 @@ if (!fs.existsSync(downloadsDir)) {
   fs.mkdirSync(downloadsDir, { recursive: true });
 }
 
-// Write APK files
+// Write APK files (both primary ClickToGulfExams.apk and legacy MockGulfMed.apk)
+const ctgDest1 = path.join(publicDir, 'ClickToGulfExams.apk');
+const ctgDest2 = path.join(downloadsDir, 'ClickToGulfExams.apk');
 const apkDest1 = path.join(publicDir, 'MockGulfMed.apk');
 const apkDest2 = path.join(downloadsDir, 'MockGulfMed.apk');
 
+fs.writeFileSync(ctgDest1, apkBuffer);
+fs.writeFileSync(ctgDest2, apkBuffer);
 fs.writeFileSync(apkDest1, apkBuffer);
 fs.writeFileSync(apkDest2, apkBuffer);
 
-console.log(`✓ Generated MockGulfMed.apk (${apkBuffer.length} bytes) at:`);
-console.log(`  - ${apkDest1}`);
-console.log(`  - ${apkDest2}`);
+console.log(`✓ Generated ClickToGulfExams.apk (${apkBuffer.length} bytes) at:`);
+console.log(`  - ${ctgDest1}`);
+console.log(`  - ${ctgDest2}`);
 
 // Also generate icon copies for PWA
 if (logoBuffer.length > 0) {

@@ -15,7 +15,9 @@ export default function AndroidInstallBanner() {
     }
 
     try {
-      const isDismissed = sessionStorage.getItem('mockgulfmed-app-banner-dismissed');
+      const isDismissed =
+        sessionStorage.getItem('ctg-app-banner-dismissed') ||
+        sessionStorage.getItem('mockgulfmed-app-banner-dismissed');
       if (isDismissed) setDismissed(true);
     } catch {
       // ignore storage error
@@ -35,7 +37,7 @@ export default function AndroidInstallBanner() {
   const handleDismiss = () => {
     setDismissed(true);
     try {
-      sessionStorage.setItem('mockgulfmed-app-banner-dismissed', 'true');
+      sessionStorage.setItem('ctg-app-banner-dismissed', 'true');
     } catch {
       // ignore
     }
@@ -53,7 +55,7 @@ export default function AndroidInstallBanner() {
       // Trigger APK download directly
       const link = document.createElement('a');
       link.href = '/api/download-apk';
-      link.download = 'MockGulfMed.apk';
+      link.download = 'ClickToGulfExams.apk';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -64,9 +66,9 @@ export default function AndroidInstallBanner() {
     <div className="android-install-banner" role="region" aria-label="Mobile App Available">
       <div className="banner-inner">
         <div className="banner-left">
-          <img src="/logo.png" alt="MockGulfMed Icon" className="banner-app-icon" />
+          <img src="/logo.svg" alt="ClickToGulf Exams Icon" className="banner-app-icon" />
           <div className="banner-meta">
-            <span className="banner-app-title">MockGulfMed Android App</span>
+            <span className="banner-app-title">ClickToGulf Exams Android App</span>
             <span className="banner-app-sub">Exam Simulation • 100% Free APK</span>
           </div>
         </div>

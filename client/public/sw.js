@@ -1,5 +1,5 @@
-// MockGulfMed Service Worker for PWA & Offline Support
-const CACHE_NAME = 'mockgulfmed-v1';
+// ClickToGulf Exams Service Worker for PWA & Offline Support
+const CACHE_NAME = 'clicktogulfexams-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

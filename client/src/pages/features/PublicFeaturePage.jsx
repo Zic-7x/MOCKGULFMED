@@ -30,7 +30,7 @@ export default function PublicFeaturePage() {
     .map((s) => getFeaturePage(s))
     .filter(Boolean);
 
-  const docTitle = `${page.navLabel} · Product Features · MockGulfMed`;
+  const docTitle = `${page.navLabel} · Product Features · ClickToGulf Exams`;
 
   return (
     <IndexMarketingLayout documentTitle={docTitle}>
@@ -202,7 +202,7 @@ export default function PublicFeaturePage() {
         {/* Full Feature Index Jump */}
         <section className="index-section index-section--alt index-reveal" style={{ marginTop: 48 }}>
           <div className="index-section-head">
-            <h2>Explore all MockGulfMed features</h2>
+            <h2>Explore all ClickToGulf Exams features</h2>
             <p>Direct navigation to every core pillar of our healthcare platform.</p>
           </div>
           <div className="index-feature-all-grid">

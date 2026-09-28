@@ -9,7 +9,7 @@ const RefundPolicy = () => {
       <section>
         <h2>Overview</h2>
         <p>
-          All purchases of subscriptions, packages, digital access, or related services on MockGulfMed are{' '}
+          All purchases of subscriptions, packages, digital access, or related services on ClickToGulf Exams are{' '}
           <strong>final</strong>. We do <strong>not</strong> provide refunds, credits, or charge reversals for any
           amount paid, except where required by applicable law.
         </p>

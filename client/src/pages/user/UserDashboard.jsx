@@ -603,7 +603,7 @@ const UserDashboard = () => {
               <div className="hub-card-body">
                 <h3 className="hub-card-title">Android App (Direct APK)</h3>
                 <p className="hub-card-desc">
-                  Download the MockGulfMed Android application directly to practice offline, eliminate browser bars, and test on the go.
+                  Download the ClickToGulf Exams Android application directly to practice offline, eliminate browser bars, and test on the go.
                 </p>
               </div>
               <div className="hub-card-footer">

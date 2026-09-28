@@ -52,14 +52,14 @@ export default function DownloadApp() {
     setDownloadStarted(true);
     const link = document.createElement('a');
     link.href = '/api/download-apk';
-    link.download = 'MockGulfMed.apk';
+    link.download = 'ClickToGulfExams.apk';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   return (
-    <IndexMarketingLayout documentTitle="Download Android App · MockGulfMed">
+    <IndexMarketingLayout documentTitle="Download Android App · ClickToGulf Exams">
       <div className="download-app-page">
         {/* Hero Section */}
         <section className="app-hero-section">
@@ -71,7 +71,7 @@ export default function DownloadApp() {
 
             <h1 className="app-hero-title">
               Practice Medical Exams Anywhere with the{' '}
-              <span className="title-highlight">MockGulfMed Android App</span>
+              <span className="title-highlight">ClickToGulf Exams Android App</span>
             </h1>
 
             <p className="app-hero-subtitle">
@@ -125,7 +125,7 @@ export default function DownloadApp() {
               <div className="download-started-alert" role="alert">
                 <span className="alert-icon">✓</span>
                 <div>
-                  <strong>APK download started!</strong> Open the downloaded <code>MockGulfMed.apk</code> file on your Android device to install. See steps below.
+                  <strong>APK download started!</strong> Open the downloaded <code>ClickToGulfExams.apk</code> file on your Android device to install. See steps below.
                 </div>
               </div>
             )}
@@ -221,7 +221,7 @@ export default function DownloadApp() {
         <section className="app-install-guide-section">
           <div className="section-header">
             <h2 className="section-title">How to Install on Android</h2>
-            <p className="section-desc">Follow these quick, easy steps to download and install MockGulfMed on your device.</p>
+            <p className="section-desc">Follow these quick, easy steps to download and install ClickToGulf Exams on your device.</p>
           </div>
 
           <div className="install-tabs">
@@ -248,7 +248,7 @@ export default function DownloadApp() {
                 <div className="step-content">
                   <h4 className="step-title">Tap "Download Android APK"</h4>
                   <p className="step-desc">
-                    Tap the blue download button above. The file <code>MockGulfMed.apk</code> will begin downloading to your phone.
+                    Tap the blue download button above. The file <code>ClickToGulfExams.apk</code> will begin downloading to your phone.
                   </p>
                 </div>
               </div>
@@ -268,7 +268,7 @@ export default function DownloadApp() {
                 <div className="step-content">
                   <h4 className="step-title">Tap "Install" &amp; Open</h4>
                   <p className="step-desc">
-                    Tap <strong>Install</strong> on the prompt. Once finished, tap <strong>Open</strong> or find the MockGulfMed icon on your home screen or app drawer!
+                    Tap <strong>Install</strong> on the prompt. Once finished, tap <strong>Open</strong> or find the ClickToGulf Exams icon on your home screen or app drawer!
                   </p>
                 </div>
               </div>
@@ -317,7 +317,7 @@ export default function DownloadApp() {
             <div className="safety-content">
               <strong>100% Safe &amp; Verified Direct Package</strong>
               <p>
-                Our APK is lightweight, contains zero ads, and is directly built and distributed by MockGulfMed. You do not need to pay Play Store fees or have a Google Play account to study.
+                Our APK is lightweight, contains zero ads, and is directly built and distributed by ClickToGulf Exams. You do not need to pay Play Store fees or have a Google Play account to study.
               </p>
             </div>
           </div>
@@ -338,7 +338,7 @@ export default function DownloadApp() {
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              <span>Download MockGulfMed.apk</span>
+              <span>Download ClickToGulfExams.apk</span>
             </button>
           </div>
         </section>

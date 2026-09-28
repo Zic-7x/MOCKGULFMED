@@ -1,7 +1,7 @@
 {
-  "name": "MockGulfMed - Medical Exam Portal",
-  "short_name": "MockGulfMed",
-  "description": "Mock Exam Portal for Medical Professionals - Prometric, Pearson, DHA, MOH, HAAD, OMSB, QCHP, SMLE Exam Prep",
+  "name": "ClickToGulf Exams - Medical Exam Portal",
+  "short_name": "ClickToGulf Exams",
+  "description": "ClickToGulf Exams Portal for Medical Professionals - Prometric, Pearson, DHA, MOH, HAAD, OMSB, QCHP, SMLE Exam Prep",
   "start_url": "/",
   "id": "/",
   "scope": "/",
@@ -71,7 +71,7 @@
     {
       "platform": "play",
       "url": "https://ais-dev-oxnmuh2l3yt2kydvtvtgrl-37922861272.asia-southeast1.run.app/download-app",
-      "id": "com.mockgulfmed.app"
+      "id": "com.clicktogulfexams.app"
     }
   ],
   "prefer_related_applications": false

@@ -1,6 +1,6 @@
 {
   "name": "Mock Gulf Med",
-  "description": "Mock Exam Portal for Medical Professionals - Prometric and Pearson Exams",
+  "description": "ClickToGulf Exams: Gulf Healthcare Licensing Services and Medical Exam Preparation Portal Worldwide",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

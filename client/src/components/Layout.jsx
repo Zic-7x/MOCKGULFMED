@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { getAnnualJobPortalQueryOptions } from '../utils/annualJobPortalQuery';
-const logoUrl = '/logo.png';
+const logoUrl = '/logo.svg';
 import './Layout.css';
 
 /* Micro SVG Icons for Nav & Menu Items */
@@ -243,8 +243,8 @@ const Layout = ({ children }) => {
           <div className="nav-container">
             <div className="nav-brand-wrap">
               <Link to={isAdmin ? '/admin' : '/dashboard'} className="nav-logo" onClick={closeMenu}>
-                <img className="nav-logo-image" src={logoUrl} alt="MockGulfMed" />
-                <span className="sr-only">MockGulfMed</span>
+                <img className="nav-logo-image" src={logoUrl} alt="ClickToGulf Exams" />
+                <span className="sr-only">ClickToGulf Exams</span>
               </Link>
               {isAdmin && <span className="nav-badge nav-badge--admin">Admin</span>}
             </div>

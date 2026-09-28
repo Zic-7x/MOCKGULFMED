@@ -13,7 +13,11 @@ export const useTheme = () => {
 function getInitialTheme() {
   if (typeof window === 'undefined') return 'light';
   try {
-    const saved = localStorage.getItem('mockgulfmed-theme') || localStorage.getItem('mockgulfmed-index-theme');
+    const saved =
+      localStorage.getItem('clicktogulf-theme') ||
+      localStorage.getItem('ctg-theme') ||
+      localStorage.getItem('mockgulfmed-theme') ||
+      localStorage.getItem('mockgulfmed-index-theme');
     if (saved === 'dark' || saved === 'light') {
       return saved;
     }
@@ -49,8 +53,8 @@ export const ThemeProvider = ({ children }) => {
       const validTheme = newTheme === 'dark' ? 'dark' : 'light';
       setThemeState(validTheme);
       try {
-        localStorage.setItem('mockgulfmed-theme', validTheme);
-        localStorage.setItem('mockgulfmed-index-theme', validTheme);
+        localStorage.setItem('clicktogulf-theme', validTheme);
+        localStorage.setItem('ctg-theme', validTheme);
       } catch {
         /* ignore */
       }
@@ -74,7 +78,11 @@ export const ThemeProvider = ({ children }) => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleMediaChange = (e) => {
       try {
-        const stored = localStorage.getItem('mockgulfmed-theme') || localStorage.getItem('mockgulfmed-index-theme');
+        const stored =
+          localStorage.getItem('clicktogulf-theme') ||
+          localStorage.getItem('ctg-theme') ||
+          localStorage.getItem('mockgulfmed-theme') ||
+          localStorage.getItem('mockgulfmed-index-theme');
         if (!stored) {
           setTheme(e.matches ? 'dark' : 'light');
         }
@@ -93,7 +101,13 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handleStorage = (e) => {
-      if ((e.key === 'mockgulfmed-theme' || e.key === 'mockgulfmed-index-theme') && (e.newValue === 'dark' || e.newValue === 'light')) {
+      if (
+        (e.key === 'clicktogulf-theme' ||
+          e.key === 'ctg-theme' ||
+          e.key === 'mockgulfmed-theme' ||
+          e.key === 'mockgulfmed-index-theme') &&
+        (e.newValue === 'dark' || e.newValue === 'light')
+      ) {
         setThemeState(e.newValue);
         applyThemeToDom(e.newValue);
       }

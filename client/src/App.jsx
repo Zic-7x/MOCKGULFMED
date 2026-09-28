@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './contexts/AuthContext';
+import ClickToGulf from './pages/ClickToGulf';
 import Index from './pages/Index';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -189,10 +190,13 @@ function App() {
             user ? (
               <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} />
             ) : (
-              <Index />
+              <ClickToGulf />
             )
           }
         />
+        <Route path="/clicktogulf-exams" element={<Index />} />
+        <Route path="/exams-portal" element={<Index />} />
+        <Route path="/mockgulfmed" element={<Index />} />
         {/* Redirect admins trying to access /dashboard to /admin */}
         {user?.role === 'ADMIN' && (
           <Route path="/dashboard" element={<Navigate to="/admin" replace />} />

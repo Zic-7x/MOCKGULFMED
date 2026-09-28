@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-const logoUrl = '/logo.png';
+const logoUrl = '/logo.svg';
 import './Login.css';
 
 function readStoredTheme() {
   if (typeof window === 'undefined') return 'light';
   try {
-    const t = localStorage.getItem('mockgulfmed-index-theme');
+    const t =
+      localStorage.getItem('ctg-index-theme') ||
+      localStorage.getItem('clicktogulf-index-theme') ||
+      localStorage.getItem('mockgulfmed-index-theme');
     if (t === 'dark' || t === 'light') return t;
   } catch {
     /* ignore */
@@ -34,7 +37,8 @@ const Login = () => {
     setTheme((t) => {
       const next = t === 'dark' ? 'light' : 'dark';
       try {
-        localStorage.setItem('mockgulfmed-index-theme', next);
+        localStorage.setItem('ctg-index-theme', next);
+        localStorage.setItem('clicktogulf-index-theme', next);
       } catch {
         /* ignore */
       }
@@ -44,7 +48,12 @@ const Login = () => {
 
   useEffect(() => {
     const onStorage = (e) => {
-      if (e.key === 'mockgulfmed-index-theme' && (e.newValue === 'dark' || e.newValue === 'light')) {
+      if (
+        (e.key === 'ctg-index-theme' ||
+          e.key === 'clicktogulf-index-theme' ||
+          e.key === 'mockgulfmed-index-theme') &&
+        (e.newValue === 'dark' || e.newValue === 'light')
+      ) {
         setTheme(e.newValue);
       }
     };
@@ -74,8 +83,8 @@ const Login = () => {
       <header className="login-nav" role="banner">
         <div className="login-nav-inner">
           <Link className="login-brand" to="/">
-            <img className="login-brand-logo" src={logoUrl} alt="" />
-            <span className="login-brand-text">MockGulfMed</span>
+            <img className="login-brand-logo" src={logoUrl} alt="ClickToGulf Exams" />
+            <span className="login-brand-text">ClickToGulf Exams</span>
           </Link>
           <nav className="login-nav-actions" aria-label="Sign-in navigation">
             <button

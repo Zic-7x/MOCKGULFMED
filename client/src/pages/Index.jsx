@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-const logoUrl = '/logo.png';
+const logoUrl = '/logo.svg';
 import './Index.css';
 
 const STATUS_ROTATIONS = [
@@ -246,7 +246,7 @@ const TESTIMONIALS = [
     avatar: 'https://randomuser.me/api/portraits/women/32.jpg',
     route: '🇵🇰 Pakistan → 🇦🇪 UAE',
     handle: '@sarahkhan',
-    text: 'Got my DHA license in just 6 weeks. The Dataflow processing was handled completely by MockGulfMed — stress-free!',
+    text: 'Got my DHA license in just 6 weeks. The Dataflow processing was handled completely by ClickToGulf — stress-free!',
   },
   {
     name: 'Nurse Maria Santos',
@@ -260,7 +260,7 @@ const TESTIMONIALS = [
     avatar: 'https://randomuser.me/api/portraits/men/51.jpg',
     route: '🇪🇬 Egypt → 🇦🇪 UAE',
     handle: '@ahmedalrashid',
-    text: 'MockGulfMed placed me with a top hospital in Abu Dhabi within 3 weeks of getting my DOH license. Incredible service.',
+    text: 'ClickToGulf placed me with a top hospital in Abu Dhabi within 3 weeks of getting my DOH license. Incredible service.',
   },
   {
     name: 'Pharmacist Priya Nair',
@@ -288,7 +288,7 @@ const TESTIMONIALS = [
     avatar: 'https://randomuser.me/api/portraits/men/61.jpg',
     route: '🇮🇳 India → 🇦🇪 UAE',
     handle: '@ravisharma',
-    text: 'From credential check to exam booking, MockGulfMed handled everything. I just focused on studying.',
+    text: 'From credential check to exam booking, ClickToGulf Exams handled everything. I just focused on studying.',
   },
   {
     name: 'Physiotherapist Lena Müller',
@@ -456,7 +456,10 @@ const Index = () => {
   const [navSolid, setNavSolid] = useState(false);
   const [theme, setTheme] = useState(() => {
     try {
-      const stored = localStorage.getItem('mockgulfmed-index-theme');
+      const stored =
+        localStorage.getItem('ctg-index-theme') ||
+        localStorage.getItem('clicktogulf-index-theme') ||
+        localStorage.getItem('mockgulfmed-index-theme');
       if (stored === 'dark' || stored === 'light') return stored;
     } catch {
       /* ignore */
@@ -475,7 +478,8 @@ const Index = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('mockgulfmed-index-theme', theme);
+      localStorage.setItem('ctg-index-theme', theme);
+      localStorage.setItem('clicktogulf-index-theme', theme);
     } catch {
       /* ignore */
     }
@@ -499,6 +503,10 @@ const Index = () => {
 
   const toggleTheme = useCallback(() => {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+  }, []);
+
+  useEffect(() => {
+    document.title = 'ClickToGulf Exams — Gulf Medical Exam Simulation Portal';
   }, []);
 
   useEffect(() => {
@@ -528,12 +536,15 @@ const Index = () => {
         role="banner"
       >
         <div className="index-nav-inner">
-          <Link className="index-nav-brand" to="/">
-            <img className="index-nav-logo" src={logoUrl} alt="" />
-            <span className="index-nav-title">MockGulfMed</span>
+          <Link className="index-nav-brand" to="/exams-portal">
+            <img className="index-nav-logo" src={logoUrl} alt="ClickToGulf Exams" />
+            <span className="index-nav-title">ClickToGulf Exams</span>
           </Link>
 
           <nav className="index-nav-actions" aria-label="Primary">
+            <Link className="index-btn index-btn--ghost" to="/" title="Go to ClickToGulf Home">
+              ← ClickToGulf
+            </Link>
             <button
               type="button"
               className="index-icon-btn"
@@ -617,7 +628,7 @@ const Index = () => {
               </h1>
 
               <p className="index-hero-lede">
-                From eligibility checks to exam day—MockGulfMed helps healthcare professionals practise
+                From eligibility checks to exam day—ClickToGulf Exams helps healthcare professionals practise
                 with realistic Gulf licensing mocks across the UAE &amp; GCC.
               </p>
 
@@ -735,7 +746,7 @@ const Index = () => {
                       <p className="index-hero-feed-title" key={statusIdx}>
                         {STATUS_ROTATIONS[statusIdx].name} — {STATUS_ROTATIONS[statusIdx].goal}
                       </p>
-                      <p className="index-hero-feed-meta">Live activity · MockGulfMed</p>
+                      <p className="index-hero-feed-meta">Live activity · ClickToGulf Exams</p>
                     </div>
                     <span className="index-hero-feed-tag">New</span>
                   </div>
@@ -1074,7 +1085,7 @@ const Index = () => {
                 <span className="index-proven-line2">One trusted platform.</span>
               </h2>
               <p className="index-proven-sub">
-                From first login to exam day—healthcare professionals across the GCC use MockGulfMed to
+                From first login to exam day—healthcare professionals across the GCC use ClickToGulf Exams to
                 prepare with structure, track progress, and build confidence for licensing exams.
               </p>
             </header>
@@ -1245,7 +1256,7 @@ const Index = () => {
           <div className="index-app-showcase-box index-glass">
             <div className="index-app-showcase-left">
               <span className="index-hero-badge">Official Android Release</span>
-              <h2 className="index-app-showcase-title">Practice on Android with MockGulfMed App</h2>
+              <h2 className="index-app-showcase-title">Practice on Android with ClickToGulf Exams App</h2>
               <p className="index-app-showcase-desc">
                 Study for DHA, MOH, HAAD, OMSB, and SMLE exams on your phone with full-screen simulator mode, instant offline review, and zero Play Store fees.
               </p>
@@ -1266,7 +1277,7 @@ const Index = () => {
               <div className="index-app-phone-mockup">
                 <div className="phone-screen-preview">
                   <div className="phone-header-bar">
-                    <span>MockGulfMed Mobile</span>
+                    <span>ClickToGulf Exams Mobile</span>
                     <span>100%</span>
                   </div>
                   <div className="phone-body-content">
@@ -1325,6 +1336,10 @@ const Index = () => {
 
       <footer className="index-footer">
         <div className="index-footer-inner">
+          <Link to="/" style={{ fontWeight: '700' }}>ClickToGulf</Link>
+          <span className="index-footer-sep" aria-hidden="true">
+            •
+          </span>
           <Link to="/features">Features</Link>
           <span className="index-footer-sep" aria-hidden="true">
             •
@@ -1333,7 +1348,7 @@ const Index = () => {
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>
-          <span>MockGulfMed</span>
+          <span>ClickToGulf Exams</span>
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>

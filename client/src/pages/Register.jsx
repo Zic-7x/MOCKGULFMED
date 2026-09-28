@@ -14,7 +14,7 @@ import {
 } from '../utils/healthAuthorities';
 import './Register.css';
 
-const logoUrl = '/logo.png';
+const logoUrl = '/logo.svg';
 const PHONE_REGEX = /^[0-9+\-()\s]{7,32}$/;
 
 const isPhoneValid = (phone) => {
@@ -217,7 +217,7 @@ const Register = () => {
 
       // 3. Handle Pay Later option
       if (paymentChoice === 'PAY_LATER' || !form.packageId) {
-        toast.success('Account created successfully! Welcome to MockGulfMed.');
+        toast.success('Account created successfully! Welcome to ClickToGulf Exams.');
         if (loggedInUser) {
           navigate('/dashboard', { replace: true });
         } else {
@@ -303,8 +303,8 @@ const Register = () => {
     <div className="register-page">
       <header className="register-header">
         <div className="register-header-inner">
-          <Link to="/" className="register-brand" aria-label="MockGulfMed home">
-            <img className="register-logo" src={logoUrl} alt="MockGulfMed" />
+          <Link to="/" className="register-brand" aria-label="ClickToGulf Exams home">
+            <img className="register-logo" src={logoUrl} alt="ClickToGulf Exams" />
           </Link>
           <nav className="register-nav">
             <Link className="register-link" to="/packages">

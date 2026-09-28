@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="100%" height="100%" role="img" aria-label="ClickToGulf Icon">
+  <defs>
+    <!-- Turquoise-to-Teal Primary Gradient -->
+    <linearGradient id="ctgIconTeal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00d2f5"/>
+      <stop offset="35%" stop-color="#009ebd"/>
+      <stop offset="100%" stop-color="#006f8c"/>
+    </linearGradient>
+
+    <!-- Deep Gulf Navy Gradient -->
+    <linearGradient id="ctgIconNavy" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f2b48"/>
+      <stop offset="50%" stop-color="#07192e"/>
+      <stop offset="100%" stop-color="#030c17"/>
+    </linearGradient>
+
+    <!-- Luminous Shield Rim Gradient -->
+    <linearGradient id="ctgIconRim" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38e1ff"/>
+      <stop offset="40%" stop-color="#00a3c7"/>
+      <stop offset="70%" stop-color="#027394"/>
+      <stop offset="100%" stop-color="#071e36"/>
+    </linearGradient>
+
+    <!-- Verification Check & Pathway Accent Gradient -->
+    <linearGradient id="ctgIconVerify" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00b4d8"/>
+      <stop offset="50%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+
+    <!-- Golden Accreditation Highlight -->
+    <linearGradient id="ctgIconGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <!-- Drop Shadow Filter for Precision Depth -->
+    <filter id="ctgIconShadow" x="-20%" y="-15%" width="140%" height="135%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#03101d" flood-opacity="0.32"/>
+    </filter>
+
+    <radialGradient id="ctgBackdropGlow" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#00b4d8" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#00b4d8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Ambient Backdrop Glow -->
+  <circle cx="120" cy="118" r="96" fill="url(#ctgBackdropGlow)"/>
+
+  <g filter="url(#ctgIconShadow)">
+    <!-- 1. The Dynamic Gateway & "Click" Orbital Crescent -->
+    <!-- Base swoosh representing digital speed & the Arabian Gulf horizon -->
+    <path d="M 36,156 C 14,122 18,74 48,46 C 42,60 38,78 40,98 C 45,142 80,186 128,210 C 166,228 206,218 226,196 C 204,216 162,224 124,206 C 78,184 46,146 36,156 Z"
+          fill="url(#ctgIconTeal)" opacity="0.9"/>
+    
+    <path d="M 48,168 C 24,136 26,92 54,60 C 51,70 50,82 52,96 C 56,132 82,172 126,194 C 158,210 192,206 214,188 C 192,204 154,210 120,196 C 84,180 58,152 48,168 Z"
+          fill="url(#ctgIconRim)" opacity="0.6"/>
+
+    <!-- 2. The Majestic Shield / Credential Seal -->
+    <!-- Outer Shield Container with Dual Bevel -->
+    <path d="M 120,24 C 160,24 198,36 206,62 C 215,98 208,152 172,190 C 150,214 132,226 120,232 C 108,226 90,214 68,190 C 32,152 25,98 34,62 C 42,36 80,24 120,24 Z"
+          fill="url(#ctgIconNavy)"
+          stroke="url(#ctgIconRim)"
+          stroke-width="5"
+          stroke-linejoin="round"/>
+
+    <!-- Inner Shield Pinstripe (Verification Border) -->
+    <path d="M 120,35 C 152,35 183,45 191,67 C 199,96 193,143 163,177 C 144,198 130,208 120,214 C 110,208 96,198 77,177 C 47,143 41,96 49,67 C 57,45 88,35 120,35 Z"
+          fill="none"
+          stroke="url(#ctgIconTeal)"
+          stroke-width="1.8"
+          stroke-dasharray="7 3.5"
+          opacity="0.45"/>
+
+    <!-- Left Flank Luminous Curvature -->
+    <path d="M 120,30 C 85,30 52,42 42,66 C 35,96 40,144 72,182 C 92,206 108,216 118,222 C 116,196 100,166 84,136 C 70,110 68,82 82,58 C 92,42 106,34 120,30 Z"
+          fill="url(#ctgIconTeal)"
+          opacity="0.2"/>
+
+    <!-- 3. Central Clinical Cross & Verification Pathway -->
+    <g transform="translate(120, 122)">
+      <!-- Pure White Medical Cross Foundation -->
+      <!-- Vertical Arm -->
+      <rect x="-13" y="-48" width="26" height="88" rx="6" fill="#ffffff"/>
+      <!-- Horizontal Arm -->
+      <rect x="-44" y="-17" width="88" height="26" rx="6" fill="#ffffff"/>
+
+      <!-- Cross Inner Subtle Chamfer Inset -->
+      <path d="M -8,-42 L 8,-42 C 10,-42 11,-40 11,-38 L 11,-15 C 11,-13 13,-11 15,-11 L 38,-11 C 40,-11 42,-10 42,-8 L 42,0 C 42,2 40,3 38,3 L 15,3 C 13,3 11,5 11,7 L 11,32 C 11,34 10,36 8,36 L -8,36 C -10,36 -11,34 -11,32 L -11,7 C -11,5 -13,3 -15,3 L -38,3 C -40,3 -42,2 -42,0 L -42,-8 C -42,-10 -40,-11 -38,-11 L -15,-11 C -13,-11 -11,-13 -11,-15 L -11,-38 C -11,-40 -10,-42 -8,-42 Z"
+            fill="url(#ctgIconTeal)"
+            opacity="0.12"/>
+
+      <!-- Ascending Verification Pathway (Checkmark & Upward Gateway to the Gulf) -->
+      <!-- Soars up through the center of the cross toward the top-right apex -->
+      <path d="M -32,-3 L -12,17 C -9,20 -4,20 -1,17 L 36,-20 L 46,-12 L 48,-42 L 18,-38 L 27,-29 L -6,4 L -22,-12 Z"
+            fill="url(#ctgIconVerify)"/>
+
+      <!-- Inner Verification Gleam Edge -->
+      <path d="M -30,-3 L -12,15 C -9,18 -4,18 -1,15 L 34,-20"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            opacity="0.9"/>
+
+      <!-- Central Compass Star Core (8-point Facet) -->
+      <circle cx="0" cy="-4" r="5" fill="#ffffff"/>
+      <circle cx="0" cy="-4" r="3" fill="#009ebd"/>
+    </g>
+
+    <!-- 4. Top Apex Guidance Star (The Gulf North Star of Medical Licensure) -->
+    <g transform="translate(120, 48)">
+      <!-- 4-point Diamond Star -->
+      <path d="M 0,-11 C 1.2,-3.5 3.5,-1.2 11,0 C 3.5,1.2 1.2,3.5 0,11 C -1.2,3.5 -3.5,1.2 -11,0 C -3.5,-1.2 -1.2,-3.5 0,-11 Z"
+            fill="url(#ctgIconGold)"/>
+      <circle cx="0" cy="0" r="1.8" fill="#ffffff"/>
+    </g>
+
+    <!-- 5. Subtle Digital "Click" Dot Indicator -->
+    <circle cx="188" cy="74" r="3.5" fill="#00d2f5" opacity="0.85"/>
+  </g>
+</svg>

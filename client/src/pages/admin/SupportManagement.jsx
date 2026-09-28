@@ -96,7 +96,7 @@ const CANNED_RESPONSES = [
   },
   {
     label: 'Billing & Plan Upgrade',
-    text: 'Hello, thank you for reaching out. We have verified your account billing. Your package access has been synchronized. You now have full access to the package features and question banks. Thank you for choosing MockGulfMed!',
+    text: 'Hello, thank you for reaching out. We have verified your account billing. Your package access has been synchronized. You now have full access to the package features and question banks. Thank you for choosing ClickToGulf Exams!',
   },
   {
     label: 'Issue Resolved / Closing Note',
