@@ -331,6 +331,32 @@ const Packages = () => {
   const [currentPackage, setCurrentPackage] = useState(null);
   const [hasUsedTrial, setHasUsedTrial] = useState(false);
   const [entitlementRefreshKey, setEntitlementRefreshKey] = useState(0);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  const closeMobileNav = useCallback(() => {
+    setIsMobileNavOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileNavOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') setIsMobileNavOpen(false);
+    };
+    const onResize = () => {
+      if (window.innerWidth >= 768) setIsMobileNavOpen(false);
+    };
+
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [isMobileNavOpen]);
 
   const freemiusReady = useMemo(
     () => Boolean(FREEMIUS_PUBLIC_KEY && FREEMIUS_PRODUCT_ID),
@@ -631,20 +657,13 @@ const Packages = () => {
     <div className={`packages-shell packages-shell--${theme}`}>
       <header className={`packages-header${theme === 'dark' ? ' packages-header--dark' : ''}`} role="banner">
         <div className="packages-header-inner">
-          <Link to="/" className="packages-brand" aria-label="ClickToGulf Exams home">
+          <Link to="/" className="packages-brand" aria-label="ClickToGulf Exams home" onClick={closeMobileNav}>
             <img className="packages-logo" src={logoUrl} alt="ClickToGulf Exams" width="40" height="40" />
             <span className="packages-brand-text">ClickToGulf Exams</span>
           </Link>
-          <nav className="packages-nav" aria-label="Main navigation">
-            <button
-              type="button"
-              className="packages-theme-btn"
-              onClick={toggleTheme}
-              aria-pressed={theme === 'dark'}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
+
+          {/* Desktop Navigation */}
+          <nav className="packages-nav packages-nav--desktop" aria-label="Main navigation">
             <Link className="packages-nav-link" to="/">
               Home
             </Link>
@@ -655,11 +674,99 @@ const Packages = () => {
             >
               Packages
             </Link>
+            <Link className="packages-nav-link" to="/features">
+              Features
+            </Link>
+            <Link className="packages-nav-link packages-nav-link--app" to="/download-app" title="Download Android App APK">
+              📱 App
+            </Link>
             <Link className="packages-nav-link" to="/register">
               Register
             </Link>
+            <button
+              type="button"
+              className="packages-theme-btn"
+              onClick={toggleTheme}
+              aria-pressed={theme === 'dark'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
             <Link className="packages-nav-cta" to="/login">
               Get started
+            </Link>
+          </nav>
+
+          {/* Mobile Action Controls */}
+          <div className="packages-header-mobile-actions">
+            <button
+              type="button"
+              className="packages-theme-btn packages-theme-btn--mobile"
+              onClick={toggleTheme}
+              aria-pressed={theme === 'dark'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+
+            <button
+              type="button"
+              className={`packages-nav-toggle ${isMobileNavOpen ? 'packages-nav-toggle--open' : ''}`}
+              onClick={() => setIsMobileNavOpen((open) => !open)}
+              aria-expanded={isMobileNavOpen}
+              aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-controls="packages-mobile-drawer"
+            >
+              <span className="packages-nav-toggle-bar" />
+              <span className="packages-nav-toggle-bar" />
+              <span className="packages-nav-toggle-bar" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Drawer */}
+        {isMobileNavOpen && (
+          <div
+            className="packages-mobile-backdrop"
+            onClick={closeMobileNav}
+            aria-hidden="true"
+          />
+        )}
+        <div
+          id="packages-mobile-drawer"
+          className={`packages-mobile-drawer ${isMobileNavOpen ? 'packages-mobile-drawer--open' : ''}`}
+          aria-hidden={!isMobileNavOpen}
+        >
+          <nav className="packages-mobile-nav" aria-label="Mobile navigation">
+            <Link className="packages-mobile-link" to="/" onClick={closeMobileNav}>
+              <span className="packages-mobile-link-icon" aria-hidden="true">🏠</span>
+              <span>Home</span>
+            </Link>
+            <Link
+              className="packages-mobile-link packages-mobile-link--active"
+              to="/packages"
+              aria-current="page"
+              onClick={closeMobileNav}
+            >
+              <span className="packages-mobile-link-icon" aria-hidden="true">💎</span>
+              <span>Packages</span>
+              <span className="packages-mobile-pill">Current</span>
+            </Link>
+            <Link className="packages-mobile-link" to="/features" onClick={closeMobileNav}>
+              <span className="packages-mobile-link-icon" aria-hidden="true">✨</span>
+              <span>Features</span>
+            </Link>
+            <Link className="packages-mobile-link" to="/download-app" onClick={closeMobileNav}>
+              <span className="packages-mobile-link-icon" aria-hidden="true">📱</span>
+              <span>Download App (APK)</span>
+            </Link>
+            <Link className="packages-mobile-link" to="/register" onClick={closeMobileNav}>
+              <span className="packages-mobile-link-icon" aria-hidden="true">📝</span>
+              <span>Register</span>
+            </Link>
+            <div className="packages-mobile-divider" />
+            <Link className="packages-mobile-cta" to="/login" onClick={closeMobileNav}>
+              Get started / Sign In
             </Link>
           </nav>
         </div>

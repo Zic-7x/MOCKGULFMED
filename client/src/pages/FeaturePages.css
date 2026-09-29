@@ -1026,3 +1026,31 @@
   font-weight: 700;
   text-transform: uppercase;
 }
+
+@media (max-width: 640px) {
+  .index-feature-wrap {
+    padding: 20px 14px 48px;
+  }
+
+  .index-feature-hub-header {
+    margin-bottom: 24px;
+  }
+
+  .index-feature-journey-section {
+    padding: 20px 14px;
+    border-radius: 18px;
+  }
+
+  .index-feature-stats-ribbon {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .index-feature-stat-box {
+    padding: 12px 10px;
+  }
+
+  .index-feature-stat-num {
+    font-size: 1.25rem;
+  }
+}

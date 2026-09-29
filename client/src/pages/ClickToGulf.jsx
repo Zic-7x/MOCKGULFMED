@@ -550,6 +550,26 @@ export default function ClickToGulf() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    const onResize = () => {
+      if (window.innerWidth >= 1240) setMobileMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [mobileMenuOpen]);
+
   const toggleTheme = useCallback(() => {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
   }, []);
@@ -635,6 +655,7 @@ export default function ClickToGulf() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
+              aria-controls="ctg-mobile-drawer"
             >
               {mobileMenuOpen ? '✕' : '☰'}
             </button>
@@ -642,39 +663,55 @@ export default function ClickToGulf() {
         </div>
       </header>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer with Backdrop */}
       {mobileMenuOpen && (
-        <div className="ctg-mobile-drawer" id="ctg-mobile-drawer">
-          <a href="#ctg-licensing" onClick={() => setMobileMenuOpen(false)}>
-            Licensing Services Worldwide
-          </a>
-          <a href="#ctg-navigator" onClick={() => setMobileMenuOpen(false)}>
-            Gulf Pathway Navigator
-          </a>
-          <a href="#ctg-prep" onClick={() => setMobileMenuOpen(false)}>
-            Exam Preparation Materials
-          </a>
-          <Link to="/exams-portal" onClick={() => setMobileMenuOpen(false)}>
-            🩺 ClickToGulf Exams Portal
-          </Link>
-          <Link to="/packages" onClick={() => setMobileMenuOpen(false)}>
-            Subscription Packages
-          </Link>
-          <Link to="/eligibility-check" onClick={() => setMobileMenuOpen(false)}>
-            Free Eligibility Assessment
-          </Link>
-          <Link to="/features" onClick={() => setMobileMenuOpen(false)}>
-            Platform Features
-          </Link>
-          <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-            <Link to="/login" className="ctg-btn ctg-btn--ghost" style={{ flex: 1 }} onClick={() => setMobileMenuOpen(false)}>
-              Sign In
+        <>
+          <div
+            className="ctg-drawer-backdrop"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            className="ctg-mobile-drawer"
+            id="ctg-mobile-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile Navigation Menu"
+          >
+            <a href="#ctg-licensing" onClick={() => setMobileMenuOpen(false)}>
+              Licensing Services Worldwide
+            </a>
+            <a href="#ctg-navigator" onClick={() => setMobileMenuOpen(false)}>
+              Gulf Pathway Navigator
+            </a>
+            <a href="#ctg-prep" onClick={() => setMobileMenuOpen(false)}>
+              Exam Preparation Materials
+            </a>
+            <Link to="/exams-portal" onClick={() => setMobileMenuOpen(false)}>
+              🩺 ClickToGulf Exams Portal
             </Link>
-            <Link to="/register" className="ctg-btn ctg-btn--primary" style={{ flex: 1 }} onClick={() => setMobileMenuOpen(false)}>
-              Get Started
+            <Link to="/packages" onClick={() => setMobileMenuOpen(false)}>
+              Subscription Packages
             </Link>
+            <Link to="/eligibility-check" onClick={() => setMobileMenuOpen(false)}>
+              Free Eligibility Assessment
+            </Link>
+            <Link to="/features" onClick={() => setMobileMenuOpen(false)}>
+              Platform Features
+            </Link>
+            <Link to="/download-app" onClick={() => setMobileMenuOpen(false)}>
+              📱 Download Android App (Free APK)
+            </Link>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <Link to="/login" className="ctg-btn ctg-btn--ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setMobileMenuOpen(false)}>
+                Sign In
+              </Link>
+              <Link to="/register" className="ctg-btn ctg-btn--primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setMobileMenuOpen(false)}>
+                Get Started
+              </Link>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       <main id="ctg-main">
@@ -740,11 +777,11 @@ export default function ClickToGulf() {
             {/* Visual Interactive Hero Card */}
             <div className="ctg-hero-card" id="ctg-hero-summary-card">
               <div className="ctg-hero-card-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
                   <img
                     src="/clicktogulf-logo.svg"
                     alt="ClickToGulf - Medical Licensing &amp; Primary Source Verification"
-                    style={{ width: '100%', maxWidth: '280px', height: 'auto' }}
+                    style={{ width: '100%', maxWidth: 'min(240px, 75%)', height: 'auto' }}
                   />
                   <span className="ctg-status-badge">Worldwide</span>
                 </div>
@@ -1081,11 +1118,11 @@ export default function ClickToGulf() {
                       </span>
                     </div>
 
-                    <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <Link to="/exams-portal" className="ctg-btn ctg-btn--blue" style={{ width: '100%' }}>
+                    <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', minWidth: 0 }}>
+                      <Link to="/exams-portal" className="ctg-btn ctg-btn--blue ctg-btn--multiline" style={{ width: '100%' }}>
                         Start {selectedProf.title.split('(')[0].replace('Allied Health:', '').trim()} Mocks on ClickToGulf Exams ➔
                       </Link>
-                      <Link to="/eligibility-check" className="ctg-btn ctg-btn--ghost" style={{ width: '100%' }}>
+                      <Link to="/eligibility-check" className="ctg-btn ctg-btn--ghost ctg-btn--multiline" style={{ width: '100%' }}>
                         Check Detailed Personal Eligibility
                       </Link>
                     </div>

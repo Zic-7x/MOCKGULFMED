@@ -578,3 +578,9 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 360px) {
+  .app-specs-strip {
+    grid-template-columns: 1fr;
+  }
+}

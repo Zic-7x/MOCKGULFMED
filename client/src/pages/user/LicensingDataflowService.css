@@ -92,3 +92,29 @@
   color: var(--text-muted, #94a3b8);
   margin-top: 4px;
 }
+
+@media (max-width: 640px) {
+  .ldf-page .ldf-stepper {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    gap: 12px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ldf-step {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 0.825rem;
+  }
+
+  .ldf-service-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .ldf-service-card {
+    padding: 14px;
+  }
+}

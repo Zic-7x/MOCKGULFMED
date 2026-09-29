@@ -107,50 +107,52 @@ export default function EmployerJobApplications() {
         {!applications || applications.length === 0 ? (
           <p className="job-portal-lead">No applications yet.</p>
         ) : (
-          <table className="job-table">
-            <thead>
-              <tr>
-                <th>Candidate</th>
-                <th>Email</th>
-                <th>Status</th>
-                <th>Note</th>
-                <th>Reel</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applications.map((app) => (
-                <tr key={app.id}>
-                  <td>{app.applicant_name_at_apply}</td>
-                  <td>
-                    <a href={`mailto:${app.applicant_email_at_apply}`}>{app.applicant_email_at_apply}</a>
-                  </td>
-                  <td>
-                    <select
-                      className="job-status-select"
-                      value={app.status}
-                      onChange={(e) => onStatusChange(app.id, e.target.value)}
-                    >
-                      {JOB_APPLICATION_STATUSES.map((s) => (
-                        <option key={s.value} value={s.value}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td style={{ maxWidth: 220, whiteSpace: 'pre-wrap', fontSize: '0.85rem' }}>
-                    {app.cover_note || '—'}
-                  </td>
-                  <td>
-                    {videoUrls[app.id] ? (
-                      <video src={videoUrls[app.id]} controls playsInline style={{ width: 160, borderRadius: 8 }} />
-                    ) : (
-                      '—'
-                    )}
-                  </td>
+          <div className="job-table-wrap">
+            <table className="job-table">
+              <thead>
+                <tr>
+                  <th>Candidate</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Note</th>
+                  <th>Reel</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {applications.map((app) => (
+                  <tr key={app.id}>
+                    <td>{app.applicant_name_at_apply}</td>
+                    <td>
+                      <a href={`mailto:${app.applicant_email_at_apply}`}>{app.applicant_email_at_apply}</a>
+                    </td>
+                    <td>
+                      <select
+                        className="job-status-select"
+                        value={app.status}
+                        onChange={(e) => onStatusChange(app.id, e.target.value)}
+                      >
+                        {JOB_APPLICATION_STATUSES.map((s) => (
+                          <option key={s.value} value={s.value}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={{ maxWidth: 220, whiteSpace: 'pre-wrap', fontSize: '0.85rem' }}>
+                      {app.cover_note || '—'}
+                    </td>
+                    <td>
+                      {videoUrls[app.id] ? (
+                        <video src={videoUrls[app.id]} controls playsInline style={{ width: 160, borderRadius: 8 }} />
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </Layout>

@@ -656,3 +656,33 @@
   border: 2px solid rgba(11, 110, 168, 0.35);
   box-shadow: none;
 }
+
+@media (max-width: 480px) {
+  .pec-header-inner {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .pec-logo {
+    width: 125px;
+  }
+
+  .pec-nav-link {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .pec-main {
+    padding: 14px 12px calc(90px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .pec-stepper {
+    margin-bottom: 14px;
+  }
+
+  .pec-step-chip {
+    min-width: 110px;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+}

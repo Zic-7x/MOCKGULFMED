@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import './AndroidInstallBanner.css';
 
 export default function AndroidInstallBanner() {
+  const location = useLocation();
   const [dismissed, setDismissed] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isStandalone, setIsStandalone] = useState(false);
+
+  const isLifted =
+    location.pathname === '/' ||
+    location.pathname === '/eligibility-check' ||
+    location.pathname === '/eligibility-assessment';
 
   useEffect(() => {
     // Check if app is already running in standalone mode
@@ -63,7 +69,11 @@ export default function AndroidInstallBanner() {
   };
 
   return (
-    <div className="android-install-banner" role="region" aria-label="Mobile App Available">
+    <div
+      className={`android-install-banner ${isLifted ? 'android-install-banner--lifted' : ''}`}
+      role="region"
+      aria-label="Mobile App Available"
+    >
       <div className="banner-inner">
         <div className="banner-left">
           <img src="/logo.svg" alt="ClickToGulf Exams Icon" className="banner-app-icon" />

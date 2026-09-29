@@ -2961,6 +2961,40 @@
   }
 }
 
+@media (max-width: 480px) {
+  .index-nav-inner {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .index-nav-logo {
+    width: 32px;
+  }
+
+  .index-nav-title {
+    max-width: 135px;
+    font-size: 0.875rem;
+  }
+
+  .index-icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .index-btn--primary {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    min-height: 38px;
+  }
+}
+
+@media (max-width: 360px) {
+  .index-nav-title {
+    max-width: 105px;
+    font-size: 0.825rem;
+  }
+}
+
 /* App Showcase Section in Index */
 .index-app-showcase-box {
   display: flex;

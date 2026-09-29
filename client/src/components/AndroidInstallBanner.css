@@ -7,7 +7,7 @@
   right: 16px;
   max-width: 520px;
   margin: 0 auto;
-  z-index: 999;
+  z-index: 900;
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -135,17 +135,41 @@
   color: #ffffff;
 }
 
+@media (max-width: 768px) {
+  .android-install-banner {
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    padding: 8px 12px;
+  }
+
+  .android-install-banner--lifted,
+  body:has(.ctg-mobile-thumb-dock) .android-install-banner,
+  body:has(.pec-mobile-bar) .android-install-banner,
+  body:has(.eligibility-actions) .android-install-banner {
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 @media (max-width: 480px) {
   .android-install-banner {
-    bottom: 10px;
-    left: 10px;
-    right: 10px;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
     padding: 8px 10px;
+    border-radius: 14px;
+  }
+
+  .android-install-banner--lifted,
+  body:has(.ctg-mobile-thumb-dock) .android-install-banner,
+  body:has(.pec-mobile-bar) .android-install-banner,
+  body:has(.eligibility-actions) .android-install-banner {
+    bottom: calc(62px + env(safe-area-inset-bottom, 0px));
   }
 
   .banner-app-icon {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
   }
 
   .banner-app-title {
@@ -156,8 +180,38 @@
     font-size: 10px;
   }
 
+  .banner-btn-link {
+    display: none; /* Keep actions single-line on small mobile */
+  }
+
   .banner-btn-install {
     padding: 6px 10px;
     font-size: 12px;
+    min-height: 36px;
+  }
+
+  .banner-btn-close {
+    min-width: 32px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .banner-app-sub {
+    display: none;
+  }
+
+  .banner-app-title {
+    font-size: 11px;
+    max-width: 140px;
+  }
+
+  .banner-btn-install {
+    padding: 5px 8px;
+    font-size: 11px;
   }
 }

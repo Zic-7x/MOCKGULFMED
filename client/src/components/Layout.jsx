@@ -204,7 +204,28 @@ const Layout = ({ children }) => {
 
   useEffect(() => {
     setIsAccountOpen(false);
+    setIsMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeMenu();
+    };
+    const onResize = () => {
+      if (window.innerWidth >= 1024) closeMenu();
+    };
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [isMenuOpen]);
 
   useEffect(() => {
     if (!isAccountOpen) return;

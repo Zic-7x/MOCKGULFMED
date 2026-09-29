@@ -1,5 +1,5 @@
 // ClickToGulf Exams Service Worker for PWA & Offline Support
-const CACHE_NAME = 'clicktogulfexams-v1';
+const CACHE_NAME = 'clicktogulfexams-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -27,6 +27,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log('[SW] Deleting outdated cache:', key);
             return caches.delete(key);
           }
         })
@@ -35,12 +36,18 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests and skip API / Supabase requests for fresh data
+  // Only handle GET requests
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
 
-  // Skip API routes, Supabase calls, and APK downloads from aggressive caching
+  // Skip API routes, Supabase calls, and APK downloads from caching
   if (
     url.pathname.startsWith('/api') ||
     url.pathname.includes('supabase') ||
@@ -49,39 +56,74 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 1. Navigation / HTML Document requests: ALWAYS NETWORK-FIRST
+  // Guarantees users immediately get new Vercel deployments on refresh/navigation without hard refresh.
+  const isNavigation =
+    event.request.mode === 'navigate' ||
+    event.request.destination === 'document' ||
+    (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'));
+
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+              cache.put('/index.html', responseToCache.clone());
+            });
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          // Fallback to offline cache if user is completely offline
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
+          return caches.match('/index.html');
+        })
+    );
+    return;
+  }
+
+  // 2. Vite hashed static assets (/assets/*): Cache-first with network fallback
+  // Since Vite bundles have content-hashes in their filenames, cache-first is fast and safe.
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetch(event.request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        });
+      })
+    );
+    return;
+  }
+
+  // 3. Other static assets (images, icons, manifest): Stale-While-Revalidate
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Fetch fresh copy in background for next time
-        fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, networkResponse);
-              });
-            }
-          })
-          .catch(() => {});
-        return cachedResponse;
-      }
-
-      return fetch(event.request)
-        .then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
+      const fetchPromise = fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
           }
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-          return response;
+          return networkResponse;
         })
-        .catch(() => {
-          // If offline and requesting navigation, return index.html
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-        });
+        .catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
     })
   );
 });

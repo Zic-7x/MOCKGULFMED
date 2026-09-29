@@ -639,8 +639,10 @@
     border: 1px solid rgba(226, 232, 240, 0.95);
     box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
     z-index: 150;
-    max-height: calc(100vh - 90px);
+    max-height: calc(100dvh - 84px);
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     animation: navMobileSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -723,5 +725,73 @@
 
   .main-content {
     padding: 20px 16px;
+  }
+}
+
+/* ——— Laptop Compact Fit (1024px - 1220px) ——— */
+@media (min-width: 1024px) and (max-width: 1220px) {
+  .nav-link {
+    padding: 7px 10px;
+    font-size: 12.5px;
+    gap: 5px;
+  }
+
+  .nav-logo-image {
+    height: 38px;
+  }
+
+  .nav-user-trigger {
+    padding: 4px 8px 4px 5px;
+    gap: 6px;
+  }
+
+  .user-name--trigger {
+    max-width: 85px;
+  }
+}
+
+/* ——— Extra-Small Mobile Devices (< 480px) ——— */
+@media (max-width: 480px) {
+  .nav-container {
+    padding: 0 12px;
+    min-height: 58px;
+  }
+
+  .nav-logo-image {
+    height: 36px;
+    max-width: 175px;
+  }
+
+  .nav-toggle {
+    width: 38px;
+    height: 36px;
+    padding: 8px 7px;
+  }
+
+  .nav-menu {
+    left: 8px;
+    right: 8px;
+    padding: 12px 10px;
+    gap: 10px;
+  }
+
+  .nav-link {
+    font-size: 13.5px;
+    padding: 9px 12px;
+  }
+
+  .main-content {
+    padding: 16px 12px 32px;
+  }
+}
+
+@media (max-width: 360px) {
+  .nav-logo-image {
+    height: 32px;
+    max-width: 145px;
+  }
+
+  .nav-badge--admin {
+    display: none;
   }
 }

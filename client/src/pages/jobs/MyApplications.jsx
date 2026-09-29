@@ -64,37 +64,39 @@ export default function MyApplications() {
         )}
 
         {!isLoading && rows && rows.length > 0 && (
-          <table className="job-table">
-            <thead>
-              <tr>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Applied</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    <Link to={`/jobs/${r.job_id}`}>{r.job?.title || 'Job'}</Link>
-                    {r.job?.location && (
-                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{r.job.location}</div>
-                    )}
-                  </td>
-                  <td>{STATUS_LABEL[r.status] || r.status}</td>
-                  <td>{new Date(r.created_at).toLocaleDateString()}</td>
-                  <td>
-                    {r.status === 'SUBMITTED' && (
-                      <button type="button" className="job-btn job-btn--secondary" onClick={() => onWithdraw(r.id)}>
-                        Withdraw
-                      </button>
-                    )}
-                  </td>
+          <div className="job-table-wrap">
+            <table className="job-table">
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Applied</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <Link to={`/jobs/${r.job_id}`}>{r.job?.title || 'Job'}</Link>
+                      {r.job?.location && (
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{r.job.location}</div>
+                      )}
+                    </td>
+                    <td>{STATUS_LABEL[r.status] || r.status}</td>
+                    <td>{new Date(r.created_at).toLocaleDateString()}</td>
+                    <td>
+                      {r.status === 'SUBMITTED' && (
+                        <button type="button" className="job-btn job-btn--secondary" onClick={() => onWithdraw(r.id)}>
+                          Withdraw
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </Layout>
