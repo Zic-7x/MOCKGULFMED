@@ -12,6 +12,64 @@ export const FEATURE_CATEGORIES = [
 
 export const FEATURE_PAGE_LIST = [
   {
+    slug: 'allied-health-licensing',
+    category: 'licensing',
+    navLabel: 'Allied health & international pathways',
+    title: 'Gulf licensing & mock exams for Allied Health Professionals',
+    kicker: 'Regional & Allied Health',
+    tag: 'Targeted Prep',
+    icon: 'licensing',
+    stat: '96% First-Try Pass',
+    lede:
+      'Dedicated licensing pathways, authentic Prometric question banks, and DataFlow PSV guidance for Nurses, Medical Lab Technologists, Physiotherapists, Radiographers, and Pharmacists from Pakistan, India, Bangladesh, Indonesia, Afghanistan, and Sri Lanka aiming for practice in the UAE, Saudi Arabia, Qatar, and Oman.',
+    highlights: [
+      'Tailored question banks for Medical Lab Technologists (MLT), Radiographers, Physiotherapists, and Registered Nurses',
+      'Exact syllabus alignment with DHA (Dubai), MOHAP (UAE), DOH/HAAD (Abu Dhabi), SCFHS (Saudi Arabia), QCHP (Qatar), and OMSB (Oman)',
+      'Specific eligibility rules and 2-year clinical experience mapping for graduates from Indian, Pakistani, Bangladeshi, Indonesian, and Sri Lankan universities',
+      'DataFlow Primary Source Verification (PSV) document auditing to eliminate verification delays or discrepancies',
+      'Guidance for scheduling Prometric exams at official test centers in Islamabad, Lahore, Karachi, Delhi, Mumbai, Hyderabad, Dhaka, Jakarta, and Colombo',
+      'Reciprocity conversion guidance (e.g. transferring DHA eligibility to MOHAP or DOH Abu Dhabi without re-examination)',
+    ],
+    howItWorks: [
+      {
+        step: '1',
+        title: 'Check origin qualification & experience',
+        desc: 'Verify that your degree from Pakistan, India, Bangladesh, Indonesia, Afghanistan, or Sri Lanka meets the target Gulf authority requirement (typically 2 years post-internship clinical practice).',
+      },
+      {
+        step: '2',
+        title: 'Practice with timed authority mock questions',
+        desc: 'Master the computer-based test interface with our 100-150 question timed Prometric simulations calibrated to official passing marks (60%-65%).',
+      },
+      {
+        step: '3',
+        title: 'Complete DataFlow PSV & receive eligibility',
+        desc: 'Submit verified credentials to DataFlow and your Gulf regulatory authority to receive your Eligibility Letter and book your hospital interview.',
+      },
+    ],
+    keyBenefits: [
+      'Built specifically around the curriculum and question patterns given to international allied health applicants',
+      'Detailed clinical rationales for every question explain why choices are correct according to GCC protocols',
+      'Connects directly to the Gulf healthcare job portal once your mock scores qualify',
+    ],
+    authorities: [
+      'DHA (Dubai)',
+      'MOHAP (UAE)',
+      'DOH / HAAD (Abu Dhabi)',
+      'SCFHS (Saudi Arabia)',
+      'QCHP (Qatar)',
+      'OMSB (Oman)',
+      'NHRA (Bahrain)',
+    ],
+    proTip:
+      'Allied Health candidates from Pakistan (PNC / PMC / NBEAC), India (State Nursing & Paramedical Councils), Bangladesh, Indonesia, and Sri Lanka should secure their Certificate of Good Standing (CGS) within 3 months of initiating DataFlow.',
+    ctas: [
+      { label: 'Check eligibility now', to: '/eligibility-check', variant: 'primary' },
+      { label: 'Browse exam packages', to: '/packages', variant: 'ghost' },
+    ],
+    relatedSlugs: ['mock-exams', 'eligibility-assessment', 'dataflow-psv'],
+  },
+  {
     slug: 'mock-exams',
     category: 'exams',
     navLabel: 'Mock exams & prep',

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Homepage -->
+  <url>
+    <loc>https://www.clicktogulf.com/</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Features Hub -->
+  <url>
+    <loc>https://www.clicktogulf.com/features</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Allied Health Dedicated Feature Page -->
+  <url>
+    <loc>https://www.clicktogulf.com/features/allied-health-licensing</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Mock Exams Prep -->
+  <url>
+    <loc>https://www.clicktogulf.com/features/mock-exams</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Exam Booking Assistance -->
+  <url>
+    <loc>https://www.clicktogulf.com/features/exam-booking</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Eligibility Assessment Tool -->
+  <url>
+    <loc>https://www.clicktogulf.com/features/eligibility-assessment</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- DataFlow PSV Guidance -->
+  <url>
+    <loc>https://www.clicktogulf.com/features/dataflow-psv</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Full Licensing Support -->
+  <url>
+    <loc>https://www.clicktogulf.com/features/licensing-support</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Healthcare Job Portal -->
+  <url>
+    <loc>https://www.clicktogulf.com/features/job-portal</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Plans and Packages -->
+  <url>
+    <loc>https://www.clicktogulf.com/packages</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Free Public Eligibility Checker -->
+  <url>
+    <loc>https://www.clicktogulf.com/eligibility-check</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Android App / PWA Download -->
+  <url>
+    <loc>https://www.clicktogulf.com/download-app</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Policies -->
+  <url>
+    <loc>https://www.clicktogulf.com/policies</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.clicktogulf.com/policies/terms</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.clicktogulf.com/policies/refund</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>

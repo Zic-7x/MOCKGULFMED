@@ -246,7 +246,7 @@ const TESTIMONIALS = [
     avatar: 'https://randomuser.me/api/portraits/women/32.jpg',
     route: '🇵🇰 Pakistan → 🇦🇪 UAE',
     handle: '@sarahkhan',
-    text: 'Got my DHA license in just 6 weeks. The Dataflow processing was handled completely by ClickToGulf — stress-free!',
+    text: 'Got my DHA license in just 6 weeks from Lahore. The Prometric simulations and Dataflow assistance were stress-free!',
   },
   {
     name: 'Nurse Maria Santos',
@@ -256,11 +256,11 @@ const TESTIMONIALS = [
     text: 'Passed my MOH exam on the first attempt thanks to the mock exams and study materials. Absolutely worth it.',
   },
   {
-    name: 'Dr. Ahmed Al-Rashid',
+    name: 'Tariq Rahman (Lab Technologist)',
     avatar: 'https://randomuser.me/api/portraits/men/51.jpg',
-    route: '🇪🇬 Egypt → 🇦🇪 UAE',
-    handle: '@ahmedalrashid',
-    text: 'ClickToGulf placed me with a top hospital in Abu Dhabi within 3 weeks of getting my DOH license. Incredible service.',
+    route: '🇧🇩 Bangladesh → 🇸🇦 Saudi (SCFHS)',
+    handle: '@tariq_mlt',
+    text: 'As a Medical Lab Tech from Dhaka, ClickToGulf helped me prepare for the Saudi Prometric exam with clinical rationales that were spot-on.',
   },
   {
     name: 'Pharmacist Priya Nair',
@@ -270,32 +270,32 @@ const TESTIMONIALS = [
     text: 'The study assistant answered every question about my syllabus instantly. My preparation was so much more focused.',
   },
   {
-    name: 'Dr. James Okafor',
-    avatar: 'https://randomuser.me/api/portraits/men/33.jpg',
-    route: '🇳🇬 Nigeria → 🇶🇦 Qatar',
-    handle: '@jamesokafor',
-    text: 'Document verification that usually takes months was completed in 3 weeks. The team is professional and responsive.',
+    name: 'Siti Nurhaliza (Registered Nurse)',
+    avatar: 'https://randomuser.me/api/portraits/women/45.jpg',
+    route: '🇮🇩 Indonesia → 🇶🇦 Qatar',
+    handle: '@sitinur',
+    text: 'DataFlow PSV guidance and Qatar Prometric mock tests made my move from Jakarta smooth. Passed on attempt #1!',
   },
   {
-    name: 'Nurse Fatima Al-Hassan',
-    avatar: 'https://randomuser.me/api/portraits/women/45.jpg',
-    route: '🇯🇴 Jordan → 🇸🇦 KSA',
-    handle: '@fatimaalhassan',
-    text: 'The live dashboard kept me updated on every step of my licensing progress. No more chasing emails!',
+    name: 'Dilshan Perera (Radiographer)',
+    avatar: 'https://randomuser.me/api/portraits/men/33.jpg',
+    route: '🇱🇰 Sri Lanka → 🇴🇲 Oman (OMSB)',
+    handle: '@dilshan_rad',
+    text: 'Practicing OMSB questions from Colombo with real Prometric countdown timers gave me the exact confidence I needed.',
+  },
+  {
+    name: 'Farhad Moradi (Physiotherapist)',
+    avatar: 'https://randomuser.me/api/portraits/men/22.jpg',
+    route: '🇦🇫 Afghanistan → 🇦🇪 UAE (DOH)',
+    handle: '@farhad_pt',
+    text: 'Document verification and DOH Abu Dhabi exam preparation handled with utmost professionalism. Licensed in 8 weeks.',
   },
   {
     name: 'Dr. Ravi Sharma',
     avatar: 'https://randomuser.me/api/portraits/men/61.jpg',
     route: '🇮🇳 India → 🇦🇪 UAE',
     handle: '@ravisharma',
-    text: 'From credential check to exam booking, ClickToGulf Exams handled everything. I just focused on studying.',
-  },
-  {
-    name: 'Physiotherapist Lena Müller',
-    avatar: 'https://randomuser.me/api/portraits/women/22.jpg',
-    route: '🇩🇪 Germany → 🇦🇪 UAE',
-    handle: '@lenamuller',
-    text: '98% pass rate is no joke — the Prometric mock exams matched the real exam format perfectly.',
+    text: 'From credential check to exam booking, ClickToGulf handled everything. I just focused on studying.',
   },
   {
     name: 'Dr. Omar Khalil',
@@ -628,8 +628,7 @@ const Index = () => {
               </h1>
 
               <p className="index-hero-lede">
-                From eligibility checks to exam day—ClickToGulf Exams helps healthcare professionals practise
-                with realistic Gulf licensing mocks across the UAE &amp; GCC.
+                From eligibility checks to exam day—ClickToGulf empowers Allied Health Professionals, Nurses, and Doctors from Pakistan, India, Bangladesh, Indonesia, Afghanistan, and Sri Lanka to pass Prometric &amp; Pearson licensing exams for DHA, MOHAP, DOH, and SCFHS.
               </p>
 
               <div className="index-hero-cta">
@@ -967,6 +966,72 @@ const Index = () => {
                 <p>{item.body}</p>
               </article>
             ))}
+          </div>
+        </section>
+
+        <section className="index-section index-section--alt index-reveal" id="allied-health" aria-label="Allied Health and Regional Pathways">
+          <div className="index-section-head">
+            <h2>Dedicated Pathways for Allied Health &amp; International Candidates</h2>
+            <p>
+              Specialized question banks, DataFlow verification guidance, and local Prometric test center roadmaps for healthcare professionals from South &amp; Southeast Asia.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', maxWidth: '1200px', margin: '0 auto 32px' }}>
+            <div className="index-service-card index-glass" style={{ borderLeft: '4px solid #0284c7' }}>
+              <div style={{ fontSize: '1.25rem', marginBottom: '8px', fontWeight: 600 }}>🩺 Allied Health Specialties</div>
+              <p style={{ fontSize: '0.9rem', color: 'var(--idx-muted)', marginBottom: '12px' }}>
+                Complete syllabus mock exams for Medical Lab Technologists (MLT), Radiographers, Physiotherapists, Registered Nurses, Clinical Pharmacists, Dialysis Techs, and Anesthesia Technicians.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {['Lab Tech (MLT)', 'Physiotherapy', 'Radiography', 'Registered Nurse', 'Pharmacy', 'Dialysis'].map((role) => (
+                  <span key={role} style={{ background: 'rgba(2, 132, 199, 0.1)', color: '#0284c7', fontSize: '0.75rem', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                    {role}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="index-service-card index-glass" style={{ borderLeft: '4px solid #10b981' }}>
+              <div style={{ fontSize: '1.25rem', marginBottom: '8px', fontWeight: 600 }}>🌏 Direct Country Verification</div>
+              <p style={{ fontSize: '0.9rem', color: 'var(--idx-muted)', marginBottom: '12px' }}>
+                Guidance mapped to universities and national councils across South and Southeast Asia, including Prometric exam center scheduling in your home cities.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {[
+                  { name: 'Pakistan', flag: '🇵🇰' },
+                  { name: 'India', flag: '🇮🇳' },
+                  { name: 'Bangladesh', flag: '🇧🇩' },
+                  { name: 'Indonesia', flag: '🇮🇩' },
+                  { name: 'Afghanistan', flag: '🇦🇫' },
+                  { name: 'Sri Lanka', flag: '🇱🇰' },
+                ].map((country) => (
+                  <span key={country.name} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', fontSize: '0.75rem', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                    {country.flag} {country.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="index-service-card index-glass" style={{ borderLeft: '4px solid #f59e0b' }}>
+              <div style={{ fontSize: '1.25rem', marginBottom: '8px', fontWeight: 600 }}>🏛️ GCC Health Authorities</div>
+              <p style={{ fontSize: '0.9rem', color: 'var(--idx-muted)', marginBottom: '12px' }}>
+                Exam simulations aligned with official pass percentages (60% to 65%) and license reciprocity rules across all 6 Gulf nations.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {['DHA (Dubai)', 'MOHAP (UAE)', 'DOH (Abu Dhabi)', 'SCFHS (Saudi)', 'QCHP (Qatar)', 'OMSB (Oman)'].map((auth) => (
+                  <span key={auth} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', fontSize: '0.75rem', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                    {auth}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'center' }}>
+            <Link to="/features/allied-health-licensing" className="index-btn index-btn--primary">
+              View Allied Health Licensing Guide &rarr;
+            </Link>
           </div>
         </section>
 
