@@ -3,8 +3,16 @@
   <!-- Homepage -->
   <url>
     <loc>https://www.clicktogulf.com/</loc>
-    <lastmod>2026-09-28</lastmod>
+    <lastmod>2026-09-30</lastmod>
     <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- About ClickToGulf Official Entity Page -->
+  <url>
+    <loc>https://www.clicktogulf.com/about</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 

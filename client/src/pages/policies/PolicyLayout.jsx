@@ -21,7 +21,11 @@ const PolicyLayout = () => {
       </main>
       <footer className="policy-layout-footer">
         <div className="policy-layout-footer-inner">
-          <span>ClickToGulf Exams</span>
+          <Link to="/">Home</Link>
+          <span className="policy-layout-sep" aria-hidden="true">
+            •
+          </span>
+          <Link to="/about">About ClickToGulf</Link>
           <span className="policy-layout-sep" aria-hidden="true">
             •
           </span>

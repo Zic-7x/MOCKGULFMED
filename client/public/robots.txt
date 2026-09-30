@@ -2,6 +2,7 @@
 # Directives for Web Search Engines and AI Answer Engines
 
 User-agent: Googlebot
+User-agent: Google-Extended
 User-agent: Bingbot
 User-agent: Slurp
 User-agent: DuckDuckBot
@@ -17,6 +18,8 @@ User-agent: anthropic-ai
 User-agent: Bytespider
 User-agent: *
 Allow: /
+Allow: /about
+Allow: /about-us
 Allow: /features
 Allow: /features/*
 Allow: /packages

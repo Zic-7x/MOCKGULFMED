@@ -38,6 +38,7 @@ import TermsAndConditions from './pages/policies/TermsAndConditions';
 import FeaturesHub from './pages/features/FeaturesHub';
 import PublicFeaturePage from './pages/features/PublicFeaturePage';
 import DownloadApp from './pages/DownloadApp';
+import AboutClickToGulf from './pages/AboutClickToGulf';
 import AndroidInstallBanner from './components/AndroidInstallBanner';
 
 function App() {
@@ -61,6 +62,8 @@ function App() {
           element={user ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} /> : <Register />}
         />
 
+        <Route path="/about" element={<AboutClickToGulf />} />
+        <Route path="/about-us" element={<Navigate to="/about" replace />} />
         <Route path="/download-app" element={<DownloadApp />} />
         <Route path="/android" element={<Navigate to="/download-app" replace />} />
         <Route path="/packages" element={<Packages />} />

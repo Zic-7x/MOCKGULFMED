@@ -1044,52 +1044,272 @@
 
 @media (max-width: 768px) {
   .user-dashboard-shell {
-    gap: 20px;
+    gap: 18px;
+    padding: 6px 0 36px;
   }
 
   .dashboard-hero-card {
-    padding: 20px;
+    padding: 18px 16px;
+    border-radius: 14px;
   }
 
   .hero-welcome-content {
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
+  }
+
+  .hero-avatar-pill {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+    border-radius: 12px;
+  }
+
+  .hero-subtitle-row {
+    gap: 6px;
   }
 
   .hero-title {
-    font-size: 22px;
+    font-size: 21px;
+    line-height: 1.25;
+  }
+
+  .hero-description {
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   .hero-cta-group {
     flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .hero-primary-cta,
+  .hero-secondary-cta {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    box-sizing: border-box;
   }
 
   .official-exam-banner {
     flex-direction: column;
     align-items: stretch;
+    padding: 16px 14px;
+    gap: 14px;
+    border-radius: 12px;
+  }
+
+  .official-exam-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .official-exam-title {
+    font-size: 15px;
+  }
+
+  .official-exam-desc {
+    font-size: 12.5px;
   }
 
   .official-exam-btn {
+    width: 100%;
     justify-content: center;
+    min-height: 44px;
+    padding: 12px 16px;
+    box-sizing: border-box;
+  }
+
+  .kpi-card {
+    padding: 16px 14px;
+    border-radius: 12px;
+  }
+
+  .quota-stats-row {
+    padding: 10px 12px;
+  }
+
+  .quota-num {
+    font-size: 18px;
+  }
+
+  .quota-sub {
+    font-size: 10.5px;
   }
 
   .hub-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .hub-card {
+    padding: 18px 16px;
+    border-radius: 12px;
+  }
+
+  .hub-card-title {
+    font-size: 15px;
+  }
+
+  .hub-card-desc {
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  .attempt-item-card {
+    padding: 16px 14px;
+    border-radius: 12px;
   }
 
   .attempt-main-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
+  }
+
+  .attempt-exam-title {
+    font-size: 15px;
   }
 
   .score-badge-large {
     align-self: flex-start;
     flex-direction: row;
     gap: 8px;
-    padding: 6px 14px;
+    padding: 6px 12px;
+    min-width: auto;
+  }
+
+  .score-percentage {
+    font-size: 18px;
+  }
+
+  .score-status-text {
+    font-size: 10px;
   }
 
   .attempt-metrics-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .attempt-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  .review-btn {
+    align-self: flex-end;
+    min-height: 36px;
+    padding: 4px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-hero-card {
+    padding: 16px 12px;
+  }
+
+  .hero-title {
+    font-size: 19px;
+  }
+
+  .hero-badge,
+  .hero-tag {
+    font-size: 10.5px;
+    padding: 2px 7px;
+  }
+
+  .quota-stats-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: center;
+    padding: 8px 10px;
+  }
+
+  .quota-num {
+    font-size: 16px;
+  }
+
+  .quota-sub {
+    font-size: 10px;
+  }
+
+  .exam-summary-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .summary-stat-box {
+    padding: 10px 6px;
+  }
+
+  .summary-stat-num {
+    font-size: 17px;
+  }
+
+  .summary-stat-label {
+    font-size: 10px;
+  }
+
+  .profile-detail-item {
+    padding: 8px 10px;
+    gap: 10px;
+  }
+
+  .detail-icon-box {
+    width: 34px;
+    height: 34px;
+  }
+
+  .detail-label {
+    font-size: 10.5px;
+  }
+
+  .detail-value {
+    font-size: 12.5px;
+  }
+
+  .empty-attempts-state {
+    padding: 32px 14px;
+  }
+
+  .empty-attempts-title {
+    font-size: 16px;
+  }
+
+  .empty-attempts-desc {
+    font-size: 13px;
+  }
+
+  .empty-attempts-cta {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    box-sizing: border-box;
+    font-size: 13.5px;
+  }
+}
+
+@media (max-width: 360px) {
+  .quota-stats-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .quota-divider {
+    display: none;
+  }
+
+  .exam-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 }

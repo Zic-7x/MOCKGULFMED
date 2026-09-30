@@ -118,6 +118,9 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
             <Link className="index-btn index-btn--ghost" to="/packages">
               Packages
             </Link>
+            <Link className="index-btn index-btn--ghost" to="/about">
+              About
+            </Link>
             <Link className="index-btn index-btn--ghost index-btn--app" to="/download-app" title="Download Android App APK">
               📱 App
             </Link>
@@ -135,6 +138,10 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
       <footer className="index-footer">
         <div className="index-footer-inner">
           <Link to="/">Home</Link>
+          <span className="index-footer-sep" aria-hidden="true">
+            •
+          </span>
+          <Link to="/about">About</Link>
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>

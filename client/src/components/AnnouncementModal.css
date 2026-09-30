@@ -130,4 +130,11 @@
   .announcement-modal-title {
     font-size: 1.25rem;
   }
+
+  .announcement-modal-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    box-sizing: border-box;
+  }
 }

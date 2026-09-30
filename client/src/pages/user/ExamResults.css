@@ -922,28 +922,174 @@
 /* Responsive */
 @media (max-width: 768px) {
   .exam-results {
-    padding: 16px 12px 60px;
+    padding: 14px 12px 60px;
+  }
+
+  .results-header-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .exam-results h1 {
+    font-size: 22px;
+    line-height: 1.25;
+  }
+
+  .results-subtitle {
+    font-size: 13.5px;
+  }
+
+  .results-top-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .action-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    box-sizing: border-box;
+    font-size: 13.5px;
+  }
+
+  .readiness-banner {
+    padding: 14px 14px;
+    gap: 12px;
+    border-radius: 12px;
+  }
+
+  .readiness-icon-col {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+  }
+
+  .readiness-content-col h3 {
+    font-size: 15px;
+  }
+
+  .readiness-content-col p {
+    font-size: 12.5px;
   }
 
   .score-summary-grid {
     grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .score-hero-card {
+    padding: 20px 16px;
+    border-radius: 12px;
+  }
+
+  .score-big-number {
+    font-size: 42px;
+  }
+
+  .exam-meta-card {
+    padding: 18px 16px;
+    border-radius: 12px;
+  }
+
+  .percentage-breakdown-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .metric-dimension-card {
+    padding: 16px 14px;
+    border-radius: 12px;
+  }
+
+  .dim-value {
+    font-size: 26px;
   }
 
   .review-section-header {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
   }
 
   .review-controls {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
+    width: 100%;
   }
 
   .review-filter-tabs {
+    display: flex;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 4px;
+    padding: 2px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .review-filter-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .review-tab-btn {
+    min-height: 38px;
+    padding: 8px 14px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .review-search-box {
+    width: 100%;
+  }
+
+  .review-search-input {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+
+  .result-item-card {
+    padding: 16px 14px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+  }
+
+  .result-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .result-options-list {
+    gap: 8px;
+  }
+
+  .result-option-row {
+    padding: 10px 12px;
+    min-height: 44px;
+    font-size: 13.5px;
+  }
+
+  .result-explanation-card {
+    padding: 14px 12px;
+    border-radius: 8px;
+    font-size: 13px;
   }
 
   .attempts-grid-list {
     grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .attempt-history-card {
+    padding: 16px 14px;
+    border-radius: 12px;
   }
 }

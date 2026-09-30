@@ -1010,41 +1010,256 @@
 /* Responsive */
 @media (max-width: 768px) {
   .take-exam {
-    padding: 14px 12px 110px;
+    padding: 12px 10px 140px;
   }
 
   .exam-header-bar {
     flex-direction: column;
     align-items: stretch;
-    padding: 14px;
+    padding: 12px 14px;
+    gap: 12px;
+  }
+
+  .exam-header-left {
+    min-width: 0;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .exam-title-pill {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .exam-title-pill h1 {
+    font-size: 15.5px;
+    line-height: 1.3;
+  }
+
+  .exam-progress-tracker {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .progress-bar-track {
+    flex: 1 1 100%;
+    max-width: 100%;
+    order: 3;
+    margin-top: 2px;
+  }
+
+  .question-count-text {
+    order: 1;
+    font-size: 12px;
+  }
+
+  .answered-tally-pill {
+    order: 2;
+    font-size: 11px;
   }
 
   .exam-header-right {
+    width: 100%;
     justify-content: space-between;
+    gap: 8px;
+  }
+
+  .exam-timer-card {
+    padding: 6px 12px;
+    flex-shrink: 0;
+  }
+
+  .timer-value {
+    font-size: 15px;
+  }
+
+  .tool-btn {
+    min-height: 40px;
+    padding: 6px 10px;
+    font-size: 12px;
   }
 
   .question-card {
-    padding: 18px 14px;
+    padding: 16px 14px;
+    border-radius: 12px;
   }
 
-  .submission-breakdown-card {
-    grid-template-columns: repeat(2, 1fr);
+  .question-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .question-meta-left {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .question-meta-right {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .flag-toggle-btn {
+    min-height: 38px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .question-pace-timer {
+    padding: 4px 10px;
+    font-size: 11.5px;
+  }
+
+  .question-text-box {
+    padding: 14px 12px;
+  }
+
+  .option-label {
+    padding: 12px 14px;
+    min-height: 50px;
     gap: 12px;
+  }
+
+  .option-letter-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
+
+  .option-text-content {
+    font-size: 14.5px;
+    line-height: 1.5;
+  }
+
+  .question-actions {
+    width: 100%;
+  }
+
+  .submit-answer-button {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+
+  .question-feedback {
+    padding: 16px 14px;
+    margin-top: 18px;
+    border-radius: 10px;
   }
 
   .exam-footer {
     flex-direction: column;
     align-items: stretch;
     bottom: 8px;
-    padding: 12px;
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    gap: 8px;
+    border-radius: 14px;
   }
 
   .nav-step-buttons {
-    justify-content: space-between;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .nav-button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    padding: 10px;
+    font-size: 13.5px;
+    box-sizing: border-box;
+  }
+
+  .footer-palette-toggle {
+    width: 100%;
+  }
+
+  .palette-open-footer-btn {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+
+  .finish-exam-wrapper {
+    width: 100%;
   }
 
   .finish-exam-cta-btn {
     width: 100%;
+    min-height: 46px;
     justify-content: center;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+
+  /* Modals on Mobile */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-content {
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    max-width: 100%;
+    padding: 20px 16px;
+    margin: 0;
+    box-sizing: border-box;
+  }
+
+  .palette-modal {
+    max-height: 90vh;
+  }
+
+  .palette-legend {
+    gap: 8px;
+    padding: 8px 10px;
+    font-size: 11.5px;
+  }
+
+  .palette-grid {
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 6px;
+    max-height: 45vh;
+  }
+
+  .palette-num-btn {
+    height: 44px;
+    min-width: 44px;
+    font-size: 13px;
+  }
+
+  .submission-breakdown-card {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .btn-secondary,
+  .btn-primary-confirm {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    box-sizing: border-box;
   }
 }

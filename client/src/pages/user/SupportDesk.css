@@ -576,9 +576,9 @@
   cursor: pointer;
   line-height: 1;
   padding: 0.35rem;
-  border-radius: 6px;
-  min-width: 36px;
-  min-height: 36px;
+  border-radius: 8px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -934,6 +934,12 @@
   .support-search-input {
     width: 100%;
     min-width: unset;
+    font-size: 16px;
+  }
+
+  .support-input,
+  .support-textarea {
+    font-size: 16px;
   }
 
   /* Modal on Small Screen - Full / Sheet Experience */
@@ -946,6 +952,7 @@
     max-height: 94vh;
     border-radius: 18px 18px 0 0;
     max-width: 100%;
+    width: 100%;
     margin: 0;
   }
 
@@ -965,7 +972,7 @@
   }
 
   .support-modal-footer {
-    padding: 0.85rem 1rem;
+    padding: 0.85rem 1rem max(1rem, env(safe-area-inset-bottom, 0px));
     flex-direction: column-reverse;
     gap: 0.5rem;
   }
@@ -973,6 +980,8 @@
   .support-modal-footer .btn-secondary,
   .support-modal-footer .btn-primary {
     width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
   }
 
   .support-msg {
@@ -985,11 +994,13 @@
   }
 
   .support-thread-reply-area {
-    padding: 0.85rem 1rem;
+    padding: 0.85rem 1rem max(1rem, env(safe-area-inset-bottom, 0px));
   }
 
   .support-thread-reply-controls .btn-primary {
     width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
   }
 }
 

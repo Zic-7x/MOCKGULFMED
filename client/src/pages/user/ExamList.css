@@ -664,15 +664,110 @@
 
 @media (max-width: 640px) {
   .exam-list {
-    padding: 16px 12px 40px;
+    padding: 16px 12px 48px;
+  }
+
+  .exam-list-header-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    margin-bottom: 18px;
   }
 
   .exam-list h1 {
     font-size: 22px;
+    line-height: 1.25;
+  }
+
+  .exam-list-subtitle {
+    font-size: 13.5px;
+  }
+
+  .exam-header-actions {
+    width: 100%;
+  }
+
+  .exam-results-link-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+    box-sizing: border-box;
   }
 
   .exam-metrics-strip {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .metric-strip-item {
+    gap: 8px;
+  }
+
+  .metric-strip-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+  }
+
+  .metric-strip-val {
+    font-size: 15px;
+  }
+
+  .metric-strip-lbl {
+    font-size: 11px;
+  }
+
+  .exam-filters-bar {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .search-input {
+    font-size: 16px;
+    padding: 11px 36px 11px 38px;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .filter-controls-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .filter-pill-group {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 3px;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .filter-pill-group::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-pill {
+    padding: 8px 14px;
+    font-size: 13px;
+    min-height: 38px;
+    flex-shrink: 0;
+  }
+
+  .sort-wrapper {
+    width: 100%;
+  }
+
+  .sort-select {
+    width: 100%;
+    min-height: 44px;
+    font-size: 14px;
+    box-sizing: border-box;
   }
 
   .exams-grid {
@@ -680,20 +775,46 @@
     gap: 16px;
   }
 
+  .exam-card {
+    padding: 18px 16px;
+    border-radius: 14px;
+  }
+
+  .exam-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .exam-header h3 {
+    font-size: 16.5px;
+  }
+
+  .start-exam-button,
+  .addon-button,
+  .locked-button {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    box-sizing: border-box;
+    font-size: 14px;
+  }
+
   .no-exams-subscription-gate {
     padding: 20px 16px;
   }
 
-  .filter-controls-group {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-pill-group {
-    overflow-x: auto;
-  }
-
-  .sort-select {
+  .subscription-gate-button {
+    max-width: 100%;
     width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 380px) {
+  .exam-metrics-strip {
+    grid-template-columns: 1fr;
   }
 }

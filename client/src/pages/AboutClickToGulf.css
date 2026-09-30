@@ -1,0 +1,387 @@
+/* AboutClickToGulf.css - Entity Authority & About Page Styling */
+
+.ctg-about-container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+  color: var(--brand-text, #0f172a);
+}
+
+.ctg-about-hero {
+  text-align: center;
+  margin-bottom: 48px;
+  padding: 32px 20px;
+  background: linear-gradient(180deg, rgba(11, 110, 168, 0.08) 0%, rgba(11, 110, 168, 0.01) 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(11, 110, 168, 0.15);
+}
+
+.ctg-about-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 9999px;
+  margin-bottom: 20px;
+}
+
+.ctg-about-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.15;
+  color: #0f172a;
+  margin-bottom: 16px;
+}
+
+.index-page--dark .ctg-about-title {
+  color: #f8fafc;
+}
+
+.ctg-about-tagline {
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  line-height: 1.6;
+  color: #475569;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.index-page--dark .ctg-about-tagline {
+  color: #94a3b8;
+}
+
+/* Disambiguation Callout Card */
+.ctg-disambiguation-card {
+  margin: 32px 0 48px;
+  padding: 24px 28px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-left: 6px solid #16a34a;
+  border-radius: 14px;
+}
+
+.index-page--dark .ctg-disambiguation-card {
+  background: rgba(22, 163, 74, 0.1);
+  border-color: rgba(74, 222, 128, 0.3);
+  border-left-color: #22c55e;
+}
+
+.ctg-disambiguation-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ctg-disambiguation-icon {
+  font-size: 24px;
+}
+
+.ctg-disambiguation-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #14532d;
+  margin: 0;
+}
+
+.index-page--dark .ctg-disambiguation-title {
+  color: #86efac;
+}
+
+.ctg-disambiguation-text {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #166534;
+  margin: 0;
+}
+
+.index-page--dark .ctg-disambiguation-text {
+  color: #bbf7d0;
+}
+
+/* Factsheet / Knowledge Table */
+.ctg-factsheet-section {
+  margin: 48px 0;
+}
+
+.ctg-section-heading {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #0f172a;
+}
+
+.index-page--dark .ctg-section-heading {
+  color: #f8fafc;
+}
+
+.ctg-factsheet-table-wrapper {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.index-page--dark .ctg-factsheet-table-wrapper {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.ctg-factsheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.ctg-factsheet-table th,
+.ctg-factsheet-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.index-page--dark .ctg-factsheet-table th,
+.index-page--dark .ctg-factsheet-table td {
+  border-bottom-color: #334155;
+}
+
+.ctg-factsheet-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ctg-factsheet-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  width: 32%;
+}
+
+.index-page--dark .ctg-factsheet-table th {
+  background: #0f172a;
+  color: #94a3b8;
+}
+
+.ctg-factsheet-table td {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.index-page--dark .ctg-factsheet-table td {
+  color: #e2e8f0;
+}
+
+/* Core Pillars Grid */
+.ctg-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  margin: 32px 0 56px;
+}
+
+.ctg-pillar-card {
+  padding: 28px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.index-page--dark .ctg-pillar-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.ctg-pillar-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.07);
+}
+
+.ctg-pillar-icon {
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+
+.ctg-pillar-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+
+.index-page--dark .ctg-pillar-title {
+  color: #f8fafc;
+}
+
+.ctg-pillar-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #64748b;
+  margin: 0;
+}
+
+.index-page--dark .ctg-pillar-desc {
+  color: #94a3b8;
+}
+
+/* Authority Badges Strip */
+.ctg-authorities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 24px 0 48px;
+}
+
+.ctg-authority-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.index-page--dark .ctg-authority-box {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.ctg-auth-flag {
+  font-size: 26px;
+}
+
+.ctg-auth-info strong {
+  display: block;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.index-page--dark .ctg-auth-info strong {
+  color: #f8fafc;
+}
+
+.ctg-auth-info span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.index-page--dark .ctg-auth-info span {
+  color: #94a3b8;
+}
+
+/* FAQ Accordion */
+.ctg-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 24px 0 56px;
+}
+
+.ctg-faq-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.index-page--dark .ctg-faq-item {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.ctg-faq-question {
+  width: 100%;
+  text-align: left;
+  padding: 18px 22px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.index-page--dark .ctg-faq-question {
+  color: #f8fafc;
+}
+
+.ctg-faq-answer {
+  padding: 0 22px 20px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #475569;
+}
+
+.index-page--dark .ctg-faq-answer {
+  color: #94a3b8;
+}
+
+/* CTA Card */
+.ctg-about-cta {
+  text-align: center;
+  padding: 48px 24px;
+  background: linear-gradient(135deg, #0b6ea8 0%, #0369a1 100%);
+  border-radius: 20px;
+  color: #ffffff;
+  margin-top: 56px;
+}
+
+.ctg-about-cta h3 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.ctg-about-cta p {
+  font-size: 16px;
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto 28px;
+}
+
+.ctg-about-cta-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ctg-cta-btn-primary {
+  padding: 14px 28px;
+  background: #ffffff;
+  color: #0b6ea8;
+  font-weight: 700;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ctg-cta-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.ctg-cta-btn-outline {
+  padding: 14px 28px;
+  background: transparent;
+  color: #ffffff;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.ctg-cta-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.1);
+}

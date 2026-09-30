@@ -401,6 +401,14 @@ const Layout = ({ children }) => {
                       <NavIcon type="results" />
                       <span>Results</span>
                     </Link>
+                    <Link
+                      to="/support"
+                      className={location.pathname === '/support' ? 'nav-link active' : 'nav-link'}
+                      onClick={closeMenu}
+                    >
+                      <NavIcon type="support" />
+                      <span>Support</span>
+                    </Link>
                   </div>
                 </div>
               )}

@@ -102,11 +102,11 @@
 }
 
 .ctg-header-inner {
-  max-width: 1400px;
+  max-width: 1480px;
   width: 100%;
   box-sizing: border-box;
   margin: 0 auto;
-  padding: 0 clamp(12px, 2.5vw, 24px);
+  padding: 0 clamp(12px, 1.8vw, 24px);
   height: 100%;
   display: flex;
   align-items: center;
@@ -203,34 +203,78 @@
 .ctg-nav-links {
   display: none;
   align-items: center;
-  gap: clamp(8px, 1.2vw, 16px);
+  justify-content: center;
   list-style: none;
   margin: 0;
   padding: 0;
-  flex-shrink: 1;
+  flex-shrink: 0;
   min-width: 0;
 }
 
-@media (min-width: 1200px) {
+.ctg-nav-text-short {
+  display: none;
+}
+
+.ctg-nav-text-full {
+  display: inline;
+}
+
+@media (min-width: 1100px) {
   .ctg-nav-links {
     display: flex;
   }
 }
 
-@media (min-width: 1200px) and (max-width: 1360px) {
+@media (min-width: 1100px) and (max-width: 1379px) {
   .ctg-nav-links {
     gap: 8px;
   }
   .ctg-nav-link {
     font-size: 0.82rem;
-    padding: 3px 5px;
+    padding: 3px 6px;
+  }
+  .ctg-nav-text-full {
+    display: none;
+  }
+  .ctg-nav-text-short {
+    display: inline;
   }
   .ctg-header-actions {
     gap: 6px;
   }
+  .ctg-theme-toggle {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 0.95rem;
+  }
   .ctg-btn {
     padding: 7px 12px;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
+  }
+}
+
+@media (min-width: 1380px) {
+  .ctg-nav-links {
+    gap: clamp(8px, 1.1vw, 16px);
+  }
+  .ctg-nav-link {
+    font-size: 0.88rem;
+    padding: 4px 8px;
+  }
+  .ctg-header-actions {
+    gap: 8px;
+  }
+  .ctg-theme-toggle {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .ctg-brand-tag {
+    display: none;
   }
 }
 
@@ -242,10 +286,20 @@
   transition: color 0.15s ease;
   white-space: nowrap;
   padding: 4px 6px;
+  flex-shrink: 0;
 }
 
 .ctg-nav-link:hover {
   color: var(--ctg-teal-600);
+}
+
+.ctg-nav-eligibility-link {
+  color: var(--ctg-teal-700);
+  font-weight: 700;
+}
+
+.ctg-page--dark .ctg-nav-eligibility-link {
+  color: var(--ctg-teal-400);
 }
 
 .ctg-nav-portal-badge {
@@ -260,6 +314,7 @@
   font-size: clamp(0.78rem, 0.88vw, 0.84rem);
   font-weight: 700;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .ctg-page--dark .ctg-nav-portal-badge {
@@ -431,9 +486,9 @@
   border-color: var(--ctg-border-strong);
 }
 
-@media (min-width: 1240px) {
+@media (min-width: 1100px) {
   .ctg-mobile-toggle {
-    display: none;
+    display: none !important;
   }
 }
 

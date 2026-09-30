@@ -610,22 +610,31 @@ export default function ClickToGulf() {
 
           <nav className="ctg-nav-links" id="ctg-desktop-nav" aria-label="Main Navigation">
             <a href="#ctg-licensing" className="ctg-nav-link">
-              Licensing Services
+              <span className="ctg-nav-text-full">Licensing Services</span>
+              <span className="ctg-nav-text-short">Licensing</span>
             </a>
             <a href="#ctg-navigator" className="ctg-nav-link">
-              Pathway Navigator
+              <span className="ctg-nav-text-full">Pathway Navigator</span>
+              <span className="ctg-nav-text-short">Pathways</span>
             </a>
             <a href="#ctg-prep" className="ctg-nav-link">
-              Preparation Materials
+              <span className="ctg-nav-text-full">Preparation Materials</span>
+              <span className="ctg-nav-text-short">Prep Banks</span>
             </a>
-            <Link to="/exams-portal" className="ctg-nav-link ctg-nav-portal-badge" id="ctg-nav-mockgulfmed">
-              <span>🩺</span> ClickToGulf Exams Portal
+            <Link to="/exams-portal" className="ctg-nav-link ctg-nav-portal-badge" id="ctg-nav-mockgulfmed" title="ClickToGulf Exams Portal">
+              <span>🩺</span>
+              <span className="ctg-nav-text-full">Exams Portal</span>
+              <span className="ctg-nav-text-short">Exams</span>
             </Link>
             <Link to="/packages" className="ctg-nav-link">
               Packages
             </Link>
-            <Link to="/eligibility-check" className="ctg-nav-link">
-              Eligibility Check
+            <Link to="/eligibility-check" className="ctg-nav-link ctg-nav-eligibility-link">
+              <span className="ctg-nav-text-full">Eligibility Check</span>
+              <span className="ctg-nav-text-short">Eligibility</span>
+            </Link>
+            <Link to="/about" className="ctg-nav-link" id="ctg-nav-about">
+              About
             </Link>
           </nav>
 
@@ -698,6 +707,9 @@ export default function ClickToGulf() {
             </Link>
             <Link to="/features" onClick={() => setMobileMenuOpen(false)}>
               Platform Features
+            </Link>
+            <Link to="/about" onClick={() => setMobileMenuOpen(false)}>
+              🛡️ About ClickToGulf (Official Entity)
             </Link>
             <Link to="/download-app" onClick={() => setMobileMenuOpen(false)}>
               📱 Download Android App (Free APK)
@@ -1405,6 +1417,7 @@ export default function ClickToGulf() {
           <div className="ctg-footer-col">
             <h5>Account & Legal</h5>
             <ul className="ctg-footer-links">
+              <li><Link to="/about">About ClickToGulf</Link></li>
               <li><Link to="/login">Sign In</Link></li>
               <li><Link to="/register">Create Account</Link></li>
               <li><Link to="/policies/terms">Terms & Conditions</Link></li>
@@ -1419,6 +1432,7 @@ export default function ClickToGulf() {
             © {new Date().getFullYear()} ClickToGulf & ClickToGulf Exams. All rights reserved. Serving healthcare professionals worldwide.
           </div>
           <div className="ctg-footer-bottom-links">
+            <Link to="/about">About</Link>
             <Link to="/policies/terms">Terms</Link>
             <Link to="/policies/refund">Refunds</Link>
             <Link to="/exams-portal">ClickToGulf Exams Portal</Link>
