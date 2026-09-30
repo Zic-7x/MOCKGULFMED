@@ -346,7 +346,7 @@ const Packages = () => {
       if (e.key === 'Escape') setIsMobileNavOpen(false);
     };
     const onResize = () => {
-      if (window.innerWidth >= 768) setIsMobileNavOpen(false);
+      if (window.innerWidth >= 1024) setIsMobileNavOpen(false);
     };
 
     document.addEventListener('keydown', onKey);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,6 +17,20 @@ import './Register.css';
 const logoUrl = '/logo.svg';
 const PHONE_REGEX = /^[0-9+\-()\s]{7,32}$/;
 
+function readStoredTheme() {
+  if (typeof window === 'undefined') return 'light';
+  try {
+    const t =
+      localStorage.getItem('ctg-index-theme') ||
+      localStorage.getItem('clicktogulf-index-theme') ||
+      localStorage.getItem('mockgulfmed-index-theme');
+    if (t === 'dark' || t === 'light') return t;
+  } catch {
+    /* ignore */
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 const isPhoneValid = (phone) => {
   const trimmed = (phone || '').trim();
   const digits = trimmed.replace(/\D/g, '');
@@ -28,10 +42,65 @@ const Register = () => {
   const [searchParams] = useSearchParams();
   const { login } = useAuth();
 
+  const [theme, setTheme] = useState(readStoredTheme);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [paymentChoice, setPaymentChoice] = useState('PAY_NOW'); // 'PAY_NOW' | 'PAY_LATER'
+
+  const toggleTheme = useCallback(() => {
+    setTheme((t) => {
+      const next = t === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('ctg-index-theme', next);
+        localStorage.setItem('clicktogulf-index-theme', next);
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
+
+  const closeMobileNav = useCallback(() => {
+    setIsMobileNavOpen(false);
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (
+        (e.key === 'ctg-index-theme' ||
+          e.key === 'clicktogulf-index-theme' ||
+          e.key === 'mockgulfmed-index-theme') &&
+        (e.newValue === 'dark' || e.newValue === 'light')
+      ) {
+        setTheme(e.newValue);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileNavOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeMobileNav();
+    };
+    const onResize = () => {
+      if (window.innerWidth >= 1024) closeMobileNav();
+    };
+
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [isMobileNavOpen, closeMobileNav]);
 
   const [catalog, setCatalog] = useState({
     professions: [],
@@ -300,18 +369,102 @@ const Register = () => {
   };
 
   return (
-    <div className="register-page">
-      <header className="register-header">
+    <div className={`register-page register-page--${theme}`}>
+      <header className={`register-header${theme === 'dark' ? ' register-header--dark' : ''}`} role="banner">
         <div className="register-header-inner">
-          <Link to="/" className="register-brand" aria-label="ClickToGulf Exams home">
-            <img className="register-logo" src={logoUrl} alt="ClickToGulf Exams" />
+          <Link to="/" className="register-brand" aria-label="ClickToGulf Exams home" onClick={closeMobileNav}>
+            <img className="register-logo" src={logoUrl} alt="ClickToGulf Exams" width="40" height="40" />
+            <span className="register-brand-text">ClickToGulf Exams</span>
           </Link>
-          <nav className="register-nav">
-            <Link className="register-link" to="/packages">
+
+          {/* Desktop Navigation */}
+          <nav className="register-nav register-nav--desktop" aria-label="Main navigation">
+            <Link className="register-nav-link" to="/">
+              Home
+            </Link>
+            <Link className="register-nav-link" to="/packages">
               Packages
             </Link>
-            <Link className="register-link" to="/login">
+            <Link className="register-nav-link" to="/features">
+              Features
+            </Link>
+            <Link className="register-nav-link register-nav-link--app" to="/download-app" title="Download Android App APK">
+              📱 App
+            </Link>
+            <button
+              type="button"
+              className="register-theme-btn"
+              onClick={toggleTheme}
+              aria-pressed={theme === 'dark'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <Link className="register-nav-cta" to="/login">
               Sign in
+            </Link>
+          </nav>
+
+          {/* Mobile Action Controls */}
+          <div className="register-header-mobile-actions">
+            <button
+              type="button"
+              className="register-theme-btn register-theme-btn--mobile"
+              onClick={toggleTheme}
+              aria-pressed={theme === 'dark'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+
+            <button
+              type="button"
+              className={`register-nav-toggle ${isMobileNavOpen ? 'register-nav-toggle--open' : ''}`}
+              onClick={() => setIsMobileNavOpen((open) => !open)}
+              aria-expanded={isMobileNavOpen}
+              aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-controls="register-mobile-drawer"
+            >
+              <span className="register-nav-toggle-bar" />
+              <span className="register-nav-toggle-bar" />
+              <span className="register-nav-toggle-bar" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Drawer */}
+        {isMobileNavOpen && (
+          <div
+            className="register-mobile-backdrop"
+            onClick={closeMobileNav}
+            aria-hidden="true"
+          />
+        )}
+        <div
+          id="register-mobile-drawer"
+          className={`register-mobile-drawer ${isMobileNavOpen ? 'register-mobile-drawer--open' : ''}`}
+          aria-hidden={!isMobileNavOpen}
+        >
+          <nav className="register-mobile-nav" aria-label="Mobile navigation">
+            <Link className="register-mobile-link" to="/" onClick={closeMobileNav}>
+              <span className="register-mobile-link-icon" aria-hidden="true">🏠</span>
+              <span>Home</span>
+            </Link>
+            <Link className="register-mobile-link" to="/packages" onClick={closeMobileNav}>
+              <span className="register-mobile-link-icon" aria-hidden="true">💎</span>
+              <span>Packages</span>
+            </Link>
+            <Link className="register-mobile-link" to="/features" onClick={closeMobileNav}>
+              <span className="register-mobile-link-icon" aria-hidden="true">✨</span>
+              <span>Features</span>
+            </Link>
+            <Link className="register-mobile-link" to="/download-app" onClick={closeMobileNav}>
+              <span className="register-mobile-link-icon" aria-hidden="true">📱</span>
+              <span>Download App (APK)</span>
+            </Link>
+            <div className="register-mobile-divider" />
+            <Link className="register-mobile-cta" to="/login" onClick={closeMobileNav}>
+              Sign in to Account
             </Link>
           </nav>
         </div>
