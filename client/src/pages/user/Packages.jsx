@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePageSeo } from '../../utils/usePageSeo';
 import Layout from '../../components/Layout';
 const logoUrl = '/logo.svg';
 import { fetchPublicCatalog } from '../../utils/publicApi';
@@ -322,6 +323,28 @@ const Packages = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  usePageSeo({
+    title: 'Exam Preparation Packages & Pricing · ClickToGulf',
+    description:
+      'Browse comprehensive Gulf medical mock exam packages, Prometric question banks, and complete DataFlow PSV licensing assistance plans.',
+    canonical: 'https://www.clicktogulf.com/packages',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: 'ClickToGulf Healthcare Licensing Exam Packages',
+      description:
+        'Comprehensive mock examination packages and Prometric test prep for doctors, nurses, and allied health professionals.',
+      offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'USD',
+        lowPrice: '14.99',
+        highPrice: '149.99',
+        offerCount: '3',
+      },
+    },
+  });
+
   const [theme, setTheme] = useState(readStoredTheme);
   const [loading, setLoading] = useState(true);
   const [packages, setPackages] = useState([]);

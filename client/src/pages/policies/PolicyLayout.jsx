@@ -1,8 +1,15 @@
 import { Link, Outlet } from 'react-router-dom';
+import { usePageSeo } from '../../utils/usePageSeo';
 const logoUrl = '/logo.svg';
 import './PolicyLayout.css';
 
 const PolicyLayout = () => {
+  usePageSeo({
+    title: 'Terms & Policies · ClickToGulf Exams',
+    description: 'Legal policies, terms of service, and refund terms for ClickToGulf Exams.',
+    noindex: true,
+  });
+
   return (
     <div className="policy-layout">
       <header className="policy-layout-top">
@@ -29,15 +36,15 @@ const PolicyLayout = () => {
           <span className="policy-layout-sep" aria-hidden="true">
             •
           </span>
-          <Link to="/policies">Policies</Link>
+          <Link to="/policies" rel="nofollow">Policies</Link>
           <span className="policy-layout-sep" aria-hidden="true">
             •
           </span>
-          <Link to="/policies/terms">Terms</Link>
+          <Link to="/policies/terms" rel="nofollow">Terms</Link>
           <span className="policy-layout-sep" aria-hidden="true">
             •
           </span>
-          <Link to="/policies/refund">Refund</Link>
+          <Link to="/policies/refund" rel="nofollow">Refund</Link>
         </div>
       </footer>
     </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import IndexMarketingLayout from '../components/IndexMarketingLayout';
 import './DownloadApp.css';
 
@@ -36,7 +37,10 @@ export default function DownloadApp() {
 
   const handlePwaInstall = async () => {
     if (!deferredPrompt) {
-      alert('To install directly, open this website in Google Chrome or Samsung Internet on Android, then tap Menu (⋮) > "Add to Home screen" or "Install App".');
+      toast('To install directly, open this website in Google Chrome on Android, then tap Menu (⋮) > "Add to Home screen" or "Install App".', {
+        icon: '📱',
+        duration: 5000,
+      });
       return;
     }
 
@@ -59,7 +63,11 @@ export default function DownloadApp() {
   };
 
   return (
-    <IndexMarketingLayout documentTitle="Download Android App · ClickToGulf Exams">
+    <IndexMarketingLayout
+      documentTitle="Download Android App · ClickToGulf Exams"
+      metaDescription="Download the official ClickToGulf Exams Android app (APK) or install the PWA for offline-ready Prometric exam preparation on mobile devices."
+      canonical="https://www.clicktogulf.com/download-app"
+    >
       <div className="download-app-page">
         {/* Hero Section */}
         <section className="app-hero-section">

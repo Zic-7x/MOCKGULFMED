@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
+import { usePageSeo } from '../utils/usePageSeo';
 const logoUrl = '/logo.svg';
 import { fetchPublicCatalog } from '../utils/publicApi';
 import './PublicEligibilityChecker.css';
@@ -138,6 +139,29 @@ function computeReadiness(state) {
 
 function PublicEligibilityChecker() {
   const { user } = useAuth();
+
+  usePageSeo({
+    title: 'Free Eligibility Assessment · DHA, MOH, HAAD & SCFHS · ClickToGulf',
+    description:
+      'Check your qualification and experience eligibility for Gulf healthcare licensing in UAE, Saudi Arabia, Qatar, and Oman instantly.',
+    canonical: 'https://www.clicktogulf.com/eligibility-check',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'ClickToGulf Free Eligibility Assessment',
+      applicationCategory: 'HealthApplication',
+      operatingSystem: 'All',
+      description:
+        'Interactive Gulf healthcare licensing eligibility and PQR qualifications checker for Doctors, Nurses, and Allied Health.',
+      url: 'https://www.clicktogulf.com/eligibility-check',
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+    },
+  });
+
   const [step, setStep] = useState(1);
   const [professionSearch, setProfessionSearch] = useState('');
   const [haSearch, setHaSearch] = useState('');

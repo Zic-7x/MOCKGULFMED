@@ -25,10 +25,13 @@ Allow: /features/*
 Allow: /packages
 Allow: /eligibility-check
 Allow: /download-app
-Allow: /policies
-Allow: /policies/*
 Allow: /login
 Allow: /register
+
+# Disallow legal policies and refund terms from search results (keep results focused only on relevant pages)
+Disallow: /policies
+Disallow: /policies/
+Disallow: /policies/*
 
 # Disallow private user sessions and administrative portals
 Disallow: /admin

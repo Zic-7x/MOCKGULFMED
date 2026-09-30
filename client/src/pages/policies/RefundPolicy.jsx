@@ -1,6 +1,13 @@
+import { usePageSeo } from '../../utils/usePageSeo';
 import './RefundPolicy.css';
 
 const RefundPolicy = () => {
+  usePageSeo({
+    title: 'Refund Policy · ClickToGulf Exams',
+    description: 'Refund terms and purchase conditions for ClickToGulf Exams.',
+    noindex: true,
+  });
+
   return (
     <article className="refund-policy">
       <h1>Refund policy</h1>

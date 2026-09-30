@@ -29,6 +29,14 @@ app.use(
   })
 );
 
+// Prevent search engine crawlers from indexing policy routes
+app.use((req, res, next) => {
+  if (req.path.startsWith('/policies')) {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  }
+  next();
+});
+
 // NOTE: Freemius webhook signature validation requires the raw request body.
 // We mount raw parsing for the webhook routes before express.json().
 app.post('/api/freemius/webhook', express.raw({ type: '*/*' }), asyncRoute(freemiusWebhookHandler));

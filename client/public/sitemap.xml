@@ -99,28 +99,24 @@
   <!-- Android App / PWA Download -->
   <url>
     <loc>https://www.clicktogulf.com/download-app</loc>
-    <lastmod>2026-09-28</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
   </url>
 
-  <!-- Policies -->
+  <!-- Create New Account Sitelink -->
   <url>
-    <loc>https://www.clicktogulf.com/policies</loc>
-    <lastmod>2026-09-28</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <loc>https://www.clicktogulf.com/register</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
   </url>
+
+  <!-- User Login Sitelink -->
   <url>
-    <loc>https://www.clicktogulf.com/policies/terms</loc>
-    <lastmod>2026-09-28</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://www.clicktogulf.com/policies/refund</loc>
-    <lastmod>2026-09-28</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <loc>https://www.clicktogulf.com/login</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
   </url>
 </urlset>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { usePageSeo } from '../utils/usePageSeo';
 const logoUrl = '/logo.svg';
 import './Login.css';
 
@@ -19,6 +20,26 @@ function readStoredTheme() {
 }
 
 const Login = () => {
+  usePageSeo({
+    title: 'Sign in to ClickToGulf · Gulf Medical Licensing Portal',
+    description:
+      'Sign in to your ClickToGulf exam account to practice Prometric mock exams, view test results, and track DataFlow readiness.',
+    canonical: 'https://www.clicktogulf.com/login',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Sign in to ClickToGulf',
+      description:
+        'Sign in to your ClickToGulf exam account to practice Prometric mock exams, view test results, and track DataFlow readiness.',
+      url: 'https://www.clicktogulf.com/login',
+      isPartOf: {
+        '@type': 'WebSite',
+        name: 'ClickToGulf',
+        url: 'https://www.clicktogulf.com',
+      },
+    },
+  });
+
   const location = useLocation();
   const [email, setEmail] = useState(() => location.state?.registeredEmail || '');
   const [password, setPassword] = useState('');

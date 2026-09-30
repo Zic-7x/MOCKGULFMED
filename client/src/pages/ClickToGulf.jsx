@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { usePageSeo } from '../utils/usePageSeo';
 import FloatingNavIsland from '../components/home/FloatingNavIsland';
 import HeroPersonaSwitch from '../components/home/HeroPersonaSwitch';
 import LicensingCostEstimator from '../components/home/LicensingCostEstimator';
@@ -529,9 +530,12 @@ export default function ClickToGulf() {
   const [activeCategoryFilter, setActiveCategoryFilter] = useState('All');
   const [expandedFaq, setExpandedFaq] = useState(0);
 
-  useEffect(() => {
-    document.title = 'ClickToGulf — Gulf Healthcare Licensing & Exam Preparation Worldwide';
-  }, []);
+  usePageSeo({
+    title: 'ClickToGulf – Gulf Medical & Allied Health Licensing Mock Exams',
+    description:
+      'Create an account or sign in to ClickToGulf. Pass DHA, MOHAP, DOH/HAAD, SCFHS Prometric exams with official mock question banks and DataFlow licensing prep.',
+    canonical: 'https://www.clicktogulf.com/',
+  });
 
   useEffect(() => {
     try {
@@ -1420,9 +1424,9 @@ export default function ClickToGulf() {
               <li><Link to="/about">About ClickToGulf</Link></li>
               <li><Link to="/login">Sign In</Link></li>
               <li><Link to="/register">Create Account</Link></li>
-              <li><Link to="/policies/terms">Terms & Conditions</Link></li>
-              <li><Link to="/policies/refund">Refund Policy</Link></li>
-              <li><Link to="/policies">Privacy & Policies</Link></li>
+              <li><Link to="/policies/terms" rel="nofollow">Terms & Conditions</Link></li>
+              <li><Link to="/policies/refund" rel="nofollow">Refund Policy</Link></li>
+              <li><Link to="/policies" rel="nofollow">Privacy & Policies</Link></li>
             </ul>
           </div>
         </div>
@@ -1433,8 +1437,8 @@ export default function ClickToGulf() {
           </div>
           <div className="ctg-footer-bottom-links">
             <Link to="/about">About</Link>
-            <Link to="/policies/terms">Terms</Link>
-            <Link to="/policies/refund">Refunds</Link>
+            <Link to="/policies/terms" rel="nofollow">Terms</Link>
+            <Link to="/policies/refund" rel="nofollow">Refunds</Link>
             <Link to="/exams-portal">ClickToGulf Exams Portal</Link>
           </div>
         </div>

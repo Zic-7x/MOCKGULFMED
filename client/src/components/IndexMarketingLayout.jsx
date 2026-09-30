@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { usePageSeo } from '../utils/usePageSeo';
 const logoUrl = '/logo.svg';
 import '../pages/Index.css';
 import '../pages/FeaturePages.css';
@@ -19,7 +20,7 @@ function usePrefersReducedMotion() {
 /**
  * Shared shell for public marketing pages: matches Index theme, nav, and footer.
  */
-export default function IndexMarketingLayout({ children, documentTitle }) {
+export default function IndexMarketingLayout({ children, documentTitle, metaDescription, canonical }) {
   const reducedMotion = usePrefersReducedMotion();
   const [navSolid, setNavSolid] = useState(false);
   const [theme, setTheme] = useState(() => {
@@ -33,6 +34,19 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
       /* ignore */
     }
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  const baseTitle = 'ClickToGulf Exams';
+  const resolvedTitle = documentTitle
+    ? documentTitle.includes(baseTitle)
+      ? documentTitle
+      : `${documentTitle} · ${baseTitle}`
+    : undefined;
+
+  usePageSeo({
+    title: resolvedTitle,
+    description: metaDescription,
+    canonical,
   });
 
   useEffect(() => {
@@ -50,15 +64,6 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
       /* ignore */
     }
   }, [theme]);
-
-  useEffect(() => {
-    if (!documentTitle) return;
-    const base = 'ClickToGulf Exams';
-    document.title = documentTitle.includes(base) ? documentTitle : `${documentTitle} · ${base}`;
-    return () => {
-      document.title = base;
-    };
-  }, [documentTitle]);
 
   useEffect(() => {
     if (reducedMotion) return undefined;
@@ -157,15 +162,15 @@ export default function IndexMarketingLayout({ children, documentTitle }) {
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>
-          <Link to="/policies">Policies</Link>
+          <Link to="/policies" rel="nofollow">Policies</Link>
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>
-          <Link to="/policies/terms">Terms</Link>
+          <Link to="/policies/terms" rel="nofollow">Terms</Link>
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>
-          <Link to="/policies/refund">Refund policy</Link>
+          <Link to="/policies/refund" rel="nofollow">Refund policy</Link>
         </div>
       </footer>
     </div>

@@ -1,7 +1,14 @@
 import { Link } from 'react-router-dom';
+import { usePageSeo } from '../../utils/usePageSeo';
 import './TermsAndConditions.css';
 
 const TermsAndConditions = () => {
+  usePageSeo({
+    title: 'Terms and Conditions · ClickToGulf Exams',
+    description: 'Terms and Conditions governing the use of ClickToGulf Exams.',
+    noindex: true,
+  });
+
   return (
     <article className="terms-conditions">
       <h1>Terms and conditions</h1>

@@ -93,7 +93,11 @@ export default function AboutClickToGulf() {
   ];
 
   return (
-    <IndexMarketingLayout documentTitle="About ClickToGulf — Official Gulf Healthcare Licensing & Exam Portal">
+    <IndexMarketingLayout
+      documentTitle="About ClickToGulf · Gulf Healthcare Licensing Portal"
+      metaDescription="Learn about ClickToGulf, the dedicated licensing prep platform helping healthcare professionals worldwide pass Prometric and Pearson VUE exams."
+      canonical="https://www.clicktogulf.com/about"
+    >
       <div className="ctg-about-container">
         {/* Hero Section */}
         <section className="ctg-about-hero">

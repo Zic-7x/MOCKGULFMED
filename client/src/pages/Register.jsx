@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import { usePageSeo } from '../utils/usePageSeo';
 import { fetchPublicCatalog, registerUser } from '../utils/publicApi';
 import { launchFreemiusPackageCheckout } from '../utils/freemiusCheckout';
 import { packageFeaturesForDisplay } from '../utils/packageFeaturesDisplay';
@@ -41,6 +42,26 @@ const Register = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login } = useAuth();
+
+  usePageSeo({
+    title: 'Create new account · ClickToGulf Exams',
+    description:
+      'Sign up for a free ClickToGulf account. Start practicing DHA, MOHAP, HAAD, and SCFHS Prometric mock exams for Doctors, Nurses, and Allied Health.',
+    canonical: 'https://www.clicktogulf.com/register',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Create new account',
+      description:
+        'Sign up for a free ClickToGulf account. Start practicing DHA, MOHAP, HAAD, and SCFHS Prometric mock exams for Doctors, Nurses, and Allied Health.',
+      url: 'https://www.clicktogulf.com/register',
+      isPartOf: {
+        '@type': 'WebSite',
+        name: 'ClickToGulf',
+        url: 'https://www.clicktogulf.com',
+      },
+    },
+  });
 
   const [theme, setTheme] = useState(readStoredTheme);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);

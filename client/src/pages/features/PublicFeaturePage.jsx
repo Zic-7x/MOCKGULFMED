@@ -31,9 +31,18 @@ export default function PublicFeaturePage() {
     .filter(Boolean);
 
   const docTitle = `${page.navLabel} · Product Features · ClickToGulf Exams`;
+  const metaDesc =
+    page.heroLead ||
+    page.summary ||
+    `${page.title} — Official licensing prep feature from ClickToGulf Exams.`;
+  const canonicalUrl = `https://www.clicktogulf.com/features/${slug}`;
 
   return (
-    <IndexMarketingLayout documentTitle={docTitle}>
+    <IndexMarketingLayout
+      documentTitle={docTitle}
+      metaDescription={metaDesc}
+      canonical={canonicalUrl}
+    >
       <div className="index-feature-wrap">
         {/* Breadcrumb */}
         <nav className="index-feature-breadcrumb index-reveal" aria-label="Breadcrumb">

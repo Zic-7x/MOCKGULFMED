@@ -1421,15 +1421,15 @@ const Index = () => {
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>
-          <Link to="/policies">Policies</Link>
+          <Link to="/policies" rel="nofollow">Policies</Link>
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>
-          <Link to="/policies/terms">Terms</Link>
+          <Link to="/policies/terms" rel="nofollow">Terms</Link>
           <span className="index-footer-sep" aria-hidden="true">
             •
           </span>
-          <Link to="/policies/refund">Refund policy</Link>
+          <Link to="/policies/refund" rel="nofollow">Refund policy</Link>
         </div>
       </footer>
     </div>

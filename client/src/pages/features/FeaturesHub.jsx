@@ -172,7 +172,11 @@ export default function FeaturesHub() {
   }, [selectedCategory, searchQuery]);
 
   return (
-    <IndexMarketingLayout documentTitle="Platform Features & Capabilities · ClickToGulf Exams">
+    <IndexMarketingLayout
+      documentTitle="Platform Features & Exam Tools · ClickToGulf"
+      metaDescription="Explore realistic CBT mock exams, high-yield question banks, DataFlow PSV guidance, and automated eligibility assessments."
+      canonical="https://www.clicktogulf.com/features"
+    >
       <div className="index-feature-wrap">
         {/* Hub Header & Hero */}
         <header className="index-feature-hub-header index-reveal">
